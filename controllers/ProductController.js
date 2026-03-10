@@ -10,9 +10,9 @@ exports.showCreateForm = (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
- const { nama, kategori, satuan, berat, harga, keterangan, stok } = req.body;
-await Product.create({ nama, kategori, satuan, berat, harga, keterangan, stok });
-  res.redirect('/');
+  const { nama, kategori, satuan, berat, harga, keterangan, stok } = req.body;
+  await Product.create({ nama, kategori, satuan, berat, harga, keterangan, stok });
+  res.redirect('/products');
 };
 
 exports.showEditForm = async (req, res) => {
@@ -22,18 +22,18 @@ exports.showEditForm = async (req, res) => {
 };
 
 exports.updateProduct = async (req, res) => {
- const { nama, kategori, satuan, berat, harga, keterangan, stok } = req.body;
-await Product.update(
-  { nama, kategori, satuan, berat, harga, keterangan, stok },
-  { where: { id: req.params.id } }
-);
-  res.redirect('/');
+  const { nama, kategori, satuan, berat, harga, keterangan, stok } = req.body;
+  await Product.update(
+    { nama, kategori, satuan, berat, harga, keterangan, stok },
+    { where: { id: req.params.id } }
+  );
+  res.redirect('/products');
 };
 
 exports.deleteProduct = async (req, res) => {
   try {
     await Product.destroy({ where: { id: req.params.id } });
-    res.redirect('/');
+    res.redirect('/products');
   } catch (err) {
     res.status(500).send(err.message);
   }

@@ -98,10 +98,10 @@ async function insertDummyProducts() {
 
 (async () => {
   try {
-    await sequelize.sync({ alter: true }); // Buat/memperbarui tabel
-    await insertDummyProducts(); // Isi data setelah tabel siap
+    await sequelize.sync({ alter: true }); 
+    await insertDummyProducts(); 
     console.log("Data produk berhasil dimasukkan.");
-    process.exit(); // keluar dari proses node
+    process.exit(); 
   } catch (err) {
     console.error("Gagal:", err);
   }

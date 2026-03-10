@@ -2,45 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daftar Produk</title>
+  <title>Produk</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
-  <div class="container mx-auto p-6">
-   <h1 class="text-2xl font-bold mb-4">Daftar Produk</h1>
-<a href="/create" class="bg-blue-500 text-white px-4 py-2 rounded mb-4 inline-block">Tambah Produk</a>
-<table class="w-full border">
-  <thead>
-    <tr>
-      <th>Nama</th>
-      <th>Kategori</th>
-      <th>Satuan</th>
-      <th>Berat (gr)</th>
-      <th>Harga</th>
-      <th>Stok</th>
-      <th>Aksi</th>
-    </tr>
-  </thead>
-<tbody>
-  <% products.forEach(product => { %>
-    <tr>
-      <td><%= product.nama %></td>
-      <td><%= product.kategori %></td>
-      <td><%= product.satuan %></td>
-      <td><%= product.berat %></td>
-      <td><%= product.harga %></td>
-      <td><%= product.stok %></td>
-      <td>
-        <a href="/edit/<%= product.id %>">Edit</a> |
-        <form action="/delete/<%= product.id %>" method="POST" onsubmit="return confirm('Yakin ingin menghapus?')">
-  <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">Hapus</button>
-</form>
-      </td>
-    </tr>
-  <% }) %>
-</tbody>
-</table>
-  </div>
+<body class="flex min-h-screen bg-gray-100">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white p-6 shadow">
+    <h2 class="text-xl font-semibold mb-6">Wabots POS</h2>
+    <nav class="space-y-4">
+      <a href="/dashboard" class="block text-blue-600 hover:underline">Dashboard</a>
+      <a href="/products" class="block font-bold">Produk</a>
+      <a href="/logout" class="block text-red-600 hover:underline">Logout</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-semibold">Daftar Produk</h1>
+      <a href="/products/create" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tambah Produk</a>
+    </div>
+
+    <table class="min-w-full bg-white shadow rounded overflow-hidden">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="px-4 py-2 text-left">Nama</th>
+          <th class="px-4 py-2 text-left">Kategori</th>
+          <th class="px-4 py-2 text-left">Satuan</th>
+          <th class="px-4 py-2 text-left">Berat</th>
+          <th class="px-4 py-2 text-left">Harga</th>
+          <th class="px-4 py-2 text-left">Keterangan</th>
+          <th class="px-4 py-2 text-left">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(product => { %>
+          <tr class="border-t">
+            <td class="px-4 py-2"><%= product.nama %></td>
+            <td class="px-4 py-2"><%= product.kategori %></td>
+            <td class="px-4 py-2"><%= product.satuan %></td>
+            <td class="px-4 py-2"><%= product.berat %> gr</td>
+            <td class="px-4 py-2">Rp <%= product.harga %></td>
+            <td class="px-4 py-2"><%= product.keterangan %></td>
+            <td class="px-4 py-2 space-x-2">
+              <a href="/products/<%= product.id %>/edit" class="text-blue-600 hover:underline">Edit</a>
+              <form action="/products/<%= product.id %>?_method=DELETE" method="POST" class="inline">
+                <button type="submit" class="text-red-600 hover:underline">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </main>
 </body>
 </html>

@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs');
 const sequelize = require('../config/database');
 const { DataTypes } = require('sequelize');
 
-// Buat ulang model Admin sederhana, atau import jika sudah punya
 const Admin = sequelize.define('Admin', {
   username: {
     type: DataTypes.STRING,
@@ -15,7 +14,7 @@ const Admin = sequelize.define('Admin', {
   }
 }, {
   tableName: 'admins',
-  timestamps: false // sesuaikan kalau kamu pakai timestamps
+  timestamps: false 
 });
 
 async function createAdmin() {

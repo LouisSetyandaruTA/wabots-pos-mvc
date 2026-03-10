@@ -18,7 +18,7 @@ exports.getDashboard = async (req, res) => {
 exports.showDashboard = async (req, res) => {
   try {
     const totalProducts = await Product.count();
-    const totalCategories = await Product.aggregate('kategori', 'DISTINCT', { plain: false }); // atau sesuaikan dengan model kategori jika terpisah
+    const totalCategories = await Product.aggregate('kategori', 'DISTINCT', { plain: false });
     res.render('dashboard', {
       summary: {
         totalProducts,

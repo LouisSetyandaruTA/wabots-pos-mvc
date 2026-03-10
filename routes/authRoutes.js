@@ -1,31 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
-const { Admin } = require('../models'); // <== INI YANG BELUM ADA
+const bcrypt = require('bcryptjs'); 
+const Admin = require('../models/Admin');
 
-router.get('/login', (req, res) => {
+
+router.get('/', (req, res) => {
   res.render('login', { error: null });
 });
 
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+router.post('/', async (req, res) => {
+  const { username, password } = req.body;
 
   try {
-    const admin = await Admin.findOne({ where: { email } });
+    const admin = await Admin.findOne({ where: { username } });
+
     if (!admin) {
-      return res.render('login', { error: 'Email atau password salah' });
+      return res.render('login', { error: 'Username atau password salah' });
     }
 
-    const validPassword = await bcrypt.compare(password, admin.password);
-    if (!validPassword) {
-      return res.render('login', { error: 'Email atau password salah' });
+    const isMatch = await bcrypt.compare(password, admin.password);
+
+    if (!isMatch) {
+      return res.render('login', { error: 'Username atau password salah' });
     }
 
-    req.session.adminId = admin.id;
-    res.redirect('/dashboard');
+    req.session.userId = admin.id;
+    return res.redirect('/dashboard');
+
   } catch (err) {
     console.error(err);
-    res.render('login', { error: 'Terjadi kesalahan saat login' });
+    return res.render('login', { error: 'Terjadi kesalahan saat login' });
   }
 });
 

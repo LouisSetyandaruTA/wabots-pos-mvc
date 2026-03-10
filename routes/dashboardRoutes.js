@@ -1,14 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const DashboardController = require('../controllers/DashboardController');
+const Product = require('../models/Product');
 
-function isAuthenticated(req, res, next) {
-  if (req.session && req.session.adminId) {
-    return next();
+router.get('/', async (req, res) => {
+  try {
+    const products = await Product.findAll();
+    res.render('dashboard', {
+      products, 
+      summary: {
+        totalProducts: products.length
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Gagal memuat dashboard');
   }
-  return res.redirect('/login');
-}
-
-router.get('/dashboard', isAuthenticated, DashboardController.showDashboard);
+});
 
 module.exports = router;

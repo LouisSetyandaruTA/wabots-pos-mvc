@@ -3,7 +3,7 @@ const Product = require('../models/Product');
 
 (async () => {
   try {
-    await sequelize.sync({ force: true }); // Buat ulang tabel
+    await sequelize.sync({ force: true });
     console.log("Tabel products berhasil dibuat ulang.");
     process.exit();
   } catch (err) {

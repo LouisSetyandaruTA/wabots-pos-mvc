@@ -1,6 +1,5 @@
 const Admin = require('../models/Admin');
 const bcrypt = require('bcryptjs');
-const session = require('express-session');
 
 exports.loginForm = (req, res) => {
   res.render('login', { error: null });
@@ -20,9 +19,8 @@ exports.login = async (req, res) => {
       return res.render('login', { error: 'Password salah' });
     }
 
-    req.session.adminId = admin.id;
+    req.session.userId = admin.id;
     res.redirect('/dashboard');
-
   } catch (err) {
     console.error(err);
     res.render('login', { error: 'Terjadi kesalahan server' });
