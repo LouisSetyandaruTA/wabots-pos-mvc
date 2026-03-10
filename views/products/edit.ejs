@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Produk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto p-6">
+<h1 class="text-xl font-bold mb-4">Edit Produk</h1>
+<form action="/edit/<%= product.id %>" method="POST">
+  <input name="nama" value="<%= product.nama %>" required />
+  <input name="kategori" value="<%= product.kategori %>" required />
+  <input name="satuan" value="<%= product.satuan %>" required />
+  <input name="berat" value="<%= product.berat %>" required />
+  <input name="harga" value="<%= product.harga %>" required />
+  <input name="stok" value="<%= product.stok %>" required />
+  <textarea name="keterangan"><%= product.keterangan %></textarea>
+  <button type="submit">Update</button>
+</form>
+  </div>
+</body>
+</html>

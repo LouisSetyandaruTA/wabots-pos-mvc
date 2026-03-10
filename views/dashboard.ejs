@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 200px;
+      background: #333;
+      color: white;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      margin: 10px 0;
+    }
+    .main {
+      flex-grow: 1;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .header {
+      background: #222;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+    }
+    .cards {
+      display: flex;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      flex: 1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: white;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    h2 {
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h3>Wabots POS</h3>
+    <a href="/">Dashboard</a>
+    <a href="/products">Produk</a>
+    <a href="#">Penjualan</a>
+    <a href="#">Logout</a>
+  </div>
+
+  <div class="main">
+    <h2>Grafik Penjualan</h2>
+<canvas id="salesChart" height="100"></canvas>
+
+    <div class="header">Dashboard</div>
+
+    <div class="cards">
+   <div class="card">
+  <strong>Jumlah Produk</strong><br/>
+  <%= summary.totalProducts %>
+</div>
+
+<div class="card">
+  <strong>Total Kategori</strong><br/>
+  <%= summary.totalCategories %>
+</div>
+    </div>
+
+    <h2>Data Produk</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Kategori</th>
+          <th>Satuan</th>
+          <th>Berat</th>
+          <th>Harga</th>
+          <th>Stok</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(product => { %>
+          <tr>
+            <td><%= product.nama %></td>
+            <td><%= product.kategori %></td>
+            <td><%= product.satuan %></td>
+            <td><%= product.berat %> gr</td>
+            <td>Rp <%= product.harga.toLocaleString('id-ID') %></td>
+            <td><%= product.stok %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</body>
+<script>
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  const salesChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul'],
+      datasets: [{
+        label: 'Jumlah Penjualan',
+        data: [50, 80, 65, 120, 90, 40, 100],
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 20
+          }
+        }
+      }
+    }
+  });
+</script>
+</html>

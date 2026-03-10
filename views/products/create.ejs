@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tambah Produk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto p-6">
+<h1 class="text-xl font-bold mb-4">Tambah Produk</h1>
+<form action="/create" method="POST">
+  <input name="nama" placeholder="Nama" required />
+  <input name="kategori" placeholder="Kategori" required />
+  <input name="satuan" placeholder="Satuan" required />
+  <input name="berat" placeholder="Berat" type="number" required />
+  <input name="harga" placeholder="Harga" type="number" required />
+  <input name="stok" placeholder="Stok" type="number" required />
+  <textarea name="keterangan" placeholder="Keterangan"></textarea>
+  <button type="submit">Simpan</button>
+</form>
+  </div>
+</body>
+</html>
