@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Produk</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="flex min-h-screen bg-gray-100">
 
   <!-- Sidebar -->
@@ -37,24 +39,36 @@
         </tr>
       </thead>
       <tbody>
-        <% products.forEach(product => { %>
+        <% products.forEach(product=> { %>
           <tr class="border-t">
-            <td class="px-4 py-2"><%= product.nama %></td>
-            <td class="px-4 py-2"><%= product.kategori %></td>
-            <td class="px-4 py-2"><%= product.satuan %></td>
-            <td class="px-4 py-2"><%= product.berat %> gr</td>
-            <td class="px-4 py-2">Rp <%= product.harga %></td>
-            <td class="px-4 py-2"><%= product.keterangan %></td>
+            <td class="px-4 py-2">
+              <%= product.nama %>
+            </td>
+            <td class="px-4 py-2">
+              <%= product.kategori %>
+            </td>
+            <td class="px-4 py-2">
+              <%= product.satuan %>
+            </td>
+            <td class="px-4 py-2">
+              <%= product.berat %> gr
+            </td>
+            <td class="px-4 py-2">Rp <%= product.harga %>
+            </td>
+            <td class="px-4 py-2">
+              <%= product.keterangan %>
+            </td>
             <td class="px-4 py-2 space-x-2">
               <a href="/products/<%= product.id %>/edit" class="text-blue-600 hover:underline">Edit</a>
               <form action="/products/<%= product.id %>?_method=DELETE" method="POST" class="inline">
-                <button type="submit" class="text-red-600 hover:underline">Hapus</button>
-              </form>
+  <button type="submit" class="text-red-600 hover:underline">Hapus</button>
+</form>
             </td>
           </tr>
-        <% }) %>
+          <% }) %>
       </tbody>
     </table>
   </main>
 </body>
+
 </html>
