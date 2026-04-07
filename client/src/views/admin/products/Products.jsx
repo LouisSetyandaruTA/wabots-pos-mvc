@@ -28,14 +28,62 @@ export default function Products() {
   });
 
   const fetchVariants = async (productId) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/variants/${productId}`);
+      setVariants(prev => ({
+        ...prev,
+        [productId]: res.data
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const createVariant = async (productId) => {
+    try {
+      await axios.post("http://localhost:5000/api/variants", {
+        ...variantForm,
+        productId,
+      });
+
+await fetchVariants(productId)
+await fetchProducts() // 🔥
+
+      setVariantForm({
+        nama_variant: "",
+        harga: "",
+        stok: "",
+        berat: "",
+      });
+
+    } catch (err) {
+      alert(err.response?.data?.message);
+    }
+  };
+
+  const deleteVariant = async (id, productId) => {
+    await axios.delete(`http://localhost:5000/api/variants/${id}`);
+    fetchVariants(productId);
+    await fetchProducts() // 🔥
+  };
+
+const [editVariantId, setEditVariantId] = useState(null);
+const [variantEditForm, setVariantEditForm] = useState({});
+
+const updateVariant = async (id, productId) => {
   try {
-    const res = await axios.get(`http://localhost:5000/api/variants/${productId}`);
-    setVariants(prev => ({
-      ...prev,
-      [productId]: res.data
-    }));
+    await axios.put(`http://localhost:5000/api/variants/${id}`, variantEditForm);
+
+    setEditVariantId(null);
+
+    // 🔥 WAJIB
+    await fetchVariants(productId);
+
+    // 🔥 WAJIB (ini yang bikin stok product ikut update)
+    await fetchProducts();
+
   } catch (err) {
-    console.error(err);
+    alert(err.response?.data?.message);
   }
 };
 
@@ -244,7 +292,7 @@ export default function Products() {
               Batal
             </button>
           )}
-          
+
         </div>
       </Card>
 
@@ -268,29 +316,190 @@ export default function Products() {
           <tbody>
             {products.length > 0 ? (
               products.map((p) => (
-                <tr key={p.id} className="border-b hover:bg-gray-100">
-                  <td>{p.nama}</td>
-                  <td>{p.kategori}</td>
-                  <td>{p.satuan}</td>
-                  <td>{p.berat} g</td>
-                  <td>Rp {p.harga.toLocaleString()}</td>
-                  <td>{p.stok}</td>
-                  <td className="p-2 flex gap-2">
-                    <button
-                      onClick={() => handleEdit(p)}
-                      className="bg-yellow-400 px-2 py-1 rounded"
-                    >
-                      Edit
-                    </button>
+                <React.Fragment key={p.id}>
 
-                    <button
-                      onClick={() => handleDelete(p.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                  {/* ROW PRODUCT */}
+                  <tr className="border-b hover:bg-gray-100">
+                    <td>{p.nama}</td>
+                    <td>{p.kategori}</td>
+                    <td>{p.satuan}</td>
+                    <td>{p.berat} g</td>
+                    <td>Rp {p.harga.toLocaleString()}</td>
+                    <td>{p.stok}</td>
+                    <td className="p-2 flex gap-2">
+                      <button
+                        onClick={() => handleEdit(p)}
+                        className="bg-yellow-400 px-2 py-1 rounded"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="bg-red-500 text-white px-2 py-1 rounded"
+                      >
+                        Delete
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedProduct(p.id);
+                          fetchVariants(p.id);
+                        }}
+                        className="bg-green-500 text-white px-2 py-1 rounded"
+                      >
+                        Variant
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* 🔥 ROW VARIANT */}
+                  {selectedProduct === p.id && (
+                    <tr>
+                      <td colSpan="7">
+
+                        {/* FORM VARIANT */}
+                        <div className="p-4 bg-gray-100 border-2 border-blue-300 rounded-lg mb-3">
+                          <h3 className="font-bold mb-2">
+                            Variant untuk: {products.find(p => p.id === selectedProduct)?.nama}
+                          </h3>
+
+                          <div className="flex gap-2">
+                            <input
+                              placeholder="Nama"
+                              onChange={(e) =>
+                                setVariantForm({ ...variantForm, nama_variant: e.target.value })
+                              }
+                            />
+                            <input
+                              placeholder="Harga"
+                              type="number"
+                              onChange={(e) =>
+                                setVariantForm({ ...variantForm, harga: e.target.value })
+                              }
+                            />
+                            <input
+                              placeholder="Stok"
+                              type="number"
+                              onChange={(e) =>
+                                setVariantForm({ ...variantForm, stok: e.target.value })
+                              }
+                            />
+                            <input
+                              placeholder="Berat"
+                              type="number"
+                              onChange={(e) =>
+                                setVariantForm({ ...variantForm, berat: e.target.value })
+                              }
+                            />
+
+                            <button
+                              onClick={() => createVariant(p.id)}
+                              className="bg-blue-500 text-white px-2"
+                            >
+                              Tambah
+                            </button>
+                            <button
+                              onClick={() => setSelectedProduct(null)}
+                              className="mb-2 text-sm text-red-500"
+                            >
+                              Tutup Variant
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* LIST VARIANT */}
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr>
+                              <th>Nama</th>
+                              <th>Harga</th>
+                              <th>Stok</th>
+                              <th>Berat</th>
+                              <th>Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(variants[p.id] || []).map((v) => (
+                              <tr key={v.id}>
+                                <td>{v.nama_variant}</td>
+
+                                <td>
+                                  {editVariantId === v.id ? (
+                                    <input
+                                      value={variantEditForm.harga}
+                                      onChange={(e) =>
+                                        setVariantEditForm({ ...variantEditForm, harga: e.target.value })
+                                      }
+                                    />
+                                  ) : (
+                                    v.harga
+                                  )}
+                                </td>
+
+                                <td>
+                                  {editVariantId === v.id ? (
+                                    <input
+                                      value={variantEditForm.stok}
+                                      onChange={(e) =>
+                                        setVariantEditForm({ ...variantEditForm, stok: e.target.value })
+                                      }
+                                    />
+                                  ) : (
+                                    v.stok
+                                  )}
+                                </td>
+
+                                <td>
+                                  {editVariantId === v.id ? (
+                                    <input
+                                      value={variantEditForm.berat}
+                                      onChange={(e) =>
+                                        setVariantEditForm({ ...variantEditForm, berat: e.target.value })
+                                      }
+                                    />
+                                  ) : (
+                                    v.berat
+                                  )}
+                                </td>
+
+                                <td>
+                                  {editVariantId === v.id ? (
+                                    <button
+                                      onClick={() => updateVariant(v.id, p.id)}
+                                      className="bg-blue-500 text-white px-2"
+                                    >
+                                      Save
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setEditVariantId(v.id);
+                                        setVariantEditForm(v);
+                                      }}
+                                      className="bg-yellow-400 px-2"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => deleteVariant(v.id, p.id)}
+                                    className="bg-red-500 text-white px-2"
+                                  >
+                                    Hapus
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                      </td>
+                    </tr>
+                  )}
+
+                </React.Fragment>
               ))
             ) : (
               <tr>
@@ -299,6 +508,8 @@ export default function Products() {
                 </td>
               </tr>
             )}
+
+
           </tbody>
         </table>
       </Card>

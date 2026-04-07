@@ -5,5 +5,6 @@ const controller = require("../../controllers/ProductVariantController");
 router.get("/:productId", controller.getVariants);
 router.post("/", controller.createVariant);
 router.delete("/:id", controller.deleteVariant);
+router.put("/:id", controller.updateVariant);
 
 module.exports = router;

@@ -30,7 +30,6 @@ const seedVariants = async () => {
           harga: product.harga * 0.8,
           stok: 20,
           berat: 250,
-          satuan: "gram"
         },
         {
           productId: product.id,
@@ -38,7 +37,6 @@ const seedVariants = async () => {
           harga: product.harga,
           stok: 30,
           berat: 500,
-          satuan: "gram"
         },
         {
           productId: product.id,
@@ -46,7 +44,6 @@ const seedVariants = async () => {
           harga: product.harga * 1.5,
           stok: 15,
           berat: 1000,
-          satuan: "gram"
         }
       );
     }

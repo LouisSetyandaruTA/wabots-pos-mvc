@@ -27,10 +27,6 @@ const ProductVariant = sequelize.define("ProductVariant", {
     type: DataTypes.FLOAT,
     allowNull: false
   },
-  satuan: {
-    type: DataTypes.STRING,
-    allowNull: false
-  }
 }, {
   tableName: "product_variants"
 });

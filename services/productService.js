@@ -1,7 +1,29 @@
-const { Product } = require("../models");
+const { Product, ProductVariant } = require("../models");
 
 exports.getAll = async () => {
-  return await Product.findAll();
+  const products = await Product.findAll({
+    include: [
+      {
+        model: ProductVariant,
+        as: "variants" // ⚠️ pastikan sama dengan associations
+      }
+    ]
+  });
+
+  return products.map(p => {
+    const variants = p.variants || [];
+
+    let totalStock = p.stok;
+
+    if (variants.length > 0) {
+      totalStock = variants.reduce((sum, v) => sum + (v.stok || 0), 0);
+    }
+
+    return {
+      ...p.toJSON(),
+      stok: totalStock
+    };
+  });
 };
 
 // 🔥 VALIDATION FUNCTION
