@@ -1,32 +1,17 @@
-const Product = require('../models/Product');
-const { Op } = require('sequelize');
+const { Order, Product } = require("../models");
 
 exports.getDashboard = async (req, res) => {
   try {
-    const products = await Product.findAll();
-    const summary = {
-      totalProducts: products.length,
-      totalCategories: new Set(products.map(p => p.kategori)).size,
-      totalStock: products.reduce((sum, p) => sum + p.stok, 0),
-    };
-    res.render('dashboard', { products, summary });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-};
-
-exports.showDashboard = async (req, res) => {
-  try {
+    const totalOrders = await Order.count();
     const totalProducts = await Product.count();
-    const totalCategories = await Product.aggregate('kategori', 'DISTINCT', { plain: false });
-    res.render('dashboard', {
-      summary: {
-        totalProducts,
-        totalCategories: totalCategories.length
-      }
+
+    res.json({
+      totalOrders,
+      totalProducts,
+      totalRevenue: 0, // nanti kita hitung
+      pendingOrders: 0
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Terjadi kesalahan di server');
+    res.status(500).json({ message: err.message });
   }
 };

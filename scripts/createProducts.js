@@ -106,5 +106,3 @@ async function insertDummyProducts() {
     console.error("Gagal:", err);
   }
 })();
-
-insertDummyProducts();

@@ -1,33 +1,44 @@
 const Admin = require('../models/Admin');
 const bcrypt = require('bcryptjs');
-
-exports.loginForm = (req, res) => {
-  res.render('login', { error: null });
-};
+const jwt = require('jsonwebtoken');
 
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const admin = await Admin.findOne({ where: { username } });
+
     if (!admin) {
-      return res.render('login', { error: 'Username tidak ditemukan' });
+      return res.status(401).json({
+        success: false,
+        message: "Username tidak ditemukan"
+      });
     }
 
     const match = await bcrypt.compare(password, admin.password);
+
     if (!match) {
-      return res.render('login', { error: 'Password salah' });
+      return res.status(401).json({
+        success: false,
+        message: "Password salah"
+      });
     }
 
-    req.session.userId = admin.id;
-    res.redirect('/dashboard');
-  } catch (err) {
-    console.error(err);
-    res.render('login', { error: 'Terjadi kesalahan server' });
-  }
-};
+    const token = jwt.sign(
+      { id: admin.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-exports.logout = (req, res) => {
-  req.session.destroy();
-  res.redirect('/login');
+    res.json({
+      success: true,
+      token
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
