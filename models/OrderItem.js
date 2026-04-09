@@ -11,10 +11,6 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.UUID,
     allowNull: false
   },
-  productId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false
@@ -31,6 +27,9 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.FLOAT,
     allowNull: false
   }
+}, {
+  tableName: 'order_items' // 🔥 penting
 });
+
 
 module.exports = OrderItem;

@@ -1,62 +1,50 @@
 require("dotenv").config();
-const sequelize = require("../config/database");
-const { Product, ProductVariant } = require("../models");
+const { sequelize, Product, ProductVariant } = require("../models");
 
-const seedVariants = async () => {
+(async () => {
   try {
-    await sequelize.authenticate();
-    console.log("Database connected");
-
     await sequelize.sync();
 
-    // 🔥 ambil semua product
     const products = await Product.findAll();
 
-    if (products.length === 0) {
-      console.log("❌ Tidak ada product, isi product dulu");
-      return;
+    if (!products.length) {
+      throw new Error("Product kosong");
     }
-
-    // 🔥 hapus variant lama (opsional)
-    await ProductVariant.destroy({ where: {} });
 
     const variants = [];
 
-    for (const product of products) {
+    for (const p of products) {
       variants.push(
         {
-          productId: product.id,
+          productId: p.id,
           nama_variant: "Kecil",
-          harga: product.harga * 0.8,
+          harga: p.harga * 0.8,
           stok: 20,
-          berat: 250,
+          berat: 250
         },
         {
-          productId: product.id,
+          productId: p.id,
           nama_variant: "Sedang",
-          harga: product.harga,
+          harga: p.harga,
           stok: 30,
-          berat: 500,
+          berat: 500
         },
         {
-          productId: product.id,
+          productId: p.id,
           nama_variant: "Besar",
-          harga: product.harga * 1.5,
+          harga: p.harga * 1.5,
           stok: 15,
-          berat: 1000,
+          berat: 1000
         }
       );
     }
 
     await ProductVariant.bulkCreate(variants);
 
-    console.log("✅ Product variants berhasil dibuat");
+    console.log("✅ Variants created");
     process.exit();
-
   } catch (err) {
-    console.error("❌ Error:", err.message);
-    process.exit();
+    console.error(err);
+    process.exit(1);
   }
-};
-
-seedVariants();
+})();

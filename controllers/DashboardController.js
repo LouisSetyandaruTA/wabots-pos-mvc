@@ -1,16 +1,9 @@
-const { Order, Product } = require("../models");
+const dashboardService = require("../services/dashboardService");
 
 exports.getDashboard = async (req, res) => {
   try {
-    const totalOrders = await Order.count();
-    const totalProducts = await Product.count();
-
-    res.json({
-      totalOrders,
-      totalProducts,
-      totalRevenue: 0, // nanti kita hitung
-      pendingOrders: 0
-    });
+    const data = await dashboardService.getDashboardData();
+    res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

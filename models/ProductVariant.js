@@ -28,7 +28,8 @@ const ProductVariant = sequelize.define("ProductVariant", {
     allowNull: false
   },
 }, {
-  tableName: "product_variants"
+  tableName: "product_variants",
+  freezeTableName: true
 });
 
 module.exports = ProductVariant;

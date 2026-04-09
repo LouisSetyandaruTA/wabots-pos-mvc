@@ -15,7 +15,8 @@ const Product = sequelize.define("Product", {
   stok: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   keterangan: { type: DataTypes.TEXT, allowNull: true }
 }, {
-  tableName: 'products'
+  tableName: 'products',
+  freezeTableName: true
 });
 
 module.exports = Product;

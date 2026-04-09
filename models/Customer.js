@@ -12,7 +12,8 @@ const Customer = sequelize.define('Customer', {
         unique: true
     }
 }, {
-    tableName: 'customers'
+    tableName: 'customers',
+    freezeTableName: true
 });
 
 module.exports = Customer;

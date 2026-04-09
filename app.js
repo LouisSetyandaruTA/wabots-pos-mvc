@@ -17,6 +17,10 @@ const productRoutes = require("./routes/api/productRoutes");
 app.use("/api", productRoutes);
 
 app.use("/api", require("./routes/api/orderRoutes"));
+app.use("/api/orders", require("./routes/api/orderRoutes"));
+
+const customerRoutes = require("./routes/api/customerRoutes");
+app.use("/api/customers", customerRoutes);
 
 
 app.use(express.urlencoded({ extended: true }));

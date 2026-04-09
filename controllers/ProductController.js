@@ -1,13 +1,5 @@
 const productService = require("../services/productService");
 
-//Get All
-exports.getAllProducts = (req, res) => {
-  res.json([
-    { id: 1, name: "Produk A", price: 10000 },
-    { id: 2, name: "Produk B", price: 20000 }
-  ]);
-};
-
 //Get Product
 exports.getProducts = async (req, res) => {
   try {

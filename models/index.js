@@ -1,6 +1,5 @@
 const sequelize = require("../config/database");
 
-// Import semua model
 const Product = require("./Product");
 const ProductVariant = require("./ProductVariant");
 const Order = require("./Order");
@@ -8,16 +7,17 @@ const OrderItem = require("./OrderItem");
 const Customer = require("./Customer");
 const User = require("./User");
 
-// Jalankan associations
-require("./associations");
+const db = {};
 
-// Export semua model
-module.exports = {
-  sequelize,
-  Product,
-  ProductVariant,
-  Order,
-  OrderItem,
-  Customer,
-  User
-};
+db.sequelize = sequelize;
+db.Product = Product;
+db.ProductVariant = ProductVariant;
+db.Order = Order;
+db.OrderItem = OrderItem;
+db.Customer = Customer;
+db.User = User;
+
+// 🔥 associations
+require("./associations")(db);
+
+module.exports = db;

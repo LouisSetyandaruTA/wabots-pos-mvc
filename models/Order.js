@@ -12,13 +12,16 @@ const Order = sequelize.define('Order', {
     allowNull: false
   },
   status: {
-    type: DataTypes.STRING,
-    defaultValue: 'pending'
+    type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
+    defaultValue: "pending"
   },
   totalPrice: {
     type: DataTypes.FLOAT,
     allowNull: false
   }
+}, {
+  tableName: 'orders', // 🔥 ini juga
+  freezeTableName: true
 });
 
 module.exports = Order;

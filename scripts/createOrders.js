@@ -1,41 +1,61 @@
-const sequelize = require('../config/database');
-const Order = require('../models/Order');
-const OrderItem = require('../models/OrderItem');
-const Product = require('../models/Product');
-const Customer = require('../models/Customer');
+require("dotenv").config();
+const { sequelize, Order, OrderItem, Customer, ProductVariant } = require("../models");
 
-async function createDummyOrder() {
+(async () => {
+  const t = await sequelize.transaction();
+
   try {
-    await sequelize.sync(); 
+    await sequelize.sync();
 
-    const customer = await Customer.findOne(); 
-    const product = await Product.findOne();
+    const customer = await Customer.findOne();
+    if (!customer) throw new Error("Customer tidak ada");
 
-    if (!customer || !product) throw new Error('Customer atau Product tidak ditemukan');
+    const variants = await ProductVariant.findAll({ limit: 2 });
+    if (variants.length < 2) throw new Error("Variant tidak cukup");
 
-    const quantity = 3;
-    const unitPrice = product.harga;
-    const subtotal = unitPrice * quantity;
+    let totalPrice = 0;
+    const items = [];
+
+    for (const v of variants) {
+      const qty = 2;
+
+      if (v.stok < qty) throw new Error("Stok tidak cukup");
+
+      const subtotal = v.harga * qty;
+      totalPrice += subtotal;
+
+      items.push({
+        variantId: v.id,
+        quantity: qty,
+        unitPrice: v.harga,
+        subtotal
+      });
+
+      // 🔥 potong stok
+      v.stok -= qty;
+      await v.save({ transaction: t });
+    }
 
     const order = await Order.create({
       customerId: customer.id,
-      totalPrice: subtotal
-    });
+      totalPrice,
+      status: "pending"
+    }, { transaction: t });
 
-    await OrderItem.create({
-      orderId: order.id,
-      productId: product.id,
-      quantity,
-      unitPrice,
-      subtotal
-    });
+    for (const item of items) {
+      item.orderId = order.id;
+    }
 
-    console.log('Dummy order berhasil dibuat');
+    await OrderItem.bulkCreate(items, { transaction: t });
+
+    await t.commit();
+
+    console.log("✅ Order created");
     process.exit();
+
   } catch (err) {
-    console.error('Gagal:', err);
+    await t.rollback();
+    console.error("❌ Error:", err.message);
     process.exit(1);
   }
-}
-
-createDummyOrder();
+})();
