@@ -19,21 +19,21 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 const Dashboard = () => {
-  // const [dashboardData, setDashboardData] = useState(null);
+const [data, setData] = useState(null);
 
-  // useEffect(() => {
-  //   axios.get("http://localhost:5000/api/dashboard")
-  //     .then(res => {
-  //       setDashboardData(res.data);
-  //     })
-  //     .catch(err => console.error(err));
-  // }, []);
-const [data, setData] = useState({});
+useEffect(() => {
+  fetchDashboard();
+}, []);
+
+const fetchDashboard = async () => {
+  const res = await axios.get("http://localhost:5000/api/dashboard");
+  setData(res.data.data);
+};
 
 useEffect(() => {
   axios.get("http://localhost:5000/api/dashboard")
     .then(res => {
-      console.log(res.data); // 🔥 WAJIB TAMBAH INI
+      console.log(res.data); 
       setData(res.data);
     })
     .catch(err => console.error(err));

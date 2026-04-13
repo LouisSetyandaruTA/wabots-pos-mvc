@@ -1,0 +1,121 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+} from "recharts";
+
+export default function Dashboard() {
+    const [data, setData] = useState(null);
+
+    useEffect(() => {
+        fetchDashboard();
+    }, []);
+
+    const formatChartData = () => {
+        if (!data?.salesPerDay) return [];
+
+        return data.salesPerDay.map(item => ({
+            date: item.date,
+            total: item.total
+        }));
+    };
+ const formatTopProducts = () => {
+  console.log("RAW TOP PRODUCTS:", data?.topProducts); // 🔥 CEK RAW
+
+  if (!data?.topProducts) return [];
+
+  const result = data.topProducts.map((p) => ({
+    name: `${p?.variant?.Product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
+    total: Number(p?.totalSold || 0),
+  }));
+
+  console.log("FORMATTED TOP PRODUCTS:", result); // 🔥 CEK HASIL
+
+  return result;
+};
+
+   const fetchDashboard = async () => {
+  try {
+    const res = await axios.get("http://localhost:5000/api/dashboard");
+
+    console.log("API RESPONSE:", res.data.data); // 🔥 DI SINI
+
+    setData(res.data.data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+    return (
+        <div className="p-6">
+            <h2 className="text-xl font-bold mb-6">Dashboard Analytics</h2>
+
+            {/* CARD METRICS */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Total Revenue</p>
+                    <h3 className="text-2xl font-bold">
+                        Rp {data?.totalRevenue || 0}
+                    </h3>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Total Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.totalOrders || 0}
+                    </h3>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Pending Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.pendingOrders || 0}
+                    </h3>
+                </div>
+
+            </div>
+
+            {/* CHART AREA (NEXT STEP) */}
+            <div className="bg-white p-4 rounded-xl shadow">
+                <h3 className="font-bold mb-4">Sales Chart</h3>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <h3 className="font-bold mb-4">Sales Per Day</h3>
+
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={formatChartData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="total" stroke="#4F46E5" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl shadow mt-6">
+                <h3 className="font-bold mb-4">Top Products</h3>
+
+              <ResponsiveContainer width="100%" height={300}>
+  <BarChart data={formatTopProducts()}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Tooltip />
+    <Bar dataKey="total" fill="#22C55E" />
+  </BarChart>
+</ResponsiveContainer>
+            </div>
+
+        </div>
+    );
+}

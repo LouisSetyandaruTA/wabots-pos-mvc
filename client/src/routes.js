@@ -10,6 +10,7 @@ import RTLDefault from "views/rtl/default";
 import Products from "views/admin/products/Products";
 import Orders from "views/admin/orders/Orders";
 import CreateOrder from "views/admin/orders/CreateOrder";
+import Dashboard from "views/admin/dashboard/Dashboard";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -24,6 +25,12 @@ import {
 } from "react-icons/md";
 
 const routes = [
+  {
+  name: "Dashboard",
+  layout: "/admin",
+  path: "dashboard",
+  component: <Dashboard />,
+},
   {
     name: "Products",
     layout: "/admin",
@@ -42,6 +49,7 @@ const routes = [
   path: "createorder",
   component: <CreateOrder />,
 },
+
   // {
   //   name: "Orders",
   //   layout: "/admin",

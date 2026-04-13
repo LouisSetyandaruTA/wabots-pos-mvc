@@ -28,7 +28,7 @@ const OrderItem = sequelize.define('OrderItem', {
     allowNull: false
   }
 }, {
-  tableName: 'order_items' // 🔥 penting
+  tableName: 'order_items'
 });
 
 

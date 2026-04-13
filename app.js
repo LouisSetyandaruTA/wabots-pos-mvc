@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const dashboardRoutes = require("./routes/api/dashboardRoutes");
-app.use("/api", dashboardRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 const productRoutes = require("./routes/api/productRoutes");
 app.use("/api", productRoutes);
