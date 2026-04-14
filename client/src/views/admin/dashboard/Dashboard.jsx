@@ -18,41 +18,47 @@ export default function Dashboard() {
     useEffect(() => {
         fetchDashboard();
     }, []);
-
     const formatChartData = () => {
         if (!data?.salesPerDay) return [];
 
-        return data.salesPerDay.map(item => ({
-            date: item.date,
-            total: item.total
-        }));
+        return data.salesPerDay.map(item => {
+            const dateObj = new Date(item.date);
+
+            return {
+                date: dateObj.toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short"
+                }), // contoh: 08 Apr
+                total: Number(item.total)
+            };
+        });
     };
- const formatTopProducts = () => {
-  console.log("RAW TOP PRODUCTS:", data?.topProducts); // 🔥 CEK RAW
+    const formatTopProducts = () => {
+        console.log("RAW TOP PRODUCTS:", data?.topProducts); // 🔥 CEK RAW
 
-  if (!data?.topProducts) return [];
+        if (!data?.topProducts) return [];
 
-  const result = data.topProducts.map((p) => ({
-    name: `${p?.variant?.Product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
-    total: Number(p?.totalSold || 0),
-  }));
+        const result = data.topProducts.map((p) => ({
+            name: `${p?.variant?.Product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
+            total: Number(p?.totalSold || 0),
+        }));
 
-  console.log("FORMATTED TOP PRODUCTS:", result); // 🔥 CEK HASIL
+        console.log("FORMATTED TOP PRODUCTS:", result); // 🔥 CEK HASIL
 
-  return result;
-};
+        return result;
+    };
 
-   const fetchDashboard = async () => {
-  try {
-    const res = await axios.get("http://localhost:5000/api/dashboard");
+    const fetchDashboard = async () => {
+        try {
+            const res = await axios.get("http://localhost:5000/api/dashboard");
 
-    console.log("API RESPONSE:", res.data.data); // 🔥 DI SINI
+            console.log("API RESPONSE:", res.data.data); // 🔥 DI SINI
 
-    setData(res.data.data);
-  } catch (err) {
-    console.error(err);
-  }
-};
+            setData(res.data.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     return (
         <div className="p-6">
@@ -105,15 +111,15 @@ export default function Dashboard() {
             <div className="bg-white p-4 rounded-xl shadow mt-6">
                 <h3 className="font-bold mb-4">Top Products</h3>
 
-              <ResponsiveContainer width="100%" height={300}>
-  <BarChart data={formatTopProducts()}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis dataKey="name" />
-    <YAxis />
-    <Tooltip />
-    <Bar dataKey="total" fill="#22C55E" />
-  </BarChart>
-</ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={formatTopProducts()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="total" fill="#22C55E" />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
 
         </div>

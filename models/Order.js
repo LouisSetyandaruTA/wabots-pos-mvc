@@ -20,7 +20,7 @@ const Order = sequelize.define('Order', {
     allowNull: false
   }
 }, {
-  tableName: 'orders', // 🔥 ini juga
+  tableName: 'orders',
   freezeTableName: true
 });
 

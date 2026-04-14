@@ -69,7 +69,7 @@ exports.getDashboardData = async () => {
     where: { status: "pending" }
   });
 
-  // 🔥 STEP 1: AGGREGATE
+  //  STEP 1: AGGREGATE
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
       "variantId",
@@ -81,7 +81,7 @@ exports.getDashboardData = async () => {
     raw: true
   });
 
-  // 🔥 STEP 2: AMBIL VARIANT
+  //STEP 2: AMBIL VARIANT
   const variantIds = topProductsRaw.map(p => p.variantId);
 
   const variants = await ProductVariant.findAll({
@@ -107,16 +107,22 @@ exports.getDashboardData = async () => {
     };
   });
 
-  const salesPerDay = await Order.findAll({
-    attributes: [
-      [sequelize.literal("DATE(createdAt)"), "date"],
-      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+const salesPerDay = await Order.findAll({
+  attributes: [
+    [
+      sequelize.fn(
+        "DATE",
+        sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+      ),
+      "date"
     ],
-    where: { status: "paid" },
-    group: ["date"],
-    order: [["date", "ASC"]],
-    raw: true
-  });
+    [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+  ],
+  where: { status: "paid" },
+  group: ["date"],
+  order: [["date", "ASC"]],
+  raw: true
+});
 
   return {
     totalRevenue: totalRevenue || 0,

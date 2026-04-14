@@ -11,6 +11,7 @@ import Products from "views/admin/products/Products";
 import Orders from "views/admin/orders/Orders";
 import CreateOrder from "views/admin/orders/CreateOrder";
 import Dashboard from "views/admin/dashboard/Dashboard";
+import Reports from "views/admin/reports/Reports";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -48,6 +49,12 @@ const routes = [
   layout: "/admin",
   path: "createorder",
   component: <CreateOrder />,
+},
+{
+  name: "Reports",
+  layout: "/admin",
+  path: "reports",
+  component: <Reports />,
 },
 
   // {

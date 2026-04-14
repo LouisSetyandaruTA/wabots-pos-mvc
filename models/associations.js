@@ -2,10 +2,13 @@ module.exports = (db) => {
     const { Order, OrderItem, Customer, Product, ProductVariant } = db;
 
     Customer.hasMany(Order, { foreignKey: 'customerId' });
-    Order.belongsTo(Customer, { foreignKey: 'customerId', as: "customer"    });
+    Order.belongsTo(Customer, { foreignKey: 'customerId', as: "customer" });
 
     Order.hasMany(OrderItem, { foreignKey: "orderId", as: "items" });
-    OrderItem.belongsTo(Order, { foreignKey: "orderId" });
+    OrderItem.belongsTo(Order, {
+        foreignKey: "orderId",
+        as: "order"
+    });
 
     OrderItem.belongsTo(ProductVariant, { foreignKey: "variantId", as: "variant" });
 

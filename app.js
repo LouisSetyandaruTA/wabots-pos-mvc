@@ -4,9 +4,6 @@ const cors = require("cors");
 
 const app = express();
 
-
-
-
 app.use(cors());
 app.use(express.json());
 
@@ -16,7 +13,7 @@ app.use("/api/dashboard", dashboardRoutes);
 const productRoutes = require("./routes/api/productRoutes");
 app.use("/api", productRoutes);
 
-app.use("/api", require("./routes/api/orderRoutes"));
+
 app.use("/api/orders", require("./routes/api/orderRoutes"));
 
 const customerRoutes = require("./routes/api/customerRoutes");
@@ -30,11 +27,8 @@ const variantRoutes = require("./routes/api/productVariantRoutes");
 
 app.use("/api/variants", variantRoutes);
 
-// ROUTES
-// app.use("/api/products", require("./routes/api/productRoutes"));
-// app.use("/api/orders", require("./routes/api/orderRoutes"));
-// app.use("/api/auth", require("./routes/api/authRoutes"));
-
+const reportRoutes = require("./routes/api/reportRoutes");
+app.use("/api/reports", reportRoutes);
 
 
 // TEST
