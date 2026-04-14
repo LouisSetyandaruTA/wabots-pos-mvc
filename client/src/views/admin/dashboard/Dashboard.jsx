@@ -12,6 +12,8 @@ import {
     Bar,
 } from "recharts";
 
+import { formatRupiah } from "../../../utils/format";
+
 export default function Dashboard() {
     const [data, setData] = useState(null);
 
@@ -70,7 +72,7 @@ export default function Dashboard() {
                 <div className="bg-white p-4 rounded-xl shadow">
                     <p className="text-gray-500">Total Revenue</p>
                     <h3 className="text-2xl font-bold">
-                        Rp {data?.totalRevenue || 0}
+                        {formatRupiah(data?.totalRevenue)}
                     </h3>
                 </div>
 
@@ -100,8 +102,10 @@ export default function Dashboard() {
                         <LineChart data={formatChartData()}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
+                            <YAxis tickFormatter={(value) => formatRupiah(value)} />
+                            <Tooltip
+  formatter={(value) => formatRupiah(value)}
+/>
                             <Line type="monotone" dataKey="total" stroke="#4F46E5" />
                         </LineChart>
                     </ResponsiveContainer>

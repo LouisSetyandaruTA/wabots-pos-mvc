@@ -5,7 +5,7 @@ import SummaryCards from "./components/SummaryCards";
 import SalesChart from "./components/SalesChart";
 import TopProducts from "./components/TopProducts";
 import Filter from "./components/Filter";
-import jsPDF from "jspdf";
+import TransactionTable from "./components/TransactionTable";
 import { exportReportPDF } from "../../../utils/exportReportPDF";
 
 export default function Reports() {
@@ -76,6 +76,8 @@ export default function Reports() {
             <SalesChart data={data.trends} />
 
             <TopProducts data={data.topProducts} />
+
+            <TransactionTable data={data.transactions} />
 
         </div>
 

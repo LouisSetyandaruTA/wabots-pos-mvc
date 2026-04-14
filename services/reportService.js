@@ -1,5 +1,5 @@
 const { Op, fn, col, literal } = require("sequelize");
-const { Order, OrderItem, ProductVariant, Product } = require("../models");
+const { Order, OrderItem, ProductVariant, Product, Customer} = require("../models");
 
 const getSummaryReport = async ({ startDate, endDate, groupBy }) => {
   // 1. SUMMARY
@@ -103,9 +103,30 @@ const transactions = await Order.findAll({
       ]
     }
   },
-  include: ["customer"],
-  order: [["createdAt", "DESC"]],
-  raw: true
+  include: [
+    {
+      model: Customer,
+      as: "customer",
+      attributes: ["name", "phoneNumber"]
+    },
+    {
+      model: OrderItem,
+      as: "items",
+      include: [
+        {
+          model: ProductVariant,
+          as: "variant",
+          include: [
+            {
+              model: Product,
+              attributes: ["nama"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  order: [["createdAt", "DESC"]]
 });
 
   return {
