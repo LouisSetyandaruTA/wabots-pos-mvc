@@ -1,6 +1,5 @@
 const orderService = require("../services/orderService");
-const { Order, OrderItem, Product, Customer } = require("../models");
-
+const paymentService = require("../services/paymentService");
 
 // CREATE
 exports.createOrder = async (req, res) => {
@@ -39,5 +38,34 @@ exports.getOrders = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.createPayment = async (req, res) => {
+  try {
+    const url = await paymentService.createPayment(req.params.id);
+
+    res.json({
+      success: true,
+      paymentUrl: url
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

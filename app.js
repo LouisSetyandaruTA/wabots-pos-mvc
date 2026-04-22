@@ -30,6 +30,12 @@ app.use("/api/variants", variantRoutes);
 const reportRoutes = require("./routes/api/reportRoutes");
 app.use("/api/reports", reportRoutes);
 
+// const paymentRoutes = require("./routes/api/paymentRoutes");
+// app.use("/api", paymentRoutes);
+
+const paymentRoutes = require("./routes/api/paymentRoutes");
+app.use("/api/payment", paymentRoutes);
+
 
 // TEST
 app.use((req, res, next) => {

@@ -3,6 +3,7 @@ const sequelize = require("./config/database");
 
 // Load relasi model (WAJIB DIPANGGIL)
 require("./models/associations");
+// require("./bot/whatsapp");
 
 const PORT = process.env.PORT || 5000;
 
