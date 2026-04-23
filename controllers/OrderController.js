@@ -4,7 +4,13 @@ const paymentService = require("../services/paymentService");
 // CREATE
 exports.createOrder = async (req, res) => {
   try {
-    const data = await orderService.createOrder(req.body);
+    const payload = {
+      ...req.body,
+      userId: req.user.id // ambil dari token
+    };
+
+    const data = await orderService.createOrder(payload);
+
     res.json({ success: true, data });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -34,7 +40,7 @@ exports.completePayment = async (req, res) => {
 
 exports.getOrders = async (req, res) => {
   try {
-    const data = await orderService.getAllOrders();
+    const data = await orderService.getAllOrders(req.user.id);
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

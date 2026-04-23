@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import axios from "../../../utils/axiosInstance";
 
 import SummaryCards from "./components/SummaryCards";
 import SalesChart from "./components/SalesChart";

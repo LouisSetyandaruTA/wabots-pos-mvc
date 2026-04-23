@@ -10,6 +10,7 @@ const User = require("./User");
 const db = {};
 
 db.sequelize = sequelize;
+
 db.Product = Product;
 db.ProductVariant = ProductVariant;
 db.Order = Order;
@@ -17,7 +18,7 @@ db.OrderItem = OrderItem;
 db.Customer = Customer;
 db.User = User;
 
-// 🔥 associations
+// associations
 require("./associations")(db);
 
 module.exports = db;

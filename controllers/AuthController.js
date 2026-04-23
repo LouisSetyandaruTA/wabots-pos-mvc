@@ -1,44 +1,46 @@
-const Admin = require('../models/Admin');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { User } = require("../models");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
+// LOGIN
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
-
   try {
-    const admin = await Admin.findOne({ where: { username } });
+    const { username, password } = req.body;
 
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Username tidak ditemukan"
-      });
+    const user = await User.findOne({ where: { username } });
+
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    const match = await bcrypt.compare(password, admin.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!match) {
-      return res.status(401).json({
-        success: false,
-        message: "Password salah"
-      });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password salah" });
     }
 
     const token = jwt.sign(
-      { id: admin.id },
+      {
+        id: user.id,
+        username: user.username,
+        businessName: user.businessName
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
     res.json({
       success: true,
-      token
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        businessName: user.businessName
+      }
     });
 
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    console.error(err);
+    res.status(500).json({ message: "Login error" });
   }
 };

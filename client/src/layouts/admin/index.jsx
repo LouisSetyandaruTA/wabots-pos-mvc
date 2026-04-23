@@ -4,6 +4,9 @@ import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
 import routes from "routes.js";
+import { useEffect } from "react";
+
+
 
 export default function Admin(props) {
   const { ...rest } = props;
@@ -19,6 +22,12 @@ export default function Admin(props) {
   React.useEffect(() => {
     getActiveRoute(routes);
   }, [location.pathname]);
+  useEffect(() => {
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = function () {
+    window.history.pushState(null, "", window.location.href);
+  };
+}, []);
 
   const getActiveRoute = (routes) => {
     let activeRoute = "Main Dashboard";
@@ -81,7 +90,7 @@ export default function Admin(props) {
 
                 <Route
                   path="/"
-                  element={<Navigate to="/admin/default" replace />}
+                  element={<Navigate to="/admin/dashboard" replace />}
                 />
               </Routes>
             </div>

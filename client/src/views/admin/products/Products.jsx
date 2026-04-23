@@ -1,6 +1,6 @@
 import Card from "components/card";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../../utils/axiosInstance";
 
 export default function Products() {
   const [products, setProducts] = useState([]);

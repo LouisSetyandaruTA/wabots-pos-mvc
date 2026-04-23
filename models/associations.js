@@ -1,5 +1,5 @@
 module.exports = (db) => {
-    const { Order, OrderItem, Customer, Product, ProductVariant } = db;
+    const { User, Order, OrderItem, Customer, Product, ProductVariant } = db;
 
     Customer.hasMany(Order, { foreignKey: 'customerId' });
     Order.belongsTo(Customer, { foreignKey: 'customerId', as: "customer" });
@@ -16,4 +16,7 @@ module.exports = (db) => {
     ProductVariant.belongsTo(Product, { foreignKey: 'productId' });
 
     ProductVariant.hasMany(OrderItem, { foreignKey: 'variantId' });
+
+    User.hasMany(Order, { foreignKey: "userId" });
+    Order.belongsTo(User, { foreignKey: "userId" });
 };

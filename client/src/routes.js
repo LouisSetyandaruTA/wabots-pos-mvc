@@ -13,6 +13,9 @@ import CreateOrder from "views/admin/orders/CreateOrder";
 import Dashboard from "views/admin/dashboard/Dashboard";
 import Reports from "views/admin/reports/Reports";
 import PaymentPage from "views/admin/payment/PaymentPage";
+import ProtectedRoute from "utils/ProtectedRoute";
+import PublicRoute from "utils/PublicRoute";
+import Login from "views/auth/Login";
 // import Payment from "views/admin/payment/:orderId";
 
 // Auth Imports
@@ -21,10 +24,11 @@ import SignIn from "views/auth/SignIn";
 // Icon Imports
 import {
   MdHome,
-  MdOutlineShoppingCart,
+  MdShoppingCart,
+  MdReceipt,
+  MdAddBox,
   MdBarChart,
-  MdPerson,
-  MdLock,
+  MdPayment
 } from "react-icons/md";
 
 const routes = [
@@ -32,87 +36,114 @@ const routes = [
   name: "Dashboard",
   layout: "/admin",
   path: "dashboard",
-  component: <Dashboard />,
+  icon: <MdHome className="h-6 w-6" />,
+  component: <ProtectedRoute><Dashboard /></ProtectedRoute>,
 },
-  {
-    name: "Products",
-    layout: "/admin",
-    path: "products",
-    component: <Products />,
-  },
-  {
+{
+  name: "Products",
+  layout: "/admin",
+  path: "products",
+  icon: <MdShoppingCart className="h-6 w-6" />,
+  component: <ProtectedRoute><Products /></ProtectedRoute>,
+},
+{
   name: "Orders",
   layout: "/admin",
   path: "orders",
-  component: <Orders />,
+  icon: <MdReceipt className="h-6 w-6" />,
+  component: <ProtectedRoute><Orders /></ProtectedRoute>,
 },
 {
   name: "Create Order",
   layout: "/admin",
   path: "createorder",
-  component: <CreateOrder />,
+  icon: <MdAddBox className="h-6 w-6" />,
+  component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
 },
 {
   name: "Reports",
   layout: "/admin",
   path: "reports",
-  component: <Reports />,
+  icon: <MdBarChart className="h-6 w-6" />,
+  component: <ProtectedRoute><Reports /></ProtectedRoute>,
 },
 {
   name: "Payment",
   layout: "/admin",
   path: "payment/:orderId",
-  component: <PaymentPage />,
+  icon: <MdPayment className="h-6 w-6" />,
+  component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
 },
+//   {
+//   layout: "/auth",
+//   path: "login",
+//   component: (
+//     <PublicRoute>
+//       <Login />
+//     </PublicRoute>
+//   ),
+// },
+//   {
+//   name: "Dashboard",
+//   layout: "/admin",
+//   path: "dashboard",
+//  component: (
+//     <ProtectedRoute>
+//       <Dashboard />
+//     </ProtectedRoute>
+//   ),
+// },
+//   {
+//     name: "Products",
+//     layout: "/admin",
+//     path: "products",
+//     component: (
+//       <ProtectedRoute>
+//         <Products />
+//       </ProtectedRoute>
+//     ),
+//   },
+//   {
+//   name: "Orders",
+//   layout: "/admin",
+//   path: "orders",
+//   component: (
+//     <ProtectedRoute>
+//       <Orders />
+//     </ProtectedRoute>
+//   ),
+// },
+// {
+//   name: "Create Order",
+//   layout: "/admin",
+//   path: "createorder",
+//   component: (
+//     <ProtectedRoute>
+//       <CreateOrder />
+//     </ProtectedRoute>
+//   ),
+// },
+// {
+//   name: "Reports",
+//   layout: "/admin",
+//   path: "reports",
+//   component: (
+//     <ProtectedRoute>
+//       <Reports />
+//     </ProtectedRoute>
+//   ),
+// },
+// {
+//   name: "Payment",
+//   layout: "/admin",
+//   path: "payment/:orderId",
+//   component: (
+//     <ProtectedRoute>
+//       <PaymentPage />
+//     </ProtectedRoute>
+//   ),
+// },
 
-  // {
-  //   name: "Orders",
-  //   layout: "/admin",
-  //   path: "orders",
-  //   component: <Orders />,
-  // },
-  // {
-  //   name: "Main Dashboard",
-  //   layout: "/admin",
-  //   path: "default",
-  //   icon: <MdHome className="h-6 w-6" />,
-  //   component: <MainDashboard />,
-  // },
-  // {
-  //   name: "NFT Marketplace",
-  //   layout: "/admin",
-  //   path: "nft-marketplace",
-  //   icon: <MdOutlineShoppingCart className="h-6 w-6" />,
-  //   component: <NFTMarketplace />,
-  //   secondary: true,
-  // },
-  // {
-  //   name: "Data Tables",
-  //   layout: "/admin",
-  //   icon: <MdBarChart className="h-6 w-6" />,
-  //   path: "data-tables",
-  //   component: <DataTables />,
-  // },
-  // {
-  //   name: "Profile",
-  //   layout: "/admin",
-  //   path: "profile",
-  //   icon: <MdPerson className="h-6 w-6" />,
-  //   component: <Profile />,
-  // },
-  // {
-  //   name: "Sign In",
-  //   layout: "/auth",
-  //   path: "sign-in",
-  //   icon: <MdLock className="h-6 w-6" />,
-  //   component: <SignIn />,
-  // },
-  // {
-  //   name: "RTL Admin",
-  //   layout: "/rtl",
-  //   path: "rtl",
-  //   icon: <MdHome className="h-6 w-6" />,
-  //   component: <RTLDefault />,
-  // },
+ 
 ];
 export default routes;

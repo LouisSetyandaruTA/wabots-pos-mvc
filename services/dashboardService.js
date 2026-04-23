@@ -57,23 +57,42 @@
 
 const { Order, OrderItem, ProductVariant, Product } = require("../models");
 const sequelize = require("../config/database");
-exports.getDashboardData = async () => {
 
+exports.getDashboardData = async (userId) => {
+
+  // 🔥 TOTAL REVENUE (FILTER USER)
   const totalRevenue = await Order.sum("totalPrice", {
-    where: { status: "paid" }
+    where: {
+      status: "paid",
+      userId
+    }
   });
 
-  const totalOrders = await Order.count();
+  // 🔥 TOTAL ORDER
+  const totalOrders = await Order.count({
+    where: { userId }
+  });
 
+  // 🔥 PENDING ORDER
   const pendingOrders = await Order.count({
-    where: { status: "pending" }
+    where: {
+      status: "pending",
+      userId
+    }
   });
 
-  //  STEP 1: AGGREGATE
+  // 🔥 TOP PRODUCTS (HARUS JOIN KE ORDER)
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
       "variantId",
       [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+    ],
+    include: [
+      {
+        model: Order,
+        attributes: [],
+        where: { userId } // 🔥 FILTER USER DI SINI
+      }
     ],
     group: ["variantId"],
     order: [[sequelize.literal("totalSold"), "DESC"]],
@@ -81,22 +100,20 @@ exports.getDashboardData = async () => {
     raw: true
   });
 
-  //STEP 2: AMBIL VARIANT
   const variantIds = topProductsRaw.map(p => p.variantId);
 
   const variants = await ProductVariant.findAll({
-  where: { id: variantIds },
-  include: [
-    {
-      model: Product,
-      attributes: ["nama"]
-    }
-  ],
-  raw: true,
-  nest: true 
-});
+    where: { id: variantIds },
+    include: [
+      {
+        model: Product,
+        attributes: ["nama"]
+      }
+    ],
+    raw: true,
+    nest: true
+  });
 
-  // 🔥 STEP 3: MERGE
   const topProducts = topProductsRaw.map(p => {
     const variant = variants.find(v => v.id === p.variantId);
 
@@ -107,22 +124,26 @@ exports.getDashboardData = async () => {
     };
   });
 
-const salesPerDay = await Order.findAll({
-  attributes: [
-    [
-      sequelize.fn(
-        "DATE",
-        sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
-      ),
-      "date"
+  // 🔥 SALES PER DAY (FILTER USER)
+  const salesPerDay = await Order.findAll({
+    attributes: [
+      [
+        sequelize.fn(
+          "DATE",
+          sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+        ),
+        "date"
+      ],
+      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
     ],
-    [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
-  ],
-  where: { status: "paid" },
-  group: ["date"],
-  order: [["date", "ASC"]],
-  raw: true
-});
+    where: {
+      status: "paid",
+      userId
+    },
+    group: ["date"],
+    order: [["date", "ASC"]],
+    raw: true
+  });
 
   return {
     totalRevenue: totalRevenue || 0,

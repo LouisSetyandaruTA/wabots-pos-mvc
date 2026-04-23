@@ -1,8 +1,11 @@
 const sequelize = require("../config/database");
 const { Order, OrderItem, ProductVariant, Customer } = require("../models");
 
-exports.getAllOrders = async () => {
+exports.getAllOrders = async (userId) => {
   const orders = await Order.findAll({
+    where: {
+      userId
+    },
     include: [
       {
         model: Customer,
@@ -30,7 +33,7 @@ exports.createOrder = async (payload) => {
   const t = await sequelize.transaction();
 
   try {
-    const { customerId, items } = payload;
+    const { customerId, items, userId } = payload;
 
     if (!customerId || !items || items.length === 0) {
       throw new Error("Data order tidak valid");
@@ -41,8 +44,10 @@ exports.createOrder = async (payload) => {
     // 1. create order (PENDING)
     const order = await Order.create({
       customerId,
+      userId,
       totalPrice: 0,
-      status: "pending"
+      status: "pending",
+      
     }, { transaction: t });
 
     for (const item of items) {

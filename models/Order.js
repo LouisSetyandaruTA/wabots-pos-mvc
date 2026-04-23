@@ -7,6 +7,10 @@ const Order = sequelize.define('Order', {
     primaryKey: true,
     defaultValue: DataTypes.UUIDV4
   },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
   customerId: {
     type: DataTypes.INTEGER,
     allowNull: false

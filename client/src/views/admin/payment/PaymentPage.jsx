@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import axios from "axios";
+import axios from "../../../utils/axiosInstance";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function PaymentPage() {
@@ -51,7 +51,7 @@ export default function PaymentPage() {
       console.error(err);
     }
   };
-  
+
   useEffect(() => {
   if (!orderId) return;
 

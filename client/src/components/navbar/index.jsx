@@ -11,10 +11,24 @@ import {
   IoMdInformationCircleOutline,
 } from "react-icons/io";
 import avatar from "assets/img/avatars/avatar4.png";
+import { getUser } from "utils/auth";
+
+
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
   const [darkmode, setDarkmode] = React.useState(false);
+ const handleLogout = () => {
+  localStorage.clear();
+
+  // trigger update sidebar
+  window.dispatchEvent(new Event("userChanged"));
+
+  window.location.href = "/auth/login";
+};
+  const user = getUser();
+  // const user = JSON.parse(localStorage.getItem("user"));
+  const businessName = localStorage.getItem("businessName");
 
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
@@ -89,10 +103,10 @@ const Navbar = (props) => {
                 </div>
                 <div className="ml-2 flex h-full w-full flex-col justify-center rounded-lg px-1 text-sm">
                   <p className="mb-1 text-left text-base font-bold text-gray-900 dark:text-white">
-                    New Update: Horizon UI Dashboard PRO
+                    Just Notification
                   </p>
                   <p className="font-base text-left text-xs text-gray-900 dark:text-white">
-                    A new update for your downloaded item is available!
+                    For your best performance, please make sure to complete the task
                   </p>
                 </div>
               </button>
@@ -103,10 +117,10 @@ const Navbar = (props) => {
                 </div>
                 <div className="ml-2 flex h-full w-full flex-col justify-center rounded-lg px-1 text-sm">
                   <p className="mb-1 text-left text-base font-bold text-gray-900 dark:text-white">
-                    New Update: Horizon UI Dashboard PRO
+                    Just Notification
                   </p>
                   <p className="font-base text-left text-xs text-gray-900 dark:text-white">
-                    A new update for your downloaded item is available!
+                    For your best performance, please make sure to complete the task
                   </p>
                 </div>
               </button>
@@ -115,7 +129,7 @@ const Navbar = (props) => {
           classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
         />
         {/* start Horizon PRO */}
-        <Dropdown
+        {/* <Dropdown
           button={
             <p className="cursor-pointer">
               <IoMdInformationCircleOutline className="h-4 w-4 text-gray-600 dark:text-white" />
@@ -156,7 +170,7 @@ const Navbar = (props) => {
           }
           classNames={"py-2 top-6 -left-[250px] md:-left-[330px] w-max"}
           animation="origin-[75%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-        />
+        /> */}
         <div
           className="cursor-pointer text-gray-600"
           onClick={() => {
@@ -188,8 +202,12 @@ const Navbar = (props) => {
             <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
               <div className="p-4">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-navy-700 dark:text-white">
-                    👋 Hey, Adela
+                  <p className="text-sm font-bold">
+                    👋 Hey, {user?.username || "User"}
+                  </p>
+
+                  <p className="text-xs text-gray-500">
+                    {user?.businessName}
                   </p>{" "}
                 </div>
               </div>
@@ -202,18 +220,18 @@ const Navbar = (props) => {
                 >
                   Profile Settings
                 </a>
-                <a
+                {/* <a
                   href=" "
                   className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
                   Newsletter Settings
-                </a>
-                <a
-                  href=" "
-                  className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                </a> */}
+                <button
+                  onClick={handleLogout}
+                  className="mt-3 text-sm font-medium text-red-500 hover:text-red-500"
                 >
                   Log Out
-                </a>
+                </button>
               </div>
             </div>
           }

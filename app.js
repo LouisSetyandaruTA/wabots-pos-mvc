@@ -36,6 +36,9 @@ app.use("/api/reports", reportRoutes);
 const paymentRoutes = require("./routes/api/paymentRoutes");
 app.use("/api/payment", paymentRoutes);
 
+const authRoutes = require("./routes/api/authRoutes");
+app.use("/api/auth", authRoutes);
+
 
 // TEST
 app.use((req, res, next) => {
