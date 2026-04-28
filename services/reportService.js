@@ -70,7 +70,8 @@ const topProducts = await OrderItem.findAll({
       as: "variant",
       include: [
         {
-          model: Product
+          model: Product,
+          as: "Product",
         }
       ]
     },
@@ -119,6 +120,7 @@ const transactions = await Order.findAll({
           include: [
             {
               model: Product,
+              as: "Product",
               attributes: ["nama"]
             }
           ]

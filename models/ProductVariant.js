@@ -11,6 +11,10 @@ const ProductVariant = sequelize.define("ProductVariant", {
     type: DataTypes.INTEGER,
     allowNull: false
   },
+  businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
   nama_variant: {
     type: DataTypes.STRING,
     allowNull: false

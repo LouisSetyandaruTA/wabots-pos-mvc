@@ -20,10 +20,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'admin'
   },
-  businessName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  }
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+}
 });
 
 module.exports = User;

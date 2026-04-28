@@ -8,11 +8,16 @@ const Product = sequelize.define("Product", {
     primaryKey: true
   },
   nama: { type: DataTypes.STRING, allowNull: false },
-  kategori: { type: DataTypes.STRING, allowNull: false },
+  categoryId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
   satuan: { type: DataTypes.STRING, allowNull: false },
   berat: { type: DataTypes.FLOAT, allowNull: false },
-  harga: { type: DataTypes.FLOAT, allowNull: false },
-  stok: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   keterangan: { type: DataTypes.TEXT, allowNull: true }
 }, {
   tableName: 'products',

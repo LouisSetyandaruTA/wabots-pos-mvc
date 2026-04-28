@@ -1,5 +1,6 @@
 const midtransClient = require("midtrans-client");
-const { Order } = require("../models");
+const { Order, Payment, Customer, OrderItem, ProductVariant } = require("../models");
+const orderService = require("./orderService");
 
 const snap = new midtransClient.Snap({
   isProduction: false,
@@ -8,54 +9,123 @@ const snap = new midtransClient.Snap({
 });
 
 exports.createPayment = async (orderId) => {
-  console.log("ORDER ID MASUK:", orderId); // 🔥
-
-  const order = await Order.findByPk(orderId);
-
-  console.log("ORDER DATA:", order); // 🔥
+  const order = await Order.findByPk(orderId, {
+    include: [
+      { model: Customer, as: "customer" },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [{ model: ProductVariant, as: "variant" }]
+      }
+    ]
+  });
 
   if (!order) throw new Error("Order tidak ditemukan");
 
-  const parameter = {
+  const transaction = await snap.createTransaction({
     transaction_details: {
       order_id: order.id,
-      gross_amount: Number(order.totalPrice) // 🔥 WAJIB NUMBER
+      gross_amount: Number(order.totalPrice)
+    },
+
+    customer_details: {
+      first_name: order.customer?.name || "Customer",
+      phone: order.customer?.phoneNumber || "08123456789"
+    },
+
+    item_details: order.items.map(item => ({
+      id: item.variantId,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      name: item.variant?.nama_variant || "Item"
+    })),
+
+    callbacks: {
+      finish: `http://localhost:3000/admin/orders`
     }
-  };
+  });
 
-  console.log("MIDTRANS PARAM:", parameter); // 🔥
-
-  const transaction = await snap.createTransaction(parameter);
-  console.log("SERVER KEY:", process.env.MIDTRANS_SERVER_KEY);
-  console.log("MIDTRANS RESPONSE:", transaction); // 🔥
-
-  order.paymentToken = transaction.token;
-  order.paymentUrl = transaction.redirect_url;
-  await order.save();
+  await order.update({
+    paymentToken: transaction.token,
+    paymentUrl: transaction.redirect_url
+  });
 
   return transaction;
 };
 
-exports.handleWebhook = async (notification) => {
-  const { order_id, transaction_status } = notification;
+// exports.handleWebhook = async (req, res) => {
+//   const data = req.body;
 
-  const order = await Order.findByPk(order_id);
+//   const order = await Order.findByPk(data.order_id, {
+//     include: [
+//       { model: Customer, as: "customer" },
+//       {
+//         model: OrderItem,
+//         as: "items",
+//         include: [{ model: ProductVariant, as: "variant" }]
+//       }
+//     ]
+//   });
 
-  if (!order) throw new Error("Order tidak ditemukan");
+//   if (!order) return res.status(404).json({ message: "Order tidak ditemukan" });
 
-  if (transaction_status === "settlement") {
-    order.status = "paid";
-    await order.save();
-  }
+//   if (data.transaction_status === "settlement") {
 
-  // OPTIONAL (bagus untuk TA)
-  if (transaction_status === "pending") {
-    order.status = "pending";
-    await order.save();
-  }
+//     // potong stok & update status
+//     await orderService.completePayment(order.id);
 
-  if (transaction_status === "cancel") {
-    order.status = "cancelled";
-    await order.save();
-  }
+//     // simpan ke payment table
+//     await Payment.create({
+//       orderId: order.id,
+//       businessId: order.businessId,
+
+//       customerName: order.customer.name,
+//       customerPhone: order.customer.phoneNumber,
+
+//       totalPrice: order.totalPrice,
+//       paidAmount: order.totalPrice,
+
+//       method: data.payment_type,
+//       status: data.transaction_status,
+
+//       midtransResponse: data
+//     });
+//   }
+
+//   res.json({ success: true });
+// };
+
+exports.savePayment = async (order, midtransData) => {
+  return await Payment.create({
+    orderId: order.id,
+    businessId: order.businessId,
+
+    customerName: order.customer?.name || "-",
+    customerPhone: order.customer?.phoneNumber || "-",
+
+    totalPrice: order.totalPrice,
+    paidAmount: order.totalPrice,
+
+    method: midtransData.payment_type,
+    status: midtransData.transaction_status,
+
+    midtransResponse: midtransData
+  });
 };
+
+// exports.handleMidtransWebhook = async (req, res) => {
+//   const data = req.body;
+
+//   if (data.transaction_status === "settlement") {
+
+//     const order = await Order.findByPk(data.order_id, {
+//       include: ["customer", "items"]
+//     });
+
+//     await orderService.completePayment(order.id);
+
+//     await paymentService.savePayment(order, data);
+//   }
+
+//   res.json({ success: true });
+// };

@@ -1,13 +1,18 @@
-const { User } = require("../models");
-const bcrypt = require("bcrypt");
+const { User, Business } = require("../models");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const user = await User.findOne({ where: { username } });
+    const user = await User.findOne({
+      where: { username },
+      include: {
+        model: Business,
+        attributes: ["name"]
+      }
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User tidak ditemukan" });
@@ -23,24 +28,25 @@ exports.login = async (req, res) => {
       {
         id: user.id,
         username: user.username,
-        businessName: user.businessName
+        businessId: user.businessId,
+        businessName: user.Business?.name 
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
     res.json({
-      success: true,
       token,
       user: {
         id: user.id,
         username: user.username,
-        businessName: user.businessName
+        businessId: user.businessId,
+        businessName: user.Business?.name
       }
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Login error" });
+    res.status(500).json({ message: "Server error" });
   }
 };

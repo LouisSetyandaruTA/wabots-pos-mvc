@@ -3,9 +3,11 @@ const productService = require("../services/productService");
 //Get Product
 exports.getProducts = async (req, res) => {
   try {
-    const data = await productService.getAll();
-    res.json(data); // ✅ ARRAY LANGSUNG
+    console.log("BUSINESS ID:", req.user.businessId); 
+    const data = await productService.getAll(req.user.businessId);
+    res.json(data);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -13,18 +15,18 @@ exports.getProducts = async (req, res) => {
 
 // CREATE
 exports.createProduct = async (req, res) => {
-  try {
-    const data = await productService.create(req.body);
-    res.json(data);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+  const data = await productService.createProduct({
+    ...req.body,
+    businessId: req.user.businessId
+  });
+
+  res.json(data);
 };
 
 // UPDATE
 exports.updateProduct = async (req, res) => {
   try {
-    await productService.update(req.params.id, req.body);
+   await productService.update(req.params.id, req.body, req.user.businessId);
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -34,7 +36,7 @@ exports.updateProduct = async (req, res) => {
 // DELETE
 exports.deleteProduct = async (req, res) => {
   try {
-    await productService.delete(req.params.id);
+    await productService.delete(req.params.id, req.user.businessId);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

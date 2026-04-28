@@ -12,20 +12,30 @@ import {
 } from "react-icons/io";
 import avatar from "assets/img/avatars/avatar4.png";
 import { getUser } from "utils/auth";
+import { useNavigate } from "react-router-dom";
+
 
 
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
   const [darkmode, setDarkmode] = React.useState(false);
- const handleLogout = () => {
-  localStorage.clear();
+  const [search, setSearch] = React.useState("");
+  const navigate = useNavigate();
 
-  // trigger update sidebar
-  window.dispatchEvent(new Event("userChanged"));
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      navigate(`/admin/orders?search=${search}`);
+    }
+  };
+  const handleLogout = () => {
+    localStorage.clear();
 
-  window.location.href = "/auth/login";
-};
+    // trigger update sidebar
+    window.dispatchEvent(new Event("userChanged"));
+
+    window.location.href = "/auth/login";
+  };
   const user = getUser();
   // const user = JSON.parse(localStorage.getItem("user"));
   const businessName = localStorage.getItem("businessName");
@@ -69,7 +79,10 @@ const Navbar = (props) => {
           <input
             type="text"
             placeholder="Search..."
-            class="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white sm:w-fit"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearch}
+            className="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none"
           />
         </div>
         <span

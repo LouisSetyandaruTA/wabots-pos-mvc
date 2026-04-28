@@ -30,13 +30,13 @@ export default function Dashboard() {
                 date: dateObj.toLocaleDateString("id-ID", {
                     day: "2-digit",
                     month: "short"
-                }), // contoh: 08 Apr
+                }), 
                 total: Number(item.total)
             };
         });
     };
     const formatTopProducts = () => {
-        console.log("RAW TOP PRODUCTS:", data?.topProducts); // 🔥 CEK RAW
+        console.log("RAW TOP PRODUCTS:", data?.topProducts); 
 
         if (!data?.topProducts) return [];
 
@@ -45,16 +45,16 @@ export default function Dashboard() {
             total: Number(p?.totalSold || 0),
         }));
 
-        console.log("FORMATTED TOP PRODUCTS:", result); // 🔥 CEK HASIL
+        console.log("FORMATTED TOP PRODUCTS:", result); 
 
         return result;
     };
 
     const fetchDashboard = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/dashboard");
+            const res = await axios.get("/dashboard");
 
-            console.log("API RESPONSE:", res.data.data); // 🔥 DI SINI
+            console.log("API RESPONSE:", res.data.data); 
 
             setData(res.data.data);
         } catch (err) {

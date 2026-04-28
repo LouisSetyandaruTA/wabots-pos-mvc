@@ -6,7 +6,8 @@ exports.createOrder = async (req, res) => {
   try {
     const payload = {
       ...req.body,
-      userId: req.user.id // ambil dari token
+      userId: req.user.id,
+      businessId: req.user.businessId
     };
 
     const data = await orderService.createOrder(payload);
@@ -40,8 +41,13 @@ exports.completePayment = async (req, res) => {
 
 exports.getOrders = async (req, res) => {
   try {
-    const data = await orderService.getAllOrders(req.user.id);
+    const data = await orderService.getAllOrders(
+      req.user.businessId,
+      req.query 
+    );
+
     res.json({ success: true, data });
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -73,5 +79,16 @@ exports.getOrderById = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    await orderService.deleteOrder(req.params.id);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 };

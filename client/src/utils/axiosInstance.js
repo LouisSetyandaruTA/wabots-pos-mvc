@@ -4,12 +4,13 @@ const instance = axios.create({
   baseURL: "http://localhost:5000/api"
 });
 
-// AUTO ATTACH TOKEN
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
+  console.log("TOKEN SENT:", token);
+
   if (token) {
-    config.headers.Authorization = "Bearer " + token;
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;

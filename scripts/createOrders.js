@@ -7,7 +7,11 @@ const { sequelize, Order, OrderItem, Customer, ProductVariant } = require("../mo
   try {
     await sequelize.sync();
 
-    const customer = await Customer.findOne();
+    const customer = await Customer.findOne({
+      where: {
+        businessId: process.env.BUSINESS_ID
+      }
+    });
     if (!customer) throw new Error("Customer tidak ada");
 
     const variants = await ProductVariant.findAll({ limit: 2 });
@@ -31,7 +35,6 @@ const { sequelize, Order, OrderItem, Customer, ProductVariant } = require("../mo
         subtotal
       });
 
-      // 🔥 potong stok
       v.stok -= qty;
       await v.save({ transaction: t });
     }

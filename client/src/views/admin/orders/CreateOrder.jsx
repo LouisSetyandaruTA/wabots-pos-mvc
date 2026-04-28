@@ -16,12 +16,12 @@ export default function CreateOrder() {
   }, []);
 
   const fetchCustomers = async () => {
-    const res = await axios.get("http://localhost:5000/api/customers");
+    const res = await axios.get("/customers");
     setCustomers(res.data);
   };
 
   const fetchProducts = async () => {
-    const res = await axios.get("http://localhost:5000/api/products");
+    const res = await axios.get("/products");
 
     // flatten variants
     const allVariants = [];
@@ -57,7 +57,7 @@ export default function CreateOrder() {
   // 🔥 SUBMIT ORDER
   const submitOrder = async () => {
     try {
-      await axios.post("http://localhost:5000/api/orders", {
+      await axios.post("/orders", {
         customerId: selectedCustomer,
         items: cart.map(item => ({
           variantId: item.variantId,

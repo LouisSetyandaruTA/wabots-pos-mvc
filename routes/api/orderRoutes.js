@@ -8,5 +8,6 @@ router.put("/:id/approve", authMiddleware, orderController.approveOrder);
 router.put("/:id/payment", authMiddleware, orderController.completePayment);
 router.post("/:id/pay", authMiddleware, orderController.createPayment);
 router.get("/:id", authMiddleware, orderController.getOrderById);
+router.delete("/:id", authMiddleware, orderController.deleteOrder);
 
 module.exports = router;

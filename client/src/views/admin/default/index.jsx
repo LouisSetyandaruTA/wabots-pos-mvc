@@ -26,18 +26,18 @@ useEffect(() => {
 }, []);
 
 const fetchDashboard = async () => {
-  const res = await axios.get("http://localhost:5000/api/dashboard");
+  const res = await axios.get("/dashboard");
   setData(res.data.data);
 };
 
-useEffect(() => {
-  axios.get("http://localhost:5000/api/dashboard")
-    .then(res => {
-      console.log(res.data); 
-      setData(res.data);
-    })
-    .catch(err => console.error(err));
-}, []);
+// useEffect(() => {
+//   axios.get("/dashboard")
+//     .then(res => {
+//       console.log(res.data); 
+//       setData(res.data);
+//     })
+//     .catch(err => console.error(err));
+// }, []);
 
   return (
     <div>

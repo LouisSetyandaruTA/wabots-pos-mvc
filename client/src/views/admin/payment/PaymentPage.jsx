@@ -6,15 +6,10 @@ export default function PaymentPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadSnap();
-    createPayment();
-
-    // 🔥 polling tiap 3 detik
-    const interval = setInterval(checkPaymentStatus, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+useEffect(() => {
+  loadSnap();
+  createPayment();
+}, []);
 
   const loadSnap = () => {
     const script = document.createElement("script");
@@ -28,53 +23,58 @@ export default function PaymentPage() {
     document.body.appendChild(script);
   };
 
-  const createPayment = async () => {
-    const res = await axios.post(
-      `http://localhost:5000/api/payment/create/${orderId}`
-    );
+const createPayment = async () => {
+  try {
+    const res = await axios.post(`/payment/create/${orderId}`);
 
-    window.snap.pay(res.data.token);
-  };
-
-  const checkPaymentStatus = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/api/orders/${orderId}`
-      );
-
-      if (res.data.data.status === "paid") {
-        alert("Pembayaran berhasil!");
-
-        navigate("/admin/orders"); // balik ke orders
-      }
-    } catch (err) {
-      console.error(err);
+    if (!res.data.token) {
+      alert("Token tidak ditemukan");
+      return;
     }
-  };
+    
 
-  useEffect(() => {
-  if (!orderId) return;
+    window.snap.pay(res.data.token, {
+      onSuccess: function () {
+        alert("Pembayaran berhasil");
+        navigate("/admin/orders");
+      },
+      onPending: function () {
+        alert("Menunggu pembayaran");
+      },
+      onError: function () {
+        alert("Pembayaran gagal");
+      }
+    });
+
+  } catch (err) {
+    console.error("ERROR PAYMENT:", err.response?.data || err.message);
+    alert("Gagal memulai pembayaran");
+  }
+};
+
+  // useEffect(() => {
+  // if (!orderId) return;
 
   // tunggu 5 detik seolah user bayar
-  const timer = setTimeout(async () => {
-    try {
-      await axios.post("http://localhost:5000/api/payment/webhook", {
-        order_id: orderId,
-        transaction_status: "settlement"
-      });
+//   const timer = setTimeout(async () => {
+//     try {
+//       await axios.post("/payment/webhook", {
+//         order_id: orderId,
+//         transaction_status: "settlement"
+//       });
 
-      alert("Pembayaran berhasil (simulasi)");
+//       alert("Pembayaran berhasil (simulasi)");
 
-      // redirect atau refresh
-      window.location.href = "/admin/orders";
+//       // redirect atau refresh
+//       window.location.href = "/admin/orders";
 
-    } catch (err) {
-      console.error(err);
-    }
-  }, 5000);
+//     } catch (err) {
+//       console.error(err);
+//     }
+//   }, 5000);
 
-  return () => clearTimeout(timer);
-}, [orderId]);
+//   return () => clearTimeout(timer);
+// }, [orderId]);
 
   return (
     <div className="p-6">

@@ -9,26 +9,21 @@ export default function Login() {
 
 const handleLogin = async () => {
   try {
-    const res = await axios.post("http://localhost:5000/api/auth/login", {
+    const res = await axios.post("/auth/login", {
       username,
       password,
     });
 
-    // reset semua data lama
-    localStorage.clear();
-
-    // simpan data baru
     localStorage.setItem("token", res.data.token);
-    localStorage.setItem("username", res.data.user.username);
-    localStorage.setItem("businessName", res.data.user.businessName);
 
     window.dispatchEvent(new Event("userChanged"));
 
-    // redirect
     navigate("/admin/dashboard");
 
+    console.log("LOGIN SUCCESS:", res.data);
+
   } catch (err) {
-    alert("Login gagal");
+    alert(err?.response?.data?.message || "Login gagal");
   }
 };
 

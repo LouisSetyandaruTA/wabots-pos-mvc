@@ -1,11 +1,18 @@
-const { Product, ProductVariant } = require("../models");
+const { Product, ProductVariant, Category, Business } = require("../models");
 
-exports.getAll = async () => {
+
+exports.getAll = async (businessId) => {
   const products = await Product.findAll({
+    where: { businessId },
     include: [
       {
         model: ProductVariant,
-        as: "variants" // ⚠️ pastikan sama dengan associations
+        as: "variants"
+      },
+      {
+        model: Category,
+        as: "Category",
+        attributes: ["id", "name"]
       }
     ]
   });
@@ -13,38 +20,33 @@ exports.getAll = async () => {
   return products.map(p => {
     const variants = p.variants || [];
 
-    let totalStock = p.stok;
+    const totalStock = variants.reduce(
+      (sum, v) => sum + (v.stok || 0),
+      0
+    );
 
-    if (variants.length > 0) {
-      totalStock = variants.reduce((sum, v) => sum + (v.stok || 0), 0);
-    }
+    const minPrice =
+      variants.length > 0
+        ? Math.min(...variants.map(v => v.harga))
+        : 0;
 
     return {
       ...p.toJSON(),
-      stok: totalStock
+      stok: totalStock,
+      harga: minPrice 
     };
   });
 };
 
-// 🔥 VALIDATION FUNCTION
+// VALIDATION FUNCTION
 const validateProduct = (data) => {
   if (
-    data.nama === "" ||
-    data.kategori === "" ||
-    data.satuan === "" ||
-    data.berat === "" ||
-    data.harga === "" ||
-    data.stok === ""
+    !data.nama ||
+    !data.categoryId ||
+    !data.satuan ||
+    !data.berat
   ) {
-    throw new Error("Semua field wajib diisi");
-  }
-
-  if (data.harga <= 0) {
-    throw new Error("Harga harus lebih dari 0");
-  }
-
-  if (data.stok < 0) {
-    throw new Error("Stok tidak boleh negatif");
+    throw new Error("Field product tidak lengkap");
   }
 
   if (data.berat <= 0) {
@@ -53,18 +55,50 @@ const validateProduct = (data) => {
 };
 
 // CREATE
-exports.create = async (data) => {
-  validateProduct(data); // ✅ VALIDASI DI SINI
-  return await Product.create(data);
+exports.create = async (data, businessId) => {
+  validateProduct(data);
+
+  return await Product.create({
+    ...data,
+    businessId
+  });
 };
 
-// UPDATE
-exports.update = async (id, data) => {
-  validateProduct(data); // ✅ VALIDASI JUGA DI UPDATE
-  await Product.update(data, { where: { id } });
+exports.createProduct = async (data) => {
+  const product = await Product.create(data);
+
+  await ProductVariant.create({
+    productId: product.id,
+    businessId: data.businessId,
+    nama_variant: "Default",
+    harga: data.harga || 0,
+    stok: data.stok || 0,
+    berat: data.berat || 0
+  });
+
+  return product;
 };
 
-// DELETE
-exports.delete = async (id) => {
-  await Product.destroy({ where: { id } });
+exports.update = async (id, data, businessId) => {
+  await Product.update(
+    {
+      nama: data.nama,
+      categoryId: data.categoryId,
+      satuan: data.satuan,
+      berat: data.berat
+    },
+    {
+      where: { id, businessId }
+    }
+  );
+};
+
+exports.delete = async (id, businessId) => {
+  await ProductVariant.destroy({
+    where: { productId: id }
+  });
+
+  await Product.destroy({
+    where: { id, businessId }
+  });
 };

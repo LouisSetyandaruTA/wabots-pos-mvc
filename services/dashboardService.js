@@ -58,30 +58,26 @@
 const { Order, OrderItem, ProductVariant, Product } = require("../models");
 const sequelize = require("../config/database");
 
-exports.getDashboardData = async (userId) => {
+exports.getDashboardData = async (businessId) => {
 
-  // 🔥 TOTAL REVENUE (FILTER USER)
   const totalRevenue = await Order.sum("totalPrice", {
     where: {
       status: "paid",
-      userId
+      businessId
     }
   });
 
-  // 🔥 TOTAL ORDER
   const totalOrders = await Order.count({
-    where: { userId }
+    where: { businessId }
   });
 
-  // 🔥 PENDING ORDER
   const pendingOrders = await Order.count({
     where: {
       status: "pending",
-      userId
+      businessId
     }
   });
 
-  // 🔥 TOP PRODUCTS (HARUS JOIN KE ORDER)
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
       "variantId",
@@ -90,8 +86,9 @@ exports.getDashboardData = async (userId) => {
     include: [
       {
         model: Order,
+        as: "order",
         attributes: [],
-        where: { userId } // 🔥 FILTER USER DI SINI
+        where: { businessId }
       }
     ],
     group: ["variantId"],
@@ -107,6 +104,7 @@ exports.getDashboardData = async (userId) => {
     include: [
       {
         model: Product,
+        as: "Product",
         attributes: ["nama"]
       }
     ],
@@ -124,7 +122,7 @@ exports.getDashboardData = async (userId) => {
     };
   });
 
-  // 🔥 SALES PER DAY (FILTER USER)
+  // SALES PER DAY (FILTER USER)
   const salesPerDay = await Order.findAll({
     attributes: [
       [
@@ -138,7 +136,7 @@ exports.getDashboardData = async (userId) => {
     ],
     where: {
       status: "paid",
-      userId
+      businessId
     },
     group: ["date"],
     order: [["date", "ASC"]],

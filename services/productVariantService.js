@@ -1,22 +1,32 @@
-const { ProductVariant } = require("../models");
+const { ProductVariant, Product } = require("../models");
 
-exports.getByProduct = async (productId) => {
+exports.getByProduct = async (productId, businessId) => {
   return await ProductVariant.findAll({
-    where: { productId }
+    where: { productId },
+    include: [
+      {
+        model: Product,
+        as: "Product",
+        where: { businessId }
+      }
+    ]
   });
 };
 
-exports.create = async (data) => {
-  if (
-    !data.productId ||
-    !data.nama_variant ||
-    !data.harga ||
-    !data.stok
-  ) {
-    throw new Error("Data variant tidak lengkap");
-  }
+exports.create = async (data, businessId) => {
+  const product = await Product.findOne({
+    where: {
+      id: data.productId,
+      businessId
+    }
+  });
 
-  return await ProductVariant.create(data);
+  if (!product) throw new Error("Produk tidak valid");
+
+  return await ProductVariant.create({
+    ...data,
+    businessId
+  });
 };
 
 exports.delete = async (id) => {
@@ -27,15 +37,19 @@ exports.update = async (id, data) => {
   const variant = await ProductVariant.findByPk(id);
   if (!variant) throw new Error("Variant tidak ditemukan");
 
-  if (data.harga <= 0) throw new Error("Harga tidak valid");
-  if (data.stok < 0) throw new Error("Stok tidak valid");
-  if (data.berat <= 0) throw new Error("Berat tidak valid");
+  if (data.harga !== undefined && data.harga <= 0) {
+    throw new Error("Harga tidak valid");
+  }
 
-  await variant.update({
-    harga: data.harga,
-    stok: data.stok,
-    berat: data.berat
-  });
+  if (data.stok !== undefined && data.stok < 0) {
+    throw new Error("Stok tidak valid");
+  }
+
+  if (data.berat !== undefined && data.berat <= 0) {
+    throw new Error("Berat tidak valid");
+  }
+
+  await variant.update(data);
 
   return variant;
 };
