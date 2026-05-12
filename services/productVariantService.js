@@ -30,7 +30,14 @@ exports.create = async (data, businessId) => {
 };
 
 exports.delete = async (id) => {
-  await ProductVariant.destroy({ where: { id } });
+  await ProductVariant.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: { id }
+  }
+);
 };
 
 exports.update = async (id, data) => {

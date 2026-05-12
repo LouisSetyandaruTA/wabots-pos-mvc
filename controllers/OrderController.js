@@ -1,5 +1,6 @@
 const orderService = require("../services/orderService");
 const paymentService = require("../services/paymentService");
+const whatsappService = require("../services/whatsappService");
 
 // CREATE
 exports.createOrder = async (req, res) => {
@@ -20,14 +21,27 @@ exports.createOrder = async (req, res) => {
 
 // APPROVE
 exports.approveOrder = async (req, res) => {
+
   try {
-    const data = await orderService.approveOrder(req.params.id);
-    res.json({ success: true, data });
+
+    const data =
+      await orderService.approveOrder(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
-
 // PAYMENT SUCCESS (SIMULASI)
 exports.completePayment = async (req, res) => {
   try {
@@ -90,5 +104,27 @@ exports.deleteOrder = async (req, res) => {
 
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+};
+exports.payOrder = async (req, res) => {
+
+  try {
+
+    const data =
+      await paymentService.createPayment(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
+  } catch (err) {
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };

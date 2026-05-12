@@ -1,7 +1,12 @@
 const { Op, fn, col, literal } = require("sequelize");
 const { Order, OrderItem, ProductVariant, Product, Customer} = require("../models");
 
-const getSummaryReport = async ({ startDate, endDate, groupBy }) => {
+const getSummaryReport = async ({
+  startDate,
+  endDate,
+  groupBy,
+  businessId
+}) => {
   // 1. SUMMARY
 const summary = await Order.findAll({
   attributes: [
@@ -13,7 +18,8 @@ const summary = await Order.findAll({
 ]
   ],
   where: {
-    status: "paid",
+  status: "paid",
+  businessId,
 createdAt: {
   [Op.between]: [
     startDate + " 00:00:00",
@@ -45,6 +51,7 @@ const trends = await Order.findAll({
   ],
   where: {
     status: "paid",
+    businessId,
     createdAt: {
       [Op.between]: [
         startDate + " 00:00:00",
@@ -70,8 +77,12 @@ const topProducts = await OrderItem.findAll({
       as: "variant",
       include: [
         {
-          model: Product,
-          as: "Product",
+         model: Product,
+as: "Product",
+where: {
+  businessId,
+  status: "active"
+}
         }
       ]
     },
@@ -80,16 +91,20 @@ const topProducts = await OrderItem.findAll({
       as: "order",
       where: {
         status: "paid",
-createdAt: {
-  [Op.between]: [
-    startDate + " 00:00:00",
-    endDate + " 23:59:59"
-  ]
+        businessId,
+        createdAt: {
+          [Op.between]: [
+            startDate + " 00:00:00",
+            endDate + " 23:59:59"
+          ]
 }
       }
     }
   ],
-  group: ["variant.Product.nama"],
+ group: [
+  "variant.Product.id",
+  "variant.Product.nama"
+],
   order: [[literal("totalSold"), "DESC"]],
   limit: 10,
   raw: true
@@ -97,6 +112,7 @@ createdAt: {
 const transactions = await Order.findAll({
   where: {
     status: "paid",
+    businessId,
     createdAt: {
       [Op.between]: [
         startDate + " 00:00:00",
@@ -117,11 +133,19 @@ const transactions = await Order.findAll({
         {
           model: ProductVariant,
           as: "variant",
+          where: {
+            businessId,
+  status: "active"
+},
           include: [
             {
               model: Product,
               as: "Product",
-              attributes: ["nama"]
+              attributes: ["nama"],
+              where: {
+                businessId,
+                status: "active"
+              }
             }
           ]
         }

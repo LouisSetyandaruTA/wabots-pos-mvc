@@ -18,7 +18,14 @@ businessId: {
 },
   satuan: { type: DataTypes.STRING, allowNull: false },
   berat: { type: DataTypes.FLOAT, allowNull: false },
-  keterangan: { type: DataTypes.TEXT, allowNull: true }
+  keterangan: { type: DataTypes.TEXT, allowNull: true },
+  status: {
+  type: DataTypes.ENUM(
+    "active",
+    "inactive"
+  ),
+  defaultValue: "active"
+},
 }, {
   tableName: 'products',
   freezeTableName: true

@@ -1,60 +1,3 @@
-// const { Order, OrderItem, ProductVariant, sequelize } = require("../models");
-// const { Op } = require("sequelize");
-
-// exports.getDashboardData = async () => {
-
-//     // 🔥 SALES PER DAY
-// const salesPerDay = await Order.findAll({
-//   attributes: [
-//     [sequelize.fn("DATE", sequelize.col("createdAt")), "date"],
-//     [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
-//   ],
-//   where: {
-//     status: "paid"
-//   },
-//   group: ["date"],
-//   order: [["date", "ASC"]]
-// });
-
-//   // 🔥 TOTAL REVENUE (PAID)
-//   const totalRevenue = await Order.sum("totalPrice", {
-//     where: { status: "paid" }
-//   });
-
-//   // 🔥 TOTAL ORDER
-//   const totalOrders = await Order.count();
-
-//   // 🔥 PENDING
-//   const pendingOrders = await Order.count({
-//     where: { status: "pending" }
-//   });
-
-//   // 🔥 TOP PRODUCT
-//   const topProducts = await OrderItem.findAll({
-//     attributes: [
-//       "variantId",
-//       [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
-//     ],
-//     group: ["variantId"],
-//     order: [[sequelize.literal("totalSold"), "DESC"]],
-//     limit: 5,
-//     include: [
-//       {
-//         model: ProductVariant,
-//         as: "variant"
-//       }
-//     ]
-//   });
-
-//   return {
-//     totalRevenue: totalRevenue || 0,
-//     totalOrders,
-//     pendingOrders,
-//     topProducts,
-//     salesPerDay
-//   };
-// };
-
 const { Order, OrderItem, ProductVariant, Product } = require("../models");
 const sequelize = require("../config/database");
 
@@ -99,8 +42,11 @@ exports.getDashboardData = async (businessId) => {
 
   const variantIds = topProductsRaw.map(p => p.variantId);
 
-  const variants = await ProductVariant.findAll({
-    where: { id: variantIds },
+ const variants = await ProductVariant.findAll({
+  where: {
+    id: variantIds,
+    status: "active"
+  },
     include: [
       {
         model: Product,

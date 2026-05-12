@@ -3,12 +3,19 @@ const { Product, ProductVariant, Category, Business } = require("../models");
 
 exports.getAll = async (businessId) => {
   const products = await Product.findAll({
-    where: { businessId },
+    where: {
+  businessId,
+  status: "active"
+},
     include: [
       {
-        model: ProductVariant,
-        as: "variants"
-      },
+  model: ProductVariant,
+  as: "variants",
+  where: {
+    status: "active"
+  },
+  required: false
+},
       {
         model: Category,
         as: "Category",
@@ -80,13 +87,14 @@ exports.createProduct = async (data) => {
 };
 
 exports.update = async (id, data, businessId) => {
-  await Product.update(
-    {
-      nama: data.nama,
-      categoryId: data.categoryId,
-      satuan: data.satuan,
-      berat: data.berat
-    },
+ await Product.update(
+  {
+    nama: data.nama,
+    categoryId: data.categoryId,
+    satuan: data.satuan,
+    berat: data.berat,
+    keterangan: data.keterangan
+  },
     {
       where: { id, businessId }
     }
@@ -94,11 +102,26 @@ exports.update = async (id, data, businessId) => {
 };
 
 exports.delete = async (id, businessId) => {
-  await ProductVariant.destroy({
-    where: { productId: id }
-  });
+ await ProductVariant.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: {
+      productId: id
+    }
+  }
+);
 
-  await Product.destroy({
-    where: { id, businessId }
-  });
+await Product.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: {
+      id,
+      businessId
+    }
+  }
+);
 };

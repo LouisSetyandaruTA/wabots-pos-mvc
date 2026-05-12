@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../../utils/axiosInstance";
-import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 
 export default function Orders() {
@@ -27,12 +26,35 @@ export default function Orders() {
       alert(JSON.stringify(err?.response?.data || err.message));
     }
   };
+  const pay = async (id) => {
+
+    try {
+
+      const res = await axios.post(
+        `/orders/${id}/pay`
+      );
+
+      alert(
+        "Pembayaran berhasil dikirim ke WhatsApp customer"
+      );
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal mengirim pembayaran"
+      );
+    }
+  };
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString("id-ID");
   };
 
-  const navigate = useNavigate();
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -54,33 +76,33 @@ export default function Orders() {
 
   const location = useLocation();
 
-useEffect(() => {
-  const params = new URLSearchParams(location.search);
-  setSearch(params.get("search") || "");
-}, [location.search]);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearch(params.get("search") || "");
+  }, [location.search]);
 
   return (
     <div className="p-6">
-     <div className="flex gap-2 mb-4">
-  <input
-    type="text"
-    placeholder="Cari order / customer..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className="border p-2 rounded w-full"
-  />
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Cari order / customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
 
-  <select
-    value={status}
-    onChange={(e) => setStatus(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="">Semua</option>
-    <option value="pending">Pending</option>
-    <option value="approved">Approved</option>
-    <option value="paid">Paid</option>
-  </select>
-</div>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="">Semua</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
       <select onChange={(e) => setStatus(e.target.value)}>
         <option value="">Semua</option>
         <option value="pending">Pending</option>
@@ -156,8 +178,7 @@ useEffect(() => {
 
                     {order.status === "approved" && (
                       <button
-                        // onClick={() => pay(order.id)}
-                        onClick={() => navigate(`/admin/payment/${order.id}`)}
+                        onClick={() => pay(order.id)}
                         className="bg-green-500 text-white px-3 py-1 rounded text-xs"
                       >
                         Bayar

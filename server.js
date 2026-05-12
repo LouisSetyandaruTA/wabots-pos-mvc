@@ -1,7 +1,11 @@
+require("./bot/whatsapp");
+
 const app = require("./app");
 const db = require("./models"); 
 
 const PORT = process.env.PORT || 5000;
+
+
 
 (async () => {
   try {

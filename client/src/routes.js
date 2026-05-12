@@ -14,6 +14,10 @@ import Dashboard from "views/admin/dashboard/Dashboard";
 import Reports from "views/admin/reports/Reports";
 import PaymentPage from "views/admin/payment/PaymentPage";
 import ProtectedRoute from "utils/ProtectedRoute";
+import BusinessSettings
+  from "views/admin/business/BusinessSettings";
+
+
 import PublicRoute from "utils/PublicRoute";
 import Login from "views/auth/Login";
 // import Payment from "views/admin/payment/:orderId";
@@ -28,122 +32,134 @@ import {
   MdReceipt,
   MdAddBox,
   MdBarChart,
-  MdPayment
+  MdPayment,
+  MdStore,
 } from "react-icons/md";
 
 const routes = [
   {
-  name: "Dashboard",
-  layout: "/admin",
-  path: "dashboard",
-  icon: <MdHome className="h-6 w-6" />,
-  component: <ProtectedRoute><Dashboard /></ProtectedRoute>,
-},
-{
-  name: "Products",
-  layout: "/admin",
-  path: "products",
-  icon: <MdShoppingCart className="h-6 w-6" />,
-  component: <ProtectedRoute><Products /></ProtectedRoute>,
-},
-{
-  name: "Orders",
-  layout: "/admin",
-  path: "orders",
-  icon: <MdReceipt className="h-6 w-6" />,
-  component: <ProtectedRoute><Orders /></ProtectedRoute>,
-},
-{
-  name: "Create Order",
-  layout: "/admin",
-  path: "createorder",
-  icon: <MdAddBox className="h-6 w-6" />,
-  component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
-},
-{
-  name: "Reports",
-  layout: "/admin",
-  path: "reports",
-  icon: <MdBarChart className="h-6 w-6" />,
-  component: <ProtectedRoute><Reports /></ProtectedRoute>,
-},
-{
-  name: "Payment",
-  layout: "/admin",
-  path: "payment/:orderId",
-  icon: <MdPayment className="h-6 w-6" />,
-  component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
-},
-//   {
-//   layout: "/auth",
-//   path: "login",
-//   component: (
-//     <PublicRoute>
-//       <Login />
-//     </PublicRoute>
-//   ),
-// },
-//   {
-//   name: "Dashboard",
-//   layout: "/admin",
-//   path: "dashboard",
-//  component: (
-//     <ProtectedRoute>
-//       <Dashboard />
-//     </ProtectedRoute>
-//   ),
-// },
-//   {
-//     name: "Products",
-//     layout: "/admin",
-//     path: "products",
-//     component: (
-//       <ProtectedRoute>
-//         <Products />
-//       </ProtectedRoute>
-//     ),
-//   },
-//   {
-//   name: "Orders",
-//   layout: "/admin",
-//   path: "orders",
-//   component: (
-//     <ProtectedRoute>
-//       <Orders />
-//     </ProtectedRoute>
-//   ),
-// },
-// {
-//   name: "Create Order",
-//   layout: "/admin",
-//   path: "createorder",
-//   component: (
-//     <ProtectedRoute>
-//       <CreateOrder />
-//     </ProtectedRoute>
-//   ),
-// },
-// {
-//   name: "Reports",
-//   layout: "/admin",
-//   path: "reports",
-//   component: (
-//     <ProtectedRoute>
-//       <Reports />
-//     </ProtectedRoute>
-//   ),
-// },
-// {
-//   name: "Payment",
-//   layout: "/admin",
-//   path: "payment/:orderId",
-//   component: (
-//     <ProtectedRoute>
-//       <PaymentPage />
-//     </ProtectedRoute>
-//   ),
-// },
+    name: "Dashboard",
+    layout: "/admin",
+    path: "dashboard",
+    icon: <MdHome className="h-6 w-6" />,
+    component: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+  },
+  {
+    name: "Products",
+    layout: "/admin",
+    path: "products",
+    icon: <MdShoppingCart className="h-6 w-6" />,
+    component: <ProtectedRoute><Products /></ProtectedRoute>,
+  },
+  {
+    name: "Orders",
+    layout: "/admin",
+    path: "orders",
+    icon: <MdReceipt className="h-6 w-6" />,
+    component: <ProtectedRoute><Orders /></ProtectedRoute>,
+  },
+  {
+    name: "Create Order",
+    layout: "/admin",
+    path: "createorder",
+    icon: <MdAddBox className="h-6 w-6" />,
+    component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
+  },
+  {
+    name: "Reports",
+    layout: "/admin",
+    path: "reports",
+    icon: <MdBarChart className="h-6 w-6" />,
+    component: <ProtectedRoute><Reports /></ProtectedRoute>,
+  },
+  {
+    name: "Business",
+    layout: "/admin",
+    path: "business",
+    icon: <MdStore className="h-6 w-6" />,
+    component: (
+      <ProtectedRoute>
+        <BusinessSettings />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    name: "Payment",
+    layout: "/admin",
+    path: "payment/:orderId",
+    icon: <MdPayment className="h-6 w-6" />,
+    component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
+  },
+  //   {
+  //   layout: "/auth",
+  //   path: "login",
+  //   component: (
+  //     <PublicRoute>
+  //       <Login />
+  //     </PublicRoute>
+  //   ),
+  // },
+  //   {
+  //   name: "Dashboard",
+  //   layout: "/admin",
+  //   path: "dashboard",
+  //  component: (
+  //     <ProtectedRoute>
+  //       <Dashboard />
+  //     </ProtectedRoute>
+  //   ),
+  // },
+  //   {
+  //     name: "Products",
+  //     layout: "/admin",
+  //     path: "products",
+  //     component: (
+  //       <ProtectedRoute>
+  //         <Products />
+  //       </ProtectedRoute>
+  //     ),
+  //   },
+  //   {
+  //   name: "Orders",
+  //   layout: "/admin",
+  //   path: "orders",
+  //   component: (
+  //     <ProtectedRoute>
+  //       <Orders />
+  //     </ProtectedRoute>
+  //   ),
+  // },
+  // {
+  //   name: "Create Order",
+  //   layout: "/admin",
+  //   path: "createorder",
+  //   component: (
+  //     <ProtectedRoute>
+  //       <CreateOrder />
+  //     </ProtectedRoute>
+  //   ),
+  // },
+  // {
+  //   name: "Reports",
+  //   layout: "/admin",
+  //   path: "reports",
+  //   component: (
+  //     <ProtectedRoute>
+  //       <Reports />
+  //     </ProtectedRoute>
+  //   ),
+  // },
+  // {
+  //   name: "Payment",
+  //   layout: "/admin",
+  //   path: "payment/:orderId",
+  //   component: (
+  //     <ProtectedRoute>
+  //       <PaymentPage />
+  //     </ProtectedRoute>
+  //   ),
+  // },
 
- 
+
 ];
 export default routes;

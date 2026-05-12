@@ -11,31 +11,47 @@ import { exportReportPDF } from "../../../utils/exportReportPDF";
 export default function Reports() {
     const reportRef = useRef();
     const [data, setData] = useState(null);
+const [error, setError] = useState("");
     const [filter, setFilter] = useState({
         startDate: "",
         endDate: "",
         groupBy: "day"
     });
 
-    const fetchData = async (params) => {
-        try {
-            const res = await axios.get("http://localhost:5000/api/reports", { params });
+ const fetchData = async (params) => {
 
-            console.log("DATA:", res.data);
-            setData(res.data);
-        } catch (err) {
-            console.error("API ERROR:", err);
-        }
-    };
+  try {
+
+    setError("");
+
+    const res = await axios.get(
+      "/reports",
+      { params }
+    );
+
+    console.log(res.data);
+
+    setData(res.data);
+
+  } catch (err) {
+
+    console.error(err);
+
+    setError(
+      err.response?.data?.message ||
+      "Gagal mengambil report"
+    );
+  }
+};
 
     useEffect(() => {
         const today = new Date();
-        const last7Days = new Date();
-        last7Days.setDate(today.getDate() - 7);
+        const last30Days = new Date();
+        last30Days.setDate(today.getDate() - 30);
 
 
         const defaultFilter = {
-            startDate: last7Days.toISOString().split("T")[0],
+            startDate: last30Days.toISOString().split("T")[0],
             endDate: today.toISOString().split("T")[0],
             groupBy: "day"
         };
@@ -43,6 +59,15 @@ export default function Reports() {
         setFilter(defaultFilter);
         fetchData(defaultFilter);
     }, []);
+
+    if (error) {
+
+  return (
+    <div className="p-6 text-red-500">
+      {error}
+    </div>
+  );
+}
 
     if (!data) return <div>Loading...</div>;
 

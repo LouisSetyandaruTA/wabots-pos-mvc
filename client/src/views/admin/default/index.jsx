@@ -46,12 +46,12 @@ const fetchDashboard = async () => {
       <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-6">
         <Widget
           title={"Total Orders"}
-          subtitle={data.totalOrders || "Loading..."}
+          subtitle={data?.totalOrders || 0}
         />
 
         <Widget
           title={"Total Products"}
-          subtitle={data.totalProducts || "Loading..."}
+          subtitle={data?.totalProducts || 0}
         />
         {/* <Widget
           title={"Total Revenue"}

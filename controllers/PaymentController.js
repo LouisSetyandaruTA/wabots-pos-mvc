@@ -2,20 +2,102 @@ const { or } = require("sequelize");
 const { Customer, Order, OrderItem } = require("../models");
 const orderService = require("../services/orderService");
 const paymentService = require("../services/paymentService");
+const whatsappService = require("../services/whatsappService");
 
 exports.createPayment = async (req, res) => {
+
   try {
-    console.log("CREATE PAYMENT ORDER:", req.params.orderId);
 
-    const transaction = await paymentService.createPayment(req.params.orderId);
+    console.log(
+      "CREATE PAYMENT ORDER:",
+      req.params.orderId
+    );
 
-    console.log("MIDTRANS RESPONSE:", transaction);
+    // CREATE MIDTRANS
+    const transaction =
+      await paymentService.createPayment(
+        req.params.orderId
+      );
+
+    // AMBIL ORDER
+    const order =
+      await Order.findByPk(
+        req.params.orderId,
+        {
+          include: [
+            {
+              model: Customer,
+              as: "customer"
+            }
+          ]
+        }
+      );
+
+    // FORMAT PAYMENT TEXT
+    let paymentText = "";
+
+    if (
+      transaction.va_numbers &&
+      transaction.va_numbers.length > 0
+    ) {
+
+      const va =
+        transaction.va_numbers[0];
+
+      paymentText = `
+Pesanan Anda telah disetujui ✅
+
+Silakan lakukan pembayaran:
+
+Bank:
+${va.bank.toUpperCase()}
+
+VA Number:
+${va.va_number}
+
+Total:
+Rp ${order.totalPrice}
+
+Link Pembayaran:
+${transaction.redirect_url}
+`;
+
+    } else {
+
+      paymentText = `
+Pesanan Anda telah disetujui ✅
+
+Total:
+Rp ${order.totalPrice}
+
+Link Pembayaran:
+${transaction.redirect_url}
+`;
+    }
+
+    // KIRIM WHATSAPP
+    await whatsappService.sendWhatsAppMessage(
+      order.customer.phoneNumber,
+      paymentText
+    );
+
+    console.log(
+      "MIDTRANS RESPONSE:",
+      transaction
+    );
 
     res.json(transaction);
 
   } catch (err) {
-    console.error("CREATE PAYMENT ERROR:", err);
-    res.status(500).json({ message: err.message });
+
+    console.error(
+      "CREATE PAYMENT ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      message: err.message
+    });
   }
 };
 
@@ -51,6 +133,19 @@ exports.midtransWebhook = async (req, res) => {
       await orderService.completePayment(order.id);
 
       await paymentService.savePayment(order, data);
+       console.log(
+    "KIRIM WA PAYMENT SUCCESS KE:",
+    order.customer.phoneNumber
+  );
+  
+      await whatsappService.sendWhatsAppMessage(
+  order.customer.phoneNumber,
+  `Pembayaran berhasil diterima ✅
+
+Pesanan Anda sedang diproses.
+
+Terima kasih telah berbelanja 🙏`
+);
 
       console.log("✅ SET PAID");
     }

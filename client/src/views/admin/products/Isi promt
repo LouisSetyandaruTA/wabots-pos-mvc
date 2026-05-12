@@ -1,0 +1,1918 @@
+Berikut isi file file kodingan saya :
+
+bot/whatsapp.js:
+const { Customer } = require("../models");
+
+client.on("message", async (msg) => {
+  const phone = msg.from.replace("@c.us", "");
+
+  // 🔥 HARUS ADA mapping businessId
+  const businessId = "HARDCODE_SEMENTARA"; // nanti dari nomor WA
+
+  let customer = await Customer.findOne({
+    where: {
+      phoneNumber: phone,
+      businessId
+    }
+  });
+
+  if (!customer) {
+    customer = await Customer.create({
+      name: "Customer WA",
+      phoneNumber: phone,
+      businessId
+    });
+  }
+
+  console.log("Customer:", customer.name);
+});
+
+
+server.js:
+const app = require("./app");
+const db = require("./models"); 
+
+const PORT = process.env.PORT || 5000;
+
+(async () => {
+  try {
+    await db.sequelize.authenticate();
+    console.log("Database connected");
+
+    await db.sequelize.sync();
+    console.log("Database synced");
+
+    app.listen(PORT, () => {
+      console.log("Server running on port " + PORT);
+    });
+
+  } catch (err) {
+    console.error("DB Error:", err);
+  }
+})();
+
+package.json:
+{
+  "name": "wabots-pos-mvc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed:variants": "node scripts/createProductVariants.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "ejs": "^5.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "html2canvas": "^1.4.1",
+    "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "jwt-decode": "^4.0.0",
+    "method-override": "^3.0.0",
+    "midtrans-client": "^1.4.3",
+    "mysql2": "^3.19.0",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+
+
+routes/api/authRoutes.js :
+const express = require("express");
+const router = express.Router();
+const authController = require("../../controllers/AuthController");
+
+router.post("/login", authController.login);
+
+module.exports = router;
+
+
+routes/api/categoryRoutes.js :
+const express = require("express");
+const router = express.Router();
+const { Category } = require("../../models");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", async (req, res) => {
+  const data = await Category.findAll({
+    where: { businessId: req.user.businessId }
+  });
+  res.json(data);
+});
+
+router.post("/", async (req, res) => {
+  const data = await Category.create({
+    name: req.body.name,
+    businessId: req.user.businessId
+  });
+  res.json(data);
+});
+
+module.exports = router;
+
+
+routes/api/customerRoutes.js :
+const express = require("express");
+const router = express.Router();
+const { Customer } = require("../../models"); 
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", async (req, res) => {
+  try {
+    const data = await Customer.findAll({
+      where: { businessId: req.user.businessId }
+    });
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;
+
+
+routes/api/dashboardRoutes.js :
+const express = require("express");
+const router = express.Router();
+const dashboardController = require("../../controllers/DashboardController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+// auth
+router.get("/", authMiddleware, dashboardController.getDashboard);
+
+module.exports = router;
+
+
+routes/api/orderRoutes.js :
+const router = require("express").Router();
+const orderController = require("../../controllers/OrderController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.get("/", authMiddleware, orderController.getOrders);
+router.post("/", authMiddleware, orderController.createOrder);
+router.put("/:id/approve", authMiddleware, orderController.approveOrder);
+router.put("/:id/payment", authMiddleware, orderController.completePayment);
+router.post("/:id/pay", authMiddleware, orderController.createPayment);
+router.get("/:id", authMiddleware, orderController.getOrderById);
+router.delete("/:id", authMiddleware, orderController.deleteOrder);
+
+module.exports = router;
+
+
+routes/api/paymentRoutes.js :
+const express = require("express");
+const router = express.Router();
+const paymentController = require("../../controllers/PaymentController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.post("/webhook", paymentController.midtransWebhook); 
+
+router.use(authMiddleware);
+
+router.post("/create/:orderId", paymentController.createPayment);
+
+module.exports = router;
+
+
+routes/api/productRoutes.js :
+const express = require("express");
+const router = express.Router();
+const productController = require("../../controllers/ProductController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", productController.getProducts);
+router.post("/", productController.createProduct);
+router.put("/:id", productController.updateProduct);
+router.delete("/:id", productController.deleteProduct);
+
+module.exports = router;
+
+
+routes/api/productVariantRoutes.js :
+const express = require("express");
+const router = express.Router();
+const controller = require("../../controllers/ProductVariantController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/:productId", controller.getVariants);
+router.post("/", controller.createVariant);
+router.delete("/:id", controller.deleteVariant);
+router.put("/:id", controller.updateVariant);
+
+module.exports = router;
+
+
+routes/api/reportRoutes.js :
+const express = require("express");
+const router = express.Router();
+const reportController = require("../../controllers/ReportController");
+
+router.get("/", reportController.getReport);
+
+module.exports = router;
+
+controllers/AuthController.js :
+const { User, Business } = require("../models");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const user = await User.findOne({
+      where: { username },
+      include: {
+        model: Business,
+        attributes: ["name"]
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password salah" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        businessId: user.businessId,
+        businessName: user.Business?.name 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        businessId: user.businessId,
+        businessName: user.Business?.name
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+controllers/CategoryController.js :
+const { Category } = require("../models");
+
+exports.getCategories = async (req, res) => {
+  const data = await Category.findAll({
+    where: { userId: req.user.id }
+  });
+  res.json(data);
+};
+
+exports.createCategory = async (req, res) => {
+  const data = await Category.create({
+    name: req.body.name,
+    userId: req.user.id
+  });
+  res.json(data);
+};
+
+exports.deleteCategory = async (req, res) => {
+  await Category.destroy({
+    where: {
+      id: req.params.id,
+      userId: req.user.id
+    }
+  });
+  res.json({ success: true });
+};
+
+
+controllers/CustomerController.js :
+const customerService = require("../services/customerService");
+
+exports.getCustomers = async (req, res) => {
+  try {
+    const data = await customerService.getAll(req.user.businessId);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+controllers/DashboardController.js :
+const dashboardService = require("../services/dashboardService");
+
+exports.getDashboard = async (req, res) => {
+  try {
+    const data = await dashboardService.getDashboardData(req.user.businessId);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+controllers/OrderController.js :
+const orderService = require("../services/orderService");
+const paymentService = require("../services/paymentService");
+
+// CREATE
+exports.createOrder = async (req, res) => {
+  try {
+    const payload = {
+      ...req.body,
+      userId: req.user.id,
+      businessId: req.user.businessId
+    };
+
+    const data = await orderService.createOrder(payload);
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// APPROVE
+exports.approveOrder = async (req, res) => {
+  try {
+    const data = await orderService.approveOrder(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// PAYMENT SUCCESS (SIMULASI)
+exports.completePayment = async (req, res) => {
+  try {
+    const data = await orderService.completePayment(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+exports.getOrders = async (req, res) => {
+  try {
+    const data = await orderService.getAllOrders(
+      req.user.businessId,
+      req.query 
+    );
+
+    res.json({ success: true, data });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.createPayment = async (req, res) => {
+  try {
+    const url = await paymentService.createPayment(req.params.id);
+
+    res.json({
+      success: true,
+      paymentUrl: url
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    await orderService.deleteOrder(req.params.id);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+controllers/PaymentController.js :const { or } = require("sequelize");
+const { Customer, Order, OrderItem } = require("../models");
+const orderService = require("../services/orderService");
+const paymentService = require("../services/paymentService");
+
+exports.createPayment = async (req, res) => {
+  try {
+    console.log("CREATE PAYMENT ORDER:", req.params.orderId);
+
+    const transaction = await paymentService.createPayment(req.params.orderId);
+
+    console.log("MIDTRANS RESPONSE:", transaction);
+
+    res.json(transaction);
+
+  } catch (err) {
+    console.error("CREATE PAYMENT ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.midtransWebhook = async (req, res) => {
+  try {
+    const data = req.body;
+
+    console.log("🔥 WEBHOOK:", data.transaction_status);
+
+ const order = await Order.findByPk(data.order_id, {
+  include: [
+    {
+      model: Customer,
+      as: "customer"
+    },
+    {
+      model: OrderItem,
+      as: "items"
+    }
+  ]
+});
+
+    if (!order) return res.status(404).json({ message: "Order tidak ditemukan" });
+
+    if (order.status === "paid") {
+      console.log("⛔ SUDAH PAID, SKIP");
+      return res.json({ success: true });
+    }
+
+    // HANDLE SUCCESS
+    if (["settlement", "capture"].includes(data.transaction_status)) {
+
+      await orderService.completePayment(order.id);
+
+      await paymentService.savePayment(order, data);
+
+      console.log("✅ SET PAID");
+    }
+
+    //  HANDLE PENDING)
+    else if (data.transaction_status === "pending" && order.status !== "paid") {
+      // order.status = "pending";
+      await order.save();
+    }
+
+    // 🔥 HANDLE CANCEL
+    else if (["cancel", "expire"].includes(data.transaction_status)) {
+      // order.status = "cancelled";
+      await order.save();
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("WEBHOOK ERROR:", err);
+    res.status(200).json({ success: true });
+  }
+};
+
+
+controllers/ProductController.js :
+const productService = require("../services/productService");
+
+//Get Product
+exports.getProducts = async (req, res) => {
+  try {
+    console.log("BUSINESS ID:", req.user.businessId); 
+    const data = await productService.getAll(req.user.businessId);
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// CREATE
+exports.createProduct = async (req, res) => {
+  const data = await productService.createProduct({
+    ...req.body,
+    businessId: req.user.businessId
+  });
+
+  res.json(data);
+};
+
+// UPDATE
+exports.updateProduct = async (req, res) => {
+  try {
+   await productService.update(req.params.id, req.body, req.user.businessId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// DELETE
+exports.deleteProduct = async (req, res) => {
+  try {
+    await productService.delete(req.params.id, req.user.businessId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+controllers/ProductVariantController.js :
+const service = require("../services/productVariantService");
+
+exports.getVariants = async (req, res) => {
+  const data = await service.getByProduct(
+    req.params.productId,
+    req.user.businessId
+  );
+  res.json(data);
+};
+
+exports.createVariant = async (req, res) => {
+  const data = await service.create(req.body, req.user.businessId);
+  res.json(data);
+};
+
+exports.deleteVariant = async (req, res) => {
+  await service.delete(req.params.id);
+  res.json({ success: true });
+};
+
+exports.updateVariant = async (req, res) => {
+  try {
+    const data = await service.update(req.params.id, req.body);
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+
+controllers/ReportController.js :
+const reportService = require("../services/reportService");
+
+const getReport = async (req, res) => {
+  try {
+    let { startDate, endDate, groupBy } = req.query;
+
+    // 🔥 DEFAULT DATE (WAJIB)
+    if (!startDate || !endDate) {
+      const today = new Date().toISOString().split("T")[0];
+      startDate = today;
+      endDate = today;
+    }
+
+    if (!groupBy) groupBy = "day";
+
+    const data = await reportService.getSummaryReport({
+      startDate,
+      endDate,
+      groupBy
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error("REPORT ERROR:", error);
+    res.status(500).json({ message: "Error generating report" });
+  }
+};
+
+module.exports = { getReport };
+
+
+services/customerService.js :
+const { Customer } = require("../models");
+
+exports.getAll = async (businessId) => {
+  return await Customer.findAll({
+    where: { businessId }
+  });
+};
+
+exports.create = async (data, businessId) => {
+  return await Customer.create({
+    ...data,
+    businessId
+  });
+};
+
+
+services/dashboardService.js :
+// const { Order, OrderItem, ProductVariant, sequelize } = require("../models");
+// const { Op } = require("sequelize");
+
+// exports.getDashboardData = async () => {
+
+//     // 🔥 SALES PER DAY
+// const salesPerDay = await Order.findAll({
+//   attributes: [
+//     [sequelize.fn("DATE", sequelize.col("createdAt")), "date"],
+//     [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+//   ],
+//   where: {
+//     status: "paid"
+//   },
+//   group: ["date"],
+//   order: [["date", "ASC"]]
+// });
+
+//   // 🔥 TOTAL REVENUE (PAID)
+//   const totalRevenue = await Order.sum("totalPrice", {
+//     where: { status: "paid" }
+//   });
+
+//   // 🔥 TOTAL ORDER
+//   const totalOrders = await Order.count();
+
+//   // 🔥 PENDING
+//   const pendingOrders = await Order.count({
+//     where: { status: "pending" }
+//   });
+
+//   // 🔥 TOP PRODUCT
+//   const topProducts = await OrderItem.findAll({
+//     attributes: [
+//       "variantId",
+//       [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+//     ],
+//     group: ["variantId"],
+//     order: [[sequelize.literal("totalSold"), "DESC"]],
+//     limit: 5,
+//     include: [
+//       {
+//         model: ProductVariant,
+//         as: "variant"
+//       }
+//     ]
+//   });
+
+//   return {
+//     totalRevenue: totalRevenue || 0,
+//     totalOrders,
+//     pendingOrders,
+//     topProducts,
+//     salesPerDay
+//   };
+// };
+
+const { Order, OrderItem, ProductVariant, Product } = require("../models");
+const sequelize = require("../config/database");
+
+exports.getDashboardData = async (businessId) => {
+
+  const totalRevenue = await Order.sum("totalPrice", {
+    where: {
+      status: "paid",
+      businessId
+    }
+  });
+
+  const totalOrders = await Order.count({
+    where: { businessId }
+  });
+
+  const pendingOrders = await Order.count({
+    where: {
+      status: "pending",
+      businessId
+    }
+  });
+
+  const topProductsRaw = await OrderItem.findAll({
+    attributes: [
+      "variantId",
+      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+    ],
+    include: [
+      {
+        model: Order,
+        as: "order",
+        attributes: [],
+        where: { businessId }
+      }
+    ],
+    group: ["variantId"],
+    order: [[sequelize.literal("totalSold"), "DESC"]],
+    limit: 5,
+    raw: true
+  });
+
+  const variantIds = topProductsRaw.map(p => p.variantId);
+
+  const variants = await ProductVariant.findAll({
+    where: { id: variantIds },
+    include: [
+      {
+        model: Product,
+        as: "Product",
+        attributes: ["nama"]
+      }
+    ],
+    raw: true,
+    nest: true
+  });
+
+  const topProducts = topProductsRaw.map(p => {
+    const variant = variants.find(v => v.id === p.variantId);
+
+    return {
+      variantId: p.variantId,
+      totalSold: Number(p.totalSold || 0),
+      variant: variant || null
+    };
+  });
+
+  // SALES PER DAY (FILTER USER)
+  const salesPerDay = await Order.findAll({
+    attributes: [
+      [
+        sequelize.fn(
+          "DATE",
+          sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+        ),
+        "date"
+      ],
+      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+    ],
+    where: {
+      status: "paid",
+      businessId
+    },
+    group: ["date"],
+    order: [["date", "ASC"]],
+    raw: true
+  });
+
+  return {
+    totalRevenue: totalRevenue || 0,
+    totalOrders,
+    pendingOrders,
+    topProducts,
+    salesPerDay
+  };
+};
+
+
+services/orderService.js :
+const sequelize = require("../config/database");
+const { Order, OrderItem, ProductVariant, Customer , Business } = require("../models");
+const { Op } = require("sequelize");
+
+exports.getAllOrders = async (businessId, query) => {
+  const { search = "", status = "" } = query;
+
+  const where = { businessId };
+
+  // SEARCH
+  if (search) {
+    where[Op.or] = [
+      { id: { [Op.like]: `%${search}%` } },
+      { "$customer.name$": { [Op.like]: `%${search}%` } },
+      { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } }
+    ];
+  }
+
+  // FILTER STATUS
+  if (status) {
+    where.status = status;
+  }
+
+  return await Order.findAll({
+    where,
+    include: [
+      {
+        model: Customer,
+        as: "customer",
+        attributes: ["id", "name", "phoneNumber"]
+      },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [
+          {
+            model: ProductVariant,
+            as: "variant"
+          }
+        ]
+      }
+    ],
+    order: [["createdAt", "DESC"]]
+  });
+};
+
+const validateVariant = (variant, qty) => {
+  if (!variant) throw new Error("Variant tidak ditemukan");
+  if (variant.stok < qty) throw new Error("Stok tidak cukup");
+};
+
+exports.createOrder = async (payload) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const { customerId, items, businessId } = payload;
+
+    if (!customerId || !items?.length) {
+      throw new Error("Data order tidak valid");
+    }
+
+    let totalPrice = 0;
+
+    const order = await Order.create({
+      customerId,
+      businessId,
+      totalPrice: 0,
+      status: "pending"
+    }, { transaction: t });
+
+    for (const item of items) {
+      const variant = await ProductVariant.findByPk(item.variantId, { transaction: t });
+
+      validateVariant(variant, item.quantity);
+
+      const subtotal = variant.harga * item.quantity;
+      totalPrice += subtotal;
+
+      await OrderItem.create({
+        orderId: order.id,
+        variantId: variant.id,
+        quantity: item.quantity,
+        unitPrice: variant.harga,
+        subtotal
+      }, { transaction: t });
+    }
+
+    await order.update({ totalPrice }, { transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.approveOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (order.status !== "pending") {
+    throw new Error("Order hanya bisa di-approve dari status pending");
+  }
+
+  order.status = "approved";
+  await order.save();
+
+  return order;
+};
+
+exports.completePayment = async (orderId) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          as: "items"
+        }
+      ],
+      transaction: t,
+      lock: t.LOCK.UPDATE
+    });
+
+    if (!order) throw new Error("Order tidak ditemukan");
+    if (order.status === "paid") return order;
+    if (order.status !== "approved") throw new Error("Order belum di-approve");
+
+    for (const item of order.items) {
+      const variant = await ProductVariant.findByPk(item.variantId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      validateVariant(variant, item.quantity);
+
+      await variant.update({
+        stok: variant.stok - item.quantity
+      }, { transaction: t });
+    }
+
+    order.status = "paid";
+    await order.save({ transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.deleteOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (!["pending", "cancelled"].includes(order.status)) {
+    throw new Error("Order tidak bisa dihapus");
+  }
+
+  await order.destroy();
+};
+
+
+
+services/paymentService.js :
+const midtransClient = require("midtrans-client");
+const { Order, Payment, Customer, OrderItem, ProductVariant } = require("../models");
+const orderService = require("./orderService");
+
+const snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY
+});
+
+exports.createPayment = async (orderId) => {
+  const order = await Order.findByPk(orderId, {
+    include: [
+      { model: Customer, as: "customer" },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [{ model: ProductVariant, as: "variant" }]
+      }
+    ]
+  });
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  const transaction = await snap.createTransaction({
+    transaction_details: {
+      order_id: order.id,
+      gross_amount: Number(order.totalPrice)
+    },
+
+    customer_details: {
+      first_name: order.customer?.name || "Customer",
+      phone: order.customer?.phoneNumber || "08123456789"
+    },
+
+    item_details: order.items.map(item => ({
+      id: item.variantId,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      name: item.variant?.nama_variant || "Item"
+    })),
+
+    callbacks: {
+      finish: `http://localhost:3000/admin/orders`
+    }
+  });
+
+  await order.update({
+    paymentToken: transaction.token,
+    paymentUrl: transaction.redirect_url
+  });
+
+  return transaction;
+};
+
+exports.savePayment = async (order, midtransData) => {
+  return await Payment.create({
+    orderId: order.id,
+    businessId: order.businessId,
+
+    customerName: order.customer?.name || "-",
+    customerPhone: order.customer?.phoneNumber || "-",
+
+    totalPrice: order.totalPrice,
+    paidAmount: order.totalPrice,
+
+    method: midtransData.payment_type,
+    status: midtransData.transaction_status,
+
+    midtransResponse: midtransData
+  });
+};
+
+
+services/productService.js :
+const { Product, ProductVariant, Category, Business } = require("../models");
+
+
+exports.getAll = async (businessId) => {
+  const products = await Product.findAll({
+    where: { businessId },
+    include: [
+      {
+        model: ProductVariant,
+        as: "variants"
+      },
+      {
+        model: Category,
+        as: "Category",
+        attributes: ["id", "name"]
+      }
+    ]
+  });
+
+  return products.map(p => {
+    const variants = p.variants || [];
+
+    const totalStock = variants.reduce(
+      (sum, v) => sum + (v.stok || 0),
+      0
+    );
+
+    const minPrice =
+      variants.length > 0
+        ? Math.min(...variants.map(v => v.harga))
+        : 0;
+
+    return {
+      ...p.toJSON(),
+      stok: totalStock,
+      harga: minPrice 
+    };
+  });
+};
+
+// VALIDATION FUNCTION
+const validateProduct = (data) => {
+  if (
+    !data.nama ||
+    !data.categoryId ||
+    !data.satuan ||
+    !data.berat
+  ) {
+    throw new Error("Field product tidak lengkap");
+  }
+
+  if (data.berat <= 0) {
+    throw new Error("Berat harus lebih dari 0");
+  }
+};
+
+// CREATE
+exports.create = async (data, businessId) => {
+  validateProduct(data);
+
+  return await Product.create({
+    ...data,
+    businessId
+  });
+};
+
+exports.createProduct = async (data) => {
+  const product = await Product.create(data);
+
+  await ProductVariant.create({
+    productId: product.id,
+    businessId: data.businessId,
+    nama_variant: "Default",
+    harga: data.harga || 0,
+    stok: data.stok || 0,
+    berat: data.berat || 0
+  });
+
+  return product;
+};
+
+exports.update = async (id, data, businessId) => {
+  await Product.update(
+    {
+      nama: data.nama,
+      categoryId: data.categoryId,
+      satuan: data.satuan,
+      berat: data.berat
+    },
+    {
+      where: { id, businessId }
+    }
+  );
+};
+
+exports.delete = async (id, businessId) => {
+  await ProductVariant.destroy({
+    where: { productId: id }
+  });
+
+  await Product.destroy({
+    where: { id, businessId }
+  });
+};
+
+
+services/productVariantService.js :
+const { ProductVariant, Product } = require("../models");
+
+exports.getByProduct = async (productId, businessId) => {
+  return await ProductVariant.findAll({
+    where: { productId },
+    include: [
+      {
+        model: Product,
+        as: "Product",
+        where: { businessId }
+      }
+    ]
+  });
+};
+
+exports.create = async (data, businessId) => {
+  const product = await Product.findOne({
+    where: {
+      id: data.productId,
+      businessId
+    }
+  });
+
+  if (!product) throw new Error("Produk tidak valid");
+
+  return await ProductVariant.create({
+    ...data,
+    businessId
+  });
+};
+
+exports.delete = async (id) => {
+  await ProductVariant.destroy({ where: { id } });
+};
+
+exports.update = async (id, data) => {
+  const variant = await ProductVariant.findByPk(id);
+  if (!variant) throw new Error("Variant tidak ditemukan");
+
+  if (data.harga !== undefined && data.harga <= 0) {
+    throw new Error("Harga tidak valid");
+  }
+
+  if (data.stok !== undefined && data.stok < 0) {
+    throw new Error("Stok tidak valid");
+  }
+
+  if (data.berat !== undefined && data.berat <= 0) {
+    throw new Error("Berat tidak valid");
+  }
+
+  await variant.update(data);
+
+  return variant;
+};
+
+
+services/reportService.js :
+const { Op, fn, col, literal } = require("sequelize");
+const { Order, OrderItem, ProductVariant, Product, Customer} = require("../models");
+
+const getSummaryReport = async ({ startDate, endDate, groupBy }) => {
+  // 1. SUMMARY
+const summary = await Order.findAll({
+  attributes: [
+    [fn("SUM", col("totalPrice")), "totalRevenue"],
+    [fn("COUNT", col("id")), "totalOrders"],
+    [
+  literal("COALESCE(SUM(totalPrice) / NULLIF(COUNT(id), 0), 0)"),
+  "avgOrderValue"
+]
+  ],
+  where: {
+    status: "paid",
+createdAt: {
+  [Op.between]: [
+    startDate + " 00:00:00",
+    endDate + " 23:59:59"
+  ]
+}
+  },
+  raw: true
+});
+
+  // 2. GROUPING FORMAT
+  let format = "%Y-%m-%d";
+  if (groupBy === "month") format = "%Y-%m";
+  if (groupBy === "week") format = "%Y-%u";
+
+  // 3. TRENDS
+const trends = await Order.findAll({
+  attributes: [
+    [
+      fn(
+        "DATE_FORMAT",
+        fn("CONVERT_TZ", col("createdAt"), "+00:00", "+07:00"),
+        format
+      ),
+      "period"
+    ],
+    [fn("SUM", col("totalPrice")), "revenue"],
+    [fn("COUNT", col("id")), "orders"]
+  ],
+  where: {
+    status: "paid",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  },
+  group: ["period"],
+  order: [[literal("period"), "ASC"]],
+  raw: true
+});
+
+  // 4. TOP PRODUCTS
+const topProducts = await OrderItem.findAll({
+  attributes: [
+    [col("variant.Product.nama"), "productName"],
+    [fn("SUM", col("quantity")), "totalSold"],
+    [fn("SUM", col("subtotal")), "revenue"]
+  ],
+  include: [
+    {
+      model: ProductVariant,
+      as: "variant",
+      include: [
+        {
+          model: Product,
+          as: "Product",
+        }
+      ]
+    },
+    {
+      model: Order,
+      as: "order",
+      where: {
+        status: "paid",
+createdAt: {
+  [Op.between]: [
+    startDate + " 00:00:00",
+    endDate + " 23:59:59"
+  ]
+}
+      }
+    }
+  ],
+  group: ["variant.Product.nama"],
+  order: [[literal("totalSold"), "DESC"]],
+  limit: 10,
+  raw: true
+});
+const transactions = await Order.findAll({
+  where: {
+    status: "paid",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  },
+  include: [
+    {
+      model: Customer,
+      as: "customer",
+      attributes: ["name", "phoneNumber"]
+    },
+    {
+      model: OrderItem,
+      as: "items",
+      include: [
+        {
+          model: ProductVariant,
+          as: "variant",
+          include: [
+            {
+              model: Product,
+              as: "Product",
+              attributes: ["nama"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  order: [["createdAt", "DESC"]]
+});
+
+  return {
+    summary: summary[0],
+    trends,
+    topProducts,
+     transactions 
+  };
+};
+
+module.exports = { getSummaryReport };
+
+
+services/whatsappService.js :
+// const { sendMessage } = require("../bot/whatsapp");
+
+// 🔥 MODE DEMO (WA DIMATIKAN SEMENTARA)
+
+exports.sendWhatsAppMessage = async (phone, message) => {
+  console.log("=== SIMULASI WA ===");
+  console.log("Kirim ke:", phone);
+  console.log("Pesan:", message);
+};
+
+
+models/associations.js :
+module.exports = (db) => {
+    const {
+        User,
+        Order,
+        OrderItem,
+        Customer,
+        Product,
+        ProductVariant,
+        Category,
+        Business,
+        Payment
+    } = db;
+
+    // ======================
+    // BUSINESS RELATIONS
+    // ======================
+    Business.hasMany(User, { foreignKey: "businessId" });
+    User.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Product, { foreignKey: "businessId" });
+    Product.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Category, { foreignKey: "businessId" });
+    Category.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Customer, { foreignKey: "businessId" });
+    Customer.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Order, { foreignKey: "businessId" });
+    Order.belongsTo(Business, { foreignKey: "businessId" });
+
+    // ======================
+    // PRODUCT & CATEGORY
+    // ======================
+    Category.hasMany(Product, { foreignKey: "categoryId" });
+    Product.belongsTo(Category, { foreignKey: "categoryId", as: "Category" });
+
+    Product.hasMany(ProductVariant, {
+        foreignKey: "productId",
+        as: "variants"
+    });
+    ProductVariant.belongsTo(Product, {
+        foreignKey: "productId",
+        as: "Product"
+    });
+
+    // ======================
+    // ORDER SYSTEM
+    // ======================
+    Customer.hasMany(Order, { foreignKey: "customerId" });
+    Order.belongsTo(Customer, {
+        foreignKey: "customerId",
+        as: "customer"
+    });
+
+    Order.hasMany(OrderItem, {
+        foreignKey: "orderId",
+        as: "items"
+    });
+
+    OrderItem.belongsTo(Order, {
+        foreignKey: "orderId",
+        as: "order"
+    });
+
+    OrderItem.belongsTo(ProductVariant, {
+        foreignKey: "variantId",
+        as: "variant"
+    });
+
+    ProductVariant.hasMany(OrderItem, {
+        foreignKey: "variantId"
+    });
+
+    Order.hasOne(Payment, { foreignKey: "orderId" });
+    Payment.belongsTo(Order, { foreignKey: "orderId" });
+
+    Business.hasMany(Payment, { foreignKey: "businessId" });
+    Payment.belongsTo(Business, { foreignKey: "businessId" });
+};
+
+
+models/Business.js :
+// models/Business.js
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Business = sequelize.define("Business", {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  }
+});
+
+module.exports = Business;
+
+
+models/Category.js :
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Category = sequelize.define("Category", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+} 
+},{
+  tableName: "categories",
+  timestamps: true
+});
+
+module.exports = Category;
+
+
+models/Customer.js :
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Customer = sequelize.define("Customer", {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  phoneNumber: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  }
+}, {
+  tableName: "customers",
+  freezeTableName: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ["phoneNumber", "businessId"]
+    }
+  ]
+});
+
+module.exports = Customer;
+
+
+models/index.js :
+const sequelize = require("../config/database");
+
+const Product = require("./Product");
+const ProductVariant = require("./ProductVariant");
+const Order = require("./Order");
+const OrderItem = require("./OrderItem");
+const Customer = require("./Customer");
+const User = require("./User");
+const Category = require("./Category");
+const Business = require("./Business"); 
+const Payment = require("./Payment");
+
+const db = {};
+
+db.sequelize = sequelize;
+
+db.Product = Product;
+db.ProductVariant = ProductVariant;
+db.Order = Order;
+db.OrderItem = OrderItem;
+db.Customer = Customer;
+db.User = User;
+db.Category = Category;
+db.Business = Business;
+db.Payment = Payment;
+
+// associations
+require("./associations")(db);
+
+module.exports = db;
+
+
+models/Order.js :
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Order = sequelize.define('Order', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
+    defaultValue: "pending"
+  },
+  totalPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  }
+}, {
+  tableName: 'orders',
+  freezeTableName: true
+});
+
+module.exports = Order;
+
+
+models/OrderItem.js :
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const OrderItem = sequelize.define('OrderItem', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  orderId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  unitPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  variantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  subtotal: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  }
+}, {
+  tableName: 'order_items'
+});
+
+
+module.exports = OrderItem;
+
+
+models/Payment.js :
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Payment = sequelize.define("Payment", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+
+  orderId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+
+  customerName: DataTypes.STRING,
+  customerPhone: DataTypes.STRING,
+
+  totalPrice: DataTypes.FLOAT,
+  paidAmount: DataTypes.FLOAT,
+
+  method: DataTypes.STRING,
+  status: DataTypes.STRING,
+
+  midtransResponse: DataTypes.JSON
+
+}, {
+  tableName: "payments",
+  freezeTableName: true
+});
+
+module.exports = Payment;
+
+
+models/Product.js :
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Product = sequelize.define("Product", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  nama: { type: DataTypes.STRING, allowNull: false },
+  categoryId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
+  satuan: { type: DataTypes.STRING, allowNull: false },
+  berat: { type: DataTypes.FLOAT, allowNull: false },
+  keterangan: { type: DataTypes.TEXT, allowNull: true }
+}, {
+  tableName: 'products',
+  freezeTableName: true
+});
+
+module.exports = Product;
+
+
+models/ProductVariant.js :
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const ProductVariant = sequelize.define("ProductVariant", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  productId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
+  nama_variant: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  harga: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  stok: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  berat: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+}, {
+  tableName: "product_variants",
+  freezeTableName: true
+});
+
+module.exports = ProductVariant;
+
+
+models/User.js :
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: 'admin'
+  },
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+}
+});
+
+module.exports = User;
+
+middlewares/authMiddleware.js:
+const jwt = require("jsonwebtoken");
+
+module.exports = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+config/database.js:
+require("dotenv").config();
+const { Sequelize } = require("sequelize");
+
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    dialect: "mysql",
+    port: process.env.DB_PORT
+  }
+);
+
+module.exports = sequelize;
+
+
+config/midtrans.js:
+const midtransClient = require('midtrans-client');
+
+const snap = new midtransClient.Snap({
+  isProduction: false, 
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY
+});
+
+module.exports = snap;
+
+app.js:
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+//========================================
+
+const dashboardRoutes = require("./routes/api/dashboardRoutes");
+const productRoutes = require("./routes/api/productRoutes");
+const customerRoutes = require("./routes/api/customerRoutes");
+const variantRoutes = require("./routes/api/productVariantRoutes");
+const reportRoutes = require("./routes/api/reportRoutes");
+const paymentRoutes = require("./routes/api/paymentRoutes");
+const authRoutes = require("./routes/api/authRoutes");
+const categoryRoutes = require("./routes/api/categoryRoutes");
+
+app.use("/api/auth", authRoutes); // PUBLIC
+
+app.use("/api/products", productRoutes);
+app.use("/api/orders", require("./routes/api/orderRoutes"));
+app.use("/api/customers", customerRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/variants", variantRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/reports", reportRoutes);
+
+
+// TEST
+app.use((req, res, next) => {
+  console.log("Request masuk:", req.url);
+  next();
+});
+
+
+app.get("/", (req, res) => {
+  res.send("API RUNNING");
+});
+
+module.exports = app;
+
+env:
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=wabots_pos_app
+DB_DIALECT=mysql
+PORT=3306
+PORT=5000
+SESSION_SECRET=
+MIDTRANS_SERVER_KEY=
+MIDTRANS_CLIENT_KEY=
+JWT_SECRET=
+
+OperRoutes DeepSeek v3.2 : https://openrouter.ai/deepseek/deepseek-v3.2
+
+wabots-pos-mvc\client\src\utils\axiosInstance.js:
+import axios from "axios";
+
+const instance = axios.create({
+  baseURL: "http://localhost:5000/api"
+});
+
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  console.log("TOKEN SENT:", token);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export default instance;

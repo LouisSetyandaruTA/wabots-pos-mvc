@@ -16,7 +16,8 @@ const getReport = async (req, res) => {
     const data = await reportService.getSummaryReport({
       startDate,
       endDate,
-      groupBy
+      groupBy,
+      businessId: req.user.businessId
     });
 
     res.json(data);
