@@ -13,7 +13,8 @@ const {
 
 const {
     Business,
-    Customer
+    Customer,
+    ChatSession
 } = require("../models");
 
 const {
@@ -22,6 +23,11 @@ const {
     isMediaMessage,
     isValidCustomerName
 } = require("../utils/chatbotUtils");
+
+const {
+    getOrCreateChatSession,
+    saveMessage
+} = require("./chatService");
 
 const getCleanPhoneNumber = async (msg) => {
 
@@ -474,6 +480,25 @@ if (
     "waiting_order_confirmation"
 ) {
 
+    const chatSession =
+        await getOrCreateChatSession({
+
+            customerId:
+                session.customerId,
+
+            businessId:
+                session.businessId
+        });
+
+    await saveMessage({
+
+        sessionId: chatSession.id,
+
+        sender: "CUSTOMER",
+
+        message: text
+    });
+
     const yesWords = [
         "ya",
         "iya",
@@ -650,14 +675,26 @@ for (const item of orderItems) {
         step: "chatting"
     });
 
-    return await msg.reply(
+const successMessage =
 `Pesanan berhasil dibuat.
 
 Total:
 Rp ${totalPrice}
 
-Pesanan sedang menunggu approval admin.`
-    );
+Pesanan sedang menunggu approval admin.`;
+
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: successMessage
+});
+
+return await msg.reply(
+    successMessage
+);
 }
 
     // =========================
@@ -697,6 +734,40 @@ Pesanan sedang menunggu approval admin.`
         // =========================
         // SEMENTARA AUTO REPLY
         // =========================
+
+// =========================
+// GET CHAT SESSION
+// =========================
+const chatSession =
+    await getOrCreateChatSession({
+
+        customerId:
+            session.customerId,
+
+        businessId:
+            session.businessId
+    });
+
+// =========================
+// SAVE CUSTOMER MESSAGE
+// =========================
+await saveMessage({
+
+    sessionId:
+        chatSession.id,
+
+    sender: "CUSTOMER",
+
+    message: text
+});
+
+// =========================
+// JIKA MODE HUMAN
+// =========================
+if (chatSession.mode === "HUMAN") {
+
+    return;
+}
       // =========================
 // AMBIL BUSINESS
 // =========================
@@ -718,19 +789,98 @@ console.log("AI RESULT:");
 console.log(aiResult);
 
 // =========================
+// REQUEST HUMAN ADMIN
+// =========================
+const adminKeywords = [
+
+    "admin",
+    "cs",
+    "customer service",
+    "orang asli",
+    "manusia",
+    "bantuan admin",
+    "bicara admin",
+    "chat admin",
+    "admin langsung",
+    "mau admin",
+    "mau cs",
+    "operator",
+    "staff",
+    "pegawai"
+];
+
+const needHuman =
+    adminKeywords.some(keyword =>
+        lowerText.includes(keyword)
+    );
+
+if (needHuman) {
+
+    // =========================
+    // UPDATE SESSION
+    // =========================
+    await ChatSession.update(
+        {
+            needAdmin: true
+        },
+        {
+            where: {
+                id: chatSession.id
+            }
+        }
+    );
+
+    const adminMessage =
+`Baik, saya akan menghubungkan Anda dengan admin.
+
+Mohon tunggu beberapa saat.`;
+
+    await saveMessage({
+
+        sessionId: chatSession.id,
+
+        sender: "BOT",
+
+        message: adminMessage
+    });
+
+    return await msg.reply(
+        adminMessage
+    );
+}
+
+// =========================
 // FAQ
 // =========================
 if (aiResult.intent === "faq") {
 
-    return await msg.reply(
-        aiResult.reply
-    );
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
+
+return await msg.reply(
+    aiResult.reply
+);
 }
 
 // =========================
 // GREETING
 // =========================
 if (aiResult.intent === "greeting") {
+
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
 
     return await msg.reply(
         aiResult.reply
@@ -743,7 +893,14 @@ if (aiResult.intent === "greeting") {
 if (aiResult.intent === "order") {
 
     if (!aiResult.items?.length) {
+await saveMessage({
 
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: "Saya tidak menemukan item pesanan."
+});
         return await msg.reply(
             "Saya tidak menemukan item pesanan."
         );
@@ -771,6 +928,14 @@ Ketik:
         pendingOrder: aiResult.items,
         step: "waiting_order_confirmation"
     });
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: summary
+});
 
     return await msg.reply(summary);
 }
@@ -786,6 +951,14 @@ if (
         ...session,
         pendingOrder: null
     });
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message:  "Pesanan berhasil dibatalkan."
+});
 
     return await msg.reply(
         "Pesanan berhasil dibatalkan."
@@ -795,6 +968,14 @@ if (
 // =========================
 // UNKNOWN
 // =========================
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
 return await msg.reply(
     aiResult.reply ||
     "Maaf saya tidak memahami pesan Anda."

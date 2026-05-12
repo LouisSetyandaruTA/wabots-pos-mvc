@@ -14,8 +14,8 @@ import Dashboard from "views/admin/dashboard/Dashboard";
 import Reports from "views/admin/reports/Reports";
 import PaymentPage from "views/admin/payment/PaymentPage";
 import ProtectedRoute from "utils/ProtectedRoute";
-import BusinessSettings
-  from "views/admin/business/BusinessSettings";
+import BusinessSettings from "views/admin/business/BusinessSettings";
+import ChatDashboard from "views/admin/chat/ChatDashboard";
 
 
 import PublicRoute from "utils/PublicRoute";
@@ -34,6 +34,7 @@ import {
   MdBarChart,
   MdPayment,
   MdStore,
+  MdChat,
 } from "react-icons/md";
 
 const routes = [
@@ -90,6 +91,17 @@ const routes = [
     icon: <MdPayment className="h-6 w-6" />,
     component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
   },
+  {
+  name: "Chats",
+  layout: "/admin",
+  path: "chats",
+  icon: <MdChat className="h-6 w-6" />,
+  component: (
+    <ProtectedRoute>
+      <ChatDashboard />
+    </ProtectedRoute>
+  ),
+},
   //   {
   //   layout: "/auth",
   //   path: "login",

@@ -1,4 +1,710 @@
-services\whatsappMessageService.js : 
+services\whatsappService.js :
+let clientInstance = null;
+
+exports.setWhatsAppClient = (client) => {
+  clientInstance = client;
+};
+
+exports.sendWhatsAppMessage = async (
+  phone,
+  message
+) => {
+
+  try {
+
+    if (!clientInstance) {
+
+      console.log(
+        "CLIENT BELUM READY"
+      );
+
+      return;
+    }
+
+    // NORMALISASI
+    let cleanPhone = phone
+      .replace(/\D/g, "");
+
+    // 08 → 628
+    if (cleanPhone.startsWith("0")) {
+
+      cleanPhone =
+        "62" + cleanPhone.slice(1);
+    }
+    if (
+      cleanPhone.length < 10
+    ) {
+
+      console.log(
+        "NOMOR INVALID:",
+        cleanPhone
+      );
+
+      return;
+    }
+
+    const chatId =
+      `${cleanPhone}@c.us`;
+
+    console.log(
+      "KIRIM WA KE:",
+      chatId
+    );
+
+    console.log(
+      "ISI PESAN:",
+      message
+    );
+
+    await clientInstance.sendMessage(
+      chatId,
+      message
+    );
+
+    console.log(
+      "WA BERHASIL TERKIRIM"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "SEND WA ERROR:"
+    );
+
+    console.error(err);
+  }
+};
+
+=========================================================================
+bot\whatsapp.js :
+const qrcode = require("qrcode-terminal");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const { handleIncomingMessage } = require("../services/whatsappMessageService");
+const {setWhatsAppClient} = require("../services/whatsappService");
+
+const client = new Client({
+  authStrategy: new LocalAuth({
+    clientId: "pos-bot"
+  }),
+  puppeteer: {
+    headless: true,
+    args: ["--no-sandbox"]
+  }
+});
+
+setWhatsAppClient(client);
+
+// QR
+client.on("qr", (qr) => {
+  console.log("Scan QR WhatsApp:");
+  qrcode.generate(qr, { small: true });
+});
+
+// READY
+client.on("ready", () => {
+  console.log("WhatsApp Bot Connected");
+});
+
+// AUTHENTICATED
+client.on("authenticated", () => {
+  console.log("WhatsApp Authenticated");
+});
+
+// AUTH FAILURE
+client.on("auth_failure", (msg) => {
+  console.log("Auth Failure:", msg);
+});
+
+// DISCONNECTED
+client.on("disconnected", (reason) => {
+  console.log("WhatsApp Disconnected:", reason);
+});
+
+// RECEIVE MESSAGE
+client.on("message", handleIncomingMessage);
+
+client.initialize();
+
+module.exports = client;
+
+=======================================================================
+controllers\ChatController.js :
+const {
+    ChatSession,
+    ChatMessage,
+    Customer
+} = require("../models");
+
+const whatsappService =
+    require("../services/whatsappService");
+
+// =========================
+// GET ALL SESSIONS
+// =========================
+exports.getSessions =
+async (req, res) => {
+
+    try {
+
+        const sessions =
+            await ChatSession.findAll({
+
+                where: {
+                    businessId:
+                        req.user.businessId
+                },
+
+                include: [
+                    {
+                        model: Customer,
+                        as: "customer"
+                    }
+                ],
+
+                order: [
+                    ["updatedAt", "DESC"]
+                ]
+            });
+
+        res.json({
+            success: true,
+            data: sessions
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// =========================
+// GET SESSION DETAIL
+// =========================
+exports.getSessionDetail =
+async (req, res) => {
+
+    try {
+
+        const messages =
+            await ChatMessage.findAll({
+
+                where: {
+                    sessionId:
+                        req.params.id
+                },
+
+                order: [
+                    ["createdAt", "ASC"]
+                ]
+            });
+
+        res.json({
+            success: true,
+            data: messages
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// =========================
+// TAKE OVER
+// =========================
+exports.takeOverSession =
+async (req, res) => {
+
+    try {
+
+        await ChatSession.update(
+            {
+                mode: "HUMAN"
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            }
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// =========================
+// BACK TO AI
+// =========================
+exports.backToAI =
+async (req, res) => {
+
+    try {
+
+        await ChatSession.update(
+            {
+                mode: "AI"
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            }
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// =========================
+// SEND MESSAGE
+// =========================
+exports.sendMessage =
+async (req, res) => {
+
+    try {
+
+        const session =
+            await ChatSession.findByPk(
+                req.params.id,
+                {
+                    include: [
+                        {
+                            model: Customer,
+                            as: "customer"
+                        }
+                    ]
+                }
+            );
+
+        if (!session) {
+
+            return res.status(404).json({
+                success: false,
+                message: "Session tidak ditemukan"
+            });
+        }
+
+        const message =
+            req.body.message;
+
+        // =========================
+        // SIMPAN KE DATABASE
+        // =========================
+        const newMessage =
+            await ChatMessage.create({
+
+                sessionId: session.id,
+
+                sender: "ADMIN",
+
+                message
+            });
+
+        // =========================
+        // UPDATE LAST MESSAGE
+        // =========================
+        await ChatSession.update(
+            {
+                lastMessage: message
+            },
+            {
+                where: {
+                    id: session.id
+                }
+            }
+        );
+
+        // =========================
+        // KIRIM KE WHATSAPP
+        // =========================
+        const phone =
+            session.customer.phoneNumber;
+
+        await whatsappService.sendMessage(
+            `${phone}@c.us`,
+            `Admin:\n${message}`
+        );
+
+        res.json({
+            success: true,
+            data: newMessage
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+=======================================================================
+client\src\views\admin\chat\ChatDashboard.jsx :
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+
+export default function ChatDashboard() {
+
+    const [sessions, setSessions] = useState([]);
+    const [selectedSession, setSelectedSession] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [reply, setReply] = useState("");
+
+    // =========================
+    // FETCH CHAT SESSIONS
+    // =========================
+    const fetchSessions = async () => {
+
+        try {
+
+            const res =
+                await axios.get("/chat/sessions");
+
+            setSessions(res.data.data);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // FETCH CHAT DETAIL
+    // =========================
+    const fetchMessages = async (sessionId) => {
+
+        try {
+
+            const res =
+                await axios.get(
+                    `/chat/sessions/${sessionId}`
+                );
+
+            setMessages(res.data.data);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // TAKE OVER
+    // =========================
+    const takeOver = async () => {
+
+        try {
+
+            await axios.put(
+                `/chat/sessions/${selectedSession.id}/takeover`
+            );
+
+            fetchSessions();
+
+            setSelectedSession({
+                ...selectedSession,
+                mode: "HUMAN"
+            });
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // BACK TO AI
+    // =========================
+    const backToAI = async () => {
+
+        try {
+
+            await axios.put(
+                `/chat/sessions/${selectedSession.id}/ai`
+            );
+
+            fetchSessions();
+
+            setSelectedSession({
+                ...selectedSession,
+                mode: "AI"
+            });
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // SEND MESSAGE
+    // =========================
+    const sendMessage = async () => {
+
+        if (!reply.trim()) return;
+
+        try {
+
+            await axios.post(
+                `/chat/sessions/${selectedSession.id}/send`,
+                {
+                    message: reply
+                }
+            );
+
+            setReply("");
+
+            fetchMessages(selectedSession.id);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // AUTO REFRESH
+    // =========================
+    useEffect(() => {
+
+        fetchSessions();
+
+        const interval = setInterval(() => {
+
+            fetchSessions();
+
+            if (selectedSession) {
+
+                fetchMessages(selectedSession.id);
+            }
+
+        }, 3000);
+
+        return () => clearInterval(interval);
+
+    }, [selectedSession]);
+
+    return (
+        <div className="p-6 h-[85vh]">
+
+            <div className="grid grid-cols-12 gap-4 h-full">
+
+                {/* SIDEBAR */}
+                <div className="col-span-4 bg-white rounded-2xl shadow p-4 overflow-y-auto">
+
+                    <h2 className="text-xl font-bold mb-4">
+                        Customer Chats
+                    </h2>
+
+                    <div className="space-y-3">
+
+                        {sessions.map((session) => (
+
+                            <div
+                                key={session.id}
+                                onClick={() => {
+
+                                    setSelectedSession(session);
+
+                                    fetchMessages(session.id);
+                                }}
+                                className={`p-4 rounded-xl cursor-pointer border transition
+                                
+                                ${selectedSession?.id === session.id
+                                        ? "border-blue-500 bg-blue-50"
+                                        : "border-gray-200 hover:bg-gray-50"
+                                    }`}
+                            >
+
+                                <div className="flex justify-between items-center">
+
+                                    <div>
+
+                                        <h3 className="font-bold">
+                                            {session.customer?.name}
+                                        </h3>
+
+                                        <p className="text-sm text-gray-500">
+                                            {session.customer?.phoneNumber}
+                                        </p>
+                                    </div>
+
+                                    <span
+                                        className={`text-xs px-2 py-1 rounded-full font-semibold
+                                        
+                                        ${session.mode === "AI"
+                                                ? "bg-green-100 text-green-700"
+                                                : "bg-red-100 text-red-700"
+                                            }`}
+                                    >
+                                        {session.mode}
+                                    </span>
+
+                                </div>
+
+                                <p className="text-sm text-gray-600 mt-2 truncate">
+                                    {session.lastMessage}
+                                </p>
+
+                            </div>
+                        ))}
+
+                    </div>
+
+                </div>
+
+                {/* CHAT AREA */}
+                <div className="col-span-8 bg-white rounded-2xl shadow flex flex-col">
+
+                    {!selectedSession ? (
+
+                        <div className="flex flex-1 justify-center items-center text-gray-400">
+                            Pilih customer chat
+                        </div>
+
+                    ) : (
+
+                        <>
+                            {/* HEADER */}
+                            <div className="p-4 border-b flex justify-between items-center">
+
+                                <div>
+
+                                    <h2 className="font-bold text-lg">
+                                        {selectedSession.customer?.name}
+                                    </h2>
+
+                                    <p className="text-sm text-gray-500">
+                                        {selectedSession.customer?.phoneNumber}
+                                    </p>
+
+                                </div>
+
+                                <div className="space-x-2">
+
+                                    {selectedSession.mode === "AI" ? (
+
+                                        <button
+                                            onClick={takeOver}
+                                            className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm"
+                                        >
+                                            TAKE OVER
+                                        </button>
+
+                                    ) : (
+
+                                        <button
+                                            onClick={backToAI}
+                                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm"
+                                        >
+                                            KEMBALIKAN KE AI
+                                        </button>
+                                    )}
+
+                                </div>
+
+                            </div>
+
+                            {/* CHAT BODY */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+
+                                {messages.map((msg) => (
+
+                                    <div
+                                        key={msg.id}
+                                        className={`flex
+                                        
+                                        ${msg.sender === "CUSTOMER"
+                                                ? "justify-start"
+                                                : "justify-end"
+                                            }`}
+                                    >
+
+                                        <div
+                                            className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm
+                                            
+                                            ${msg.sender === "CUSTOMER"
+                                                    ? "bg-white border"
+                                                    : msg.sender === "ADMIN"
+                                                        ? "bg-blue-500 text-white"
+                                                        : "bg-green-500 text-white"
+                                                }`}
+                                        >
+                                            {msg.message}
+                                        </div>
+
+                                    </div>
+                                ))}
+
+                            </div>
+
+                            {/* INPUT */}
+                            <div className="p-4 border-t flex gap-2">
+
+                                <input
+                                    type="text"
+                                    value={reply}
+                                    onChange={(e) => setReply(e.target.value)}
+                                    placeholder="Ketik balasan..."
+                                    className="flex-1 border rounded-xl p-3"
+                                />
+
+                                <button
+                                    onClick={sendMessage}
+                                    className="bg-blue-500 text-white px-6 rounded-xl"
+                                >
+                                    Kirim
+                                </button>
+
+                            </div>
+                        </>
+                    )}
+
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+=========================================================================
+services\whatsappMessageService.js :
 const {
     isSpamMessage
 } = require("./whatsappSpamService");
@@ -14,7 +720,8 @@ const {
 
 const {
     Business,
-    Customer
+    Customer,
+    ChatSession
 } = require("../models");
 
 const {
@@ -23,6 +730,11 @@ const {
     isMediaMessage,
     isValidCustomerName
 } = require("../utils/chatbotUtils");
+
+const {
+    getOrCreateChatSession,
+    saveMessage
+} = require("./chatService");
 
 const getCleanPhoneNumber = async (msg) => {
 
@@ -475,6 +1187,25 @@ if (
     "waiting_order_confirmation"
 ) {
 
+    const chatSession =
+        await getOrCreateChatSession({
+
+            customerId:
+                session.customerId,
+
+            businessId:
+                session.businessId
+        });
+
+    await saveMessage({
+
+        sessionId: chatSession.id,
+
+        sender: "CUSTOMER",
+
+        message: text
+    });
+
     const yesWords = [
         "ya",
         "iya",
@@ -651,14 +1382,26 @@ for (const item of orderItems) {
         step: "chatting"
     });
 
-    return await msg.reply(
+const successMessage =
 `Pesanan berhasil dibuat.
 
 Total:
 Rp ${totalPrice}
 
-Pesanan sedang menunggu approval admin.`
-    );
+Pesanan sedang menunggu approval admin.`;
+
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: successMessage
+});
+
+return await msg.reply(
+    successMessage
+);
 }
 
     // =========================
@@ -698,6 +1441,40 @@ Pesanan sedang menunggu approval admin.`
         // =========================
         // SEMENTARA AUTO REPLY
         // =========================
+
+// =========================
+// GET CHAT SESSION
+// =========================
+const chatSession =
+    await getOrCreateChatSession({
+
+        customerId:
+            session.customerId,
+
+        businessId:
+            session.businessId
+    });
+
+// =========================
+// SAVE CUSTOMER MESSAGE
+// =========================
+await saveMessage({
+
+    sessionId:
+        chatSession.id,
+
+    sender: "CUSTOMER",
+
+    message: text
+});
+
+// =========================
+// JIKA MODE HUMAN
+// =========================
+if (chatSession.mode === "HUMAN") {
+
+    return;
+}
       // =========================
 // AMBIL BUSINESS
 // =========================
@@ -723,15 +1500,33 @@ console.log(aiResult);
 // =========================
 if (aiResult.intent === "faq") {
 
-    return await msg.reply(
-        aiResult.reply
-    );
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
+
+return await msg.reply(
+    aiResult.reply
+);
 }
 
 // =========================
 // GREETING
 // =========================
 if (aiResult.intent === "greeting") {
+
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
 
     return await msg.reply(
         aiResult.reply
@@ -744,7 +1539,14 @@ if (aiResult.intent === "greeting") {
 if (aiResult.intent === "order") {
 
     if (!aiResult.items?.length) {
+await saveMessage({
 
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: "Saya tidak menemukan item pesanan."
+});
         return await msg.reply(
             "Saya tidak menemukan item pesanan."
         );
@@ -772,6 +1574,14 @@ Ketik:
         pendingOrder: aiResult.items,
         step: "waiting_order_confirmation"
     });
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: summary
+});
 
     return await msg.reply(summary);
 }
@@ -787,6 +1597,14 @@ if (
         ...session,
         pendingOrder: null
     });
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message:  "Pesanan berhasil dibatalkan."
+});
 
     return await msg.reply(
         "Pesanan berhasil dibatalkan."
@@ -796,6 +1614,14 @@ if (
 // =========================
 // UNKNOWN
 // =========================
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
 return await msg.reply(
     aiResult.reply ||
     "Maaf saya tidak memahami pesan Anda."
@@ -803,486 +1629,6 @@ return await msg.reply(
 
     } catch (err) {
         console.error("WHATSAPP MESSAGE SERVICE ERROR:", err);
-    }
-};
-
-=========================================================================
-bot\whatsapp.js :
-const qrcode = require("qrcode-terminal");
-const { Client, LocalAuth } = require("whatsapp-web.js");
-const { handleIncomingMessage } = require("../services/whatsappMessageService");
-const {setWhatsAppClient} = require("../services/whatsappService");
-
-const client = new Client({
-  authStrategy: new LocalAuth({
-    clientId: "pos-bot"
-  }),
-  puppeteer: {
-    headless: true,
-    args: ["--no-sandbox"]
-  }
-});
-
-setWhatsAppClient(client);
-
-// QR
-client.on("qr", (qr) => {
-  console.log("Scan QR WhatsApp:");
-  qrcode.generate(qr, { small: true });
-});
-
-// READY
-client.on("ready", () => {
-  console.log("WhatsApp Bot Connected");
-});
-
-// AUTHENTICATED
-client.on("authenticated", () => {
-  console.log("WhatsApp Authenticated");
-});
-
-// AUTH FAILURE
-client.on("auth_failure", (msg) => {
-  console.log("Auth Failure:", msg);
-});
-
-// DISCONNECTED
-client.on("disconnected", (reason) => {
-  console.log("WhatsApp Disconnected:", reason);
-});
-
-// RECEIVE MESSAGE
-client.on("message", handleIncomingMessage);
-
-client.initialize();
-
-module.exports = client;
-
-=========================================================================models\Customer.js :
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-const Customer = sequelize.define("Customer", {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  phoneNumber: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  businessId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  }
-}, {
-  tableName: "customers",
-  freezeTableName: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ["phoneNumber", "businessId"]
-    }
-  ]
-});
-
-module.exports = Customer;
-
-=========================================================================
-models\Business.js : 
-const { DataTypes } = require("sequelize");
-
-const sequelize =
-require("../config/database");
-
-const Business = sequelize.define(
-  "Business",
-  {
-
-    id: {
-      type: DataTypes.UUID,
-      primaryKey: true,
-      defaultValue:
-        DataTypes.UUIDV4
-    },
-
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-
-    description: {
-      type: DataTypes.TEXT
-    },
-
-    address: {
-      type: DataTypes.TEXT
-    },
-
-    phone: {
-      type: DataTypes.STRING
-    },
-
-    openHours: {
-      type: DataTypes.STRING
-    },
-
-    faq: {
-      type: DataTypes.TEXT
-    }
-
-  }
-);
-
-module.exports = Business;
-
-=========================================================================
-models\associations.js :
-module.exports = (db) => {
-    const {
-        User,
-        Order,
-        OrderItem,
-        Customer,
-        Product,
-        ProductVariant,
-        Category,
-        Business,
-        Payment
-    } = db;
-
-    // ======================
-    // BUSINESS RELATIONS
-    // ======================
-    Business.hasMany(User, { foreignKey: "businessId" });
-    User.belongsTo(Business, { foreignKey: "businessId" });
-
-    Business.hasMany(Product, { foreignKey: "businessId" });
-    Product.belongsTo(Business, { foreignKey: "businessId" });
-
-    Business.hasMany(Category, { foreignKey: "businessId" });
-    Category.belongsTo(Business, { foreignKey: "businessId" });
-
-    Business.hasMany(Customer, { foreignKey: "businessId" });
-    Customer.belongsTo(Business, { foreignKey: "businessId" });
-
-    Business.hasMany(Order, { foreignKey: "businessId" });
-    Order.belongsTo(Business, { foreignKey: "businessId" });
-
-    // ======================
-    // PRODUCT & CATEGORY
-    // ======================
-    Category.hasMany(Product, { foreignKey: "categoryId" });
-    Product.belongsTo(Category, { foreignKey: "categoryId", as: "Category" });
-
-    Product.hasMany(ProductVariant, {
-        foreignKey: "productId",
-        as: "variants"
-    });
-    ProductVariant.belongsTo(Product, {
-        foreignKey: "productId",
-        as: "Product"
-    });
-
-    // ======================
-    // ORDER SYSTEM
-    // ======================
-    Customer.hasMany(Order, { foreignKey: "customerId" });
-    Order.belongsTo(Customer, {
-        foreignKey: "customerId",
-        as: "customer"
-    });
-
-    Order.hasMany(OrderItem, {
-        foreignKey: "orderId",
-        as: "items"
-    });
-
-    OrderItem.belongsTo(Order, {
-        foreignKey: "orderId",
-        as: "order"
-    });
-
-    OrderItem.belongsTo(ProductVariant, {
-        foreignKey: "variantId",
-        as: "variant"
-    });
-
-    ProductVariant.hasMany(OrderItem, {
-        foreignKey: "variantId"
-    });
-
-    Order.hasOne(Payment, { foreignKey: "orderId" });
-    Payment.belongsTo(Order, { foreignKey: "orderId" });
-
-    Business.hasMany(Payment, { foreignKey: "businessId" });
-    Payment.belongsTo(Business, { foreignKey: "businessId" });
-};
-
-========================================================================
-models\index.js :
-const sequelize = require("../config/database");
-
-const Product = require("./Product");
-const ProductVariant = require("./ProductVariant");
-const Order = require("./Order");
-const OrderItem = require("./OrderItem");
-const Customer = require("./Customer");
-const User = require("./User");
-const Category = require("./Category");
-const Business = require("./Business"); 
-const Payment = require("./Payment");
-
-const db = {};
-
-db.sequelize = sequelize;
-
-db.Product = Product;
-db.ProductVariant = ProductVariant;
-db.Order = Order;
-db.OrderItem = OrderItem;
-db.Customer = Customer;
-db.User = User;
-db.Category = Category;
-db.Business = Business;
-db.Payment = Payment;
-
-// associations
-require("./associations")(db);
-
-module.exports = db;
-
-========================================================================
-services\aiService.js : 
-const {
-    Product,
-    ProductVariant,
-    Category
-} = require("../models");
-
-const {
-    askDeepSeek
-} = require("./openrouterService");
-
-exports.processCustomerMessage = async ({
-    business,
-    message,
-    session
-}) => {
-
-    // =========================
-    // AMBIL PRODUCT
-    // =========================
-    const products = await Product.findAll({
-        where: {
-            businessId: business.id,
-            status: "active"
-        },
-        include: [
-            {
-                model: ProductVariant,
-                as: "variants"
-            },
-            {
-                model: Category,
-                as: "Category"
-            }
-        ]
-    });
-
-    // =========================
-    // FORMAT PRODUCT LIST
-    // =========================
-    let productText = "";
-
-    products.forEach((p) => {
-
-        productText += `
-Product: ${p.nama}
-Kategori: ${p.Category?.name || "-"}
-Keterangan: ${p.keterangan || "-"}
-`;
-
-        (p.variants || []).forEach((v) => {
-
-            productText += `
-- Variant: ${v.nama_variant}
-  Harga: ${v.harga}
-  Stok: ${v.stok}
-`;
-        });
-
-        productText += "\n";
-    });
-
-    // =========================
-    // AI PROMPT
-    // =========================
-    const prompt = `
-Anda adalah AI customer service WhatsApp.
-
-Tugas Anda:
-- memahami intent customer
-- menjawab pertanyaan toko
-- memahami pesanan
-- memahami pembatalan
-- memahami konfirmasi
-
-================================
-DATA TOKO
-================================
-Nama bisnis:
-${business.name}
-
-Deskripsi:
-${business.description || "-"}
-
-Alamat:
-${business.address || "-"}
-
-Nomor Telepon:
-${business.phone || "-"}
-
-Jam Operasional:
-${business.openHours || "-"}
-
-FAQ:
-${business.faq || "-"}
-
-================================
-PRODUCT TERSEDIA
-================================
-
-${productText}
-
-================================
-RULES
-================================
-
-Intent yang VALID:
-
-1. faq
-2. order
-3. cancel_order
-4. confirm_order
-5. greeting
-6. unknown
-
-================================
-JIKA ORDER
-================================
-
-Extract item.
-
-================================
-FORMAT JSON WAJIB
-================================
-
-{
-  "intent": "",
-  "reply": "",
-  "items": [
-    {
-      "product_name": "",
-      "variant": "",
-      "qty": 0
-    }
-  ]
-}
-
-================================
-CUSTOMER MESSAGE
-================================
-
-${message}
-`;
-
-    const aiRaw = await askDeepSeek(prompt);
-
-    if (!aiRaw) {
-
-        return {
-            intent: "unknown",
-            reply: "Maaf sistem sedang error."
-        };
-    }
-
-    try {
-
-        const clean =
-            aiRaw
-                .replace(/```json/g, "")
-                .replace(/```/g, "")
-                .trim();
-
-        return JSON.parse(clean);
-
-    } catch (err) {
-
-        console.error("AI PARSE ERROR:", err);
-
-        return {
-            intent: "unknown",
-            reply: "Maaf saya tidak memahami pesan Anda."
-        };
-    }
-};
-
-========================================================================
-services\openRouterService.js:
-const axios = require("axios");
-
-exports.askDeepSeek = async (prompt) => {
-
-    try {
-
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: process.env.OPENROUTER_MODEL,
-
-                temperature: 0.1,
-
-                response_format: {
-                    type: "json_object"
-                },
-
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "Anda hanya boleh menjawab JSON valid."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ]
-            },
-            {
-                headers: {
-                    Authorization:
-                        `Bearer ${process.env.OPENROUTER_API_KEY}`,
-
-                    "Content-Type":
-                        "application/json"
-                }
-            }
-        );
-
-        return response.data
-            .choices[0]
-            .message
-            .content;
-
-    } catch (err) {
-
-        console.error(
-            "OPENROUTER ERROR:",
-            err.response?.data || err.message
-        );
-
-        return null;
     }
 };
 

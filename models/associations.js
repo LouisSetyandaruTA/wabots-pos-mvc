@@ -8,7 +8,9 @@ module.exports = (db) => {
         ProductVariant,
         Category,
         Business,
-        Payment
+        Payment,
+        ChatSession,
+        ChatMessage
     } = db;
 
     // ======================
@@ -77,4 +79,38 @@ module.exports = (db) => {
 
     Business.hasMany(Payment, { foreignKey: "businessId" });
     Payment.belongsTo(Business, { foreignKey: "businessId" });
+
+    // =========================
+    // CHAT SESSION
+    // =========================
+    Customer.hasMany(ChatSession, {
+        foreignKey: "customerId",
+        as: "chatSessions"
+    });
+
+    ChatSession.belongsTo(Customer, {
+        foreignKey: "customerId",
+        as: "customer"
+    });
+    Business.hasMany(ChatSession, {
+        foreignKey: "businessId"
+    });
+
+    ChatSession.belongsTo(Business, {
+        foreignKey: "businessId",
+        as: "business"
+    });
+
+    // =========================
+    // CHAT MESSAGE
+    // =========================
+    ChatSession.hasMany(ChatMessage, {
+        foreignKey: "sessionId",
+        as: "messages"
+    });
+
+    ChatMessage.belongsTo(ChatSession, {
+        foreignKey: "sessionId",
+        as: "session"
+    });
 };

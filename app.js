@@ -47,7 +47,8 @@ const reportRoutes = require("./routes/api/reportRoutes");
 const paymentRoutes = require("./routes/api/paymentRoutes");
 const authRoutes = require("./routes/api/authRoutes");
 const categoryRoutes = require("./routes/api/categoryRoutes");
-const businessRoutes =require("./routes/api/businessRoutes");
+const businessRoutes = require("./routes/api/businessRoutes");
+const chatRoutes = require("./routes/api/chatRoutes");
 
 
 app.use("/api/auth", authRoutes); // PUBLIC
@@ -61,6 +62,7 @@ app.use("/api/variants", variantRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/business",businessRoutes);
+app.use("/api/chat", chatRoutes);
 
 
 

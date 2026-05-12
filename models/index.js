@@ -9,6 +9,8 @@ const User = require("./User");
 const Category = require("./Category");
 const Business = require("./Business"); 
 const Payment = require("./Payment");
+const ChatSession = require("./ChatSession");
+const ChatMessage = require("./ChatMessage");
 
 const db = {};
 
@@ -23,6 +25,8 @@ db.User = User;
 db.Category = Category;
 db.Business = Business;
 db.Payment = Payment;
+db.ChatSession = ChatSession;
+db.ChatMessage = ChatMessage;
 
 // associations
 require("./associations")(db);
