@@ -1,80 +1,97 @@
-require("dotenv").config();
-const bcrypt = require("bcrypt");
 const db = require("../models");
+const bcrypt = require("bcryptjs");
 
-const seedAdmin = async () => {
+async function seedAdmin() {
   try {
-    await db.sequelize.authenticate();
 
-    const password = await bcrypt.hash("123456", 10);
+    // =========================
+    // SYNC DATABASE
+    // =========================
+    await db.sequelize.sync();
+
+    console.log("DATABASE CONNECTED");
+
+    // =========================
+    // CREATE BUSINESS
+    // =========================
+
+    const indocom = await db.Business.create({
+      name: "CV. Indocom Citra Makmur",
+      description: "Telecommunication Service Provider",
+      address: "Surabaya",
+      phone: "081234567890",
+      openHours: "08:00 - 17:00"
+    });
+
+    const teaholic = await db.Business.create({
+      name: "TeaHolic",
+      description: "Minuman dan Snack",
+      address: "Surabaya",
+      phone: "081234567891",
+      openHours: "10:00 - 22:00"
+    });
+
+    const mansips = await db.Business.create({
+      name: "ManSips",
+      description: "Milk Beverage Store",
+      address: "Surabaya",
+      phone: "081234567892",
+      openHours: "10:00 - 22:00"
+    });
+
+    // =========================
+    // HASH PASSWORD
+    // =========================
+
+    const passwordIndocom = await bcrypt.hash(
+      "Indocom@2026",
+      10
+    );
+
+    const passwordTeaHolic = await bcrypt.hash(
+      "TeaHolic#2026",
+      10
+    );
+
+    const passwordManSips = await bcrypt.hash(
+      "ManSips!2026",
+      10
+    );
+
+    // =========================
+    // CREATE ADMIN USER
+    // =========================
 
     await db.User.create({
-      username: "admin1",
-      password: password,
+      username: "admin_indocom",
+      password: passwordIndocom,
       role: "admin",
-      businessName: "Teaholic"
+      businessId: indocom.id
     });
 
     await db.User.create({
-      username: "admin2",
-      password: password,
+      username: "admin_teaholic",
+      password: passwordTeaHolic,
       role: "admin",
-      businessName: "Indocom"
+      businessId: teaholic.id
     });
 
     await db.User.create({
-      username: "admin3",
-      password: password,
+      username: "admin_mansips",
+      password: passwordManSips,
       role: "admin",
-      businessName: "Warung Maju"
+      businessId: mansips.id
     });
 
-    console.log("✅ Admin berhasil dibuat");
+    console.log("ADMIN SEED SUCCESS");
     process.exit();
-  } catch (err) {
-    console.error("❌ ERROR:", err);
+
+  } catch (error) {
+
+    console.error(error);
     process.exit(1);
+
   }
-};
+}
 
 seedAdmin();
-
-// const bcrypt = require('bcryptjs');
-// const sequelize = require('../config/database');
-// const { DataTypes } = require('sequelize');
-
-// const Admin = sequelize.define('Admin', {
-//   username: {
-//     type: DataTypes.STRING,
-//     allowNull: false,
-//     unique: true
-//   },
-//   password: {
-//     type: DataTypes.STRING,
-//     allowNull: false
-//   }
-// }, {
-//   tableName: 'admins',
-//   timestamps: false 
-// });
-
-// async function createAdmin() {
-//   try {
-//     await sequelize.authenticate();
-//     console.log('DB connected');
-
-//     const hashedPassword = await bcrypt.hash('admin123', 10);
-//     const admin = await Admin.create({
-//       username: 'admin',
-//       password: hashedPassword
-//     });
-
-//     console.log('✅ Admin berhasil dibuat:', admin.username);
-//   } catch (err) {
-//     console.error('❌ Gagal membuat admin:', err.message);
-//   } finally {
-//     await sequelize.close();
-//   }
-// }
-
-// createAdmin();
