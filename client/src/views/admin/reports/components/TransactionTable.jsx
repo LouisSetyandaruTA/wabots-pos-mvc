@@ -2,9 +2,19 @@ import React from "react";
 import { formatRupiah } from "../../../../utils/format";
 
 export default function TransactionTable({ data }) {
-  if (!data || data.length === 0) {
-    return <p className="mt-6">Tidak ada transaksi</p>;
-  }
+  if (!data.length) {
+  return (
+    <div className="bg-white rounded-xl shadow p-6 mt-6">
+      <h3 className="font-bold mb-4">
+        Detail Transaksi Completed
+      </h3>
+
+      <div className="text-gray-400 text-center py-10">
+        Belum ada transaksi completed
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="bg-white p-4 rounded-xl shadow mt-6">

@@ -5,7 +5,7 @@ exports.getDashboardData = async (businessId) => {
 
   const totalRevenue = await Order.sum("totalPrice", {
     where: {
-      status: "paid",
+     fulfillmentStatus: "completed",
       businessId
     }
   });
@@ -20,6 +20,34 @@ exports.getDashboardData = async (businessId) => {
       businessId
     }
   });
+
+  const paidOrders = await Order.count({
+  where: {
+    businessId,
+    status: "paid"
+  }
+});
+  
+  const readyPickupOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "ready_pickup"
+  }
+});
+
+const shippingOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "shipping"
+  }
+});
+
+const completedOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "completed"
+  }
+});
 
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
@@ -50,7 +78,7 @@ exports.getDashboardData = async (businessId) => {
     include: [
       {
         model: Product,
-        as: "Product",
+        as: "product",
         attributes: ["nama"]
       }
     ],
@@ -81,7 +109,7 @@ exports.getDashboardData = async (businessId) => {
       [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
     ],
     where: {
-      status: "paid",
+  fulfillmentStatus: "completed",
       businessId
     },
     group: ["date"],
@@ -89,11 +117,17 @@ exports.getDashboardData = async (businessId) => {
     raw: true
   });
 
-  return {
-    totalRevenue: totalRevenue || 0,
-    totalOrders,
-    pendingOrders,
-    topProducts,
-    salesPerDay
-  };
+return {
+  totalRevenue: totalRevenue || 0,
+  totalOrders,
+  pendingOrders,
+  paidOrders,
+  readyPickupOrders,
+  shippingOrders,
+  completedOrders,
+  salesPerDay,
+  topProducts
 };
+};
+
+

@@ -128,3 +128,27 @@ exports.payOrder = async (req, res) => {
     });
   }
 };
+
+exports.completeOrder =
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await orderService.completeOrder(
+          req.params.id
+        );
+
+      res.json({
+        success: true,
+        data
+      });
+
+    } catch (err) {
+
+      res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+  };

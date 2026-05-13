@@ -28,7 +28,12 @@ export const exportReportPDF = (data, filter) => {
     body: [
       ["Total Revenue", `Rp ${summary.totalRevenue.toLocaleString("id-ID")}`],
       ["Total Orders", summary.totalOrders],
-      ["AOV", `Rp ${Math.round(summary.avgOrderValue).toLocaleString("id-ID")}`]
+      ["AOV", `Rp ${Math.round(summary.avgOrderValue).toLocaleString("id-ID")}`],
+      ["Pending Orders", summary.pendingOrders],
+["Paid Orders", summary.paidOrders],
+["Ready Pickup", summary.readyPickupOrders],
+["Shipping", summary.shippingOrders],
+["Completed", summary.completedOrders]
     ]
   });
 
@@ -63,12 +68,27 @@ export const exportReportPDF = (data, filter) => {
 
   autoTable(pdf, {
     startY: pdf.lastAutoTable.finalY + 13,
-    head: [["ID", "Customer", "Total"]],
-    body: transactions.map(t => [
-      t.id.substring(0, 8),
-      t["customer.name"] || "-",
-      `Rp ${Number(t.totalPrice).toLocaleString("id-ID")}`
-    ])
+    head: [[
+  "Customer",
+  "Produk",
+  "Metode",
+  "Status",
+  "Total"
+]],
+   body: transactions.map(t => [
+
+  t.customer?.name || "-",
+
+  t.items.map(i =>
+    `${i.variant?.product?.nama} (${i.quantity}x)`
+  ).join(", "),
+
+  t.deliveryMethod || "-",
+
+  t.fulfillmentStatus || "-",
+
+  `Rp ${Number(t.totalPrice).toLocaleString("id-ID")}`
+])
   });
 
   // 🔷 FOOTER

@@ -8,9 +8,9 @@ const Order = sequelize.define('Order', {
     defaultValue: DataTypes.UUIDV4
   },
   businessId: {
-  type: DataTypes.UUID,
-  allowNull: false
-},
+    type: DataTypes.UUID,
+    allowNull: false
+  },
   customerId: {
     type: DataTypes.INTEGER,
     allowNull: false
@@ -22,6 +22,29 @@ const Order = sequelize.define('Order', {
   totalPrice: {
     type: DataTypes.FLOAT,
     allowNull: false
+  },
+  deliveryMethod: {
+    type: DataTypes.ENUM(
+      "pickup",
+      "delivery"
+    ),
+    allowNull: true
+  },
+
+  deliveryAddress: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+
+  fulfillmentStatus: {
+    type: DataTypes.ENUM(
+      "waiting_choice",
+      "waiting_address",
+      "ready_pickup",
+      "on_delivery",
+      "completed"
+    ),
+    defaultValue: "waiting_choice"
   }
 }, {
   tableName: 'orders',

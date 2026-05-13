@@ -41,7 +41,7 @@ export default function Dashboard() {
         if (!data?.topProducts) return [];
 
         const result = data.topProducts.map((p) => ({
-            name: `${p?.variant?.Product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
+            name: `${p?.variant?.product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
             total: Number(p?.totalSold || 0),
         }));
 
@@ -87,6 +87,30 @@ export default function Dashboard() {
                     <p className="text-gray-500">Pending Orders</p>
                     <h3 className="text-2xl font-bold">
                         {data?.pendingOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+    <p className="text-gray-500">Paid Orders</p>
+    <h3 className="text-2xl font-bold">
+        {data?.paidOrders || 0}
+    </h3>
+</div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Ready Pickup</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.readyPickupOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Shipping</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.shippingOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Completed</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.completedOrders || 0}
                     </h3>
                 </div>
 

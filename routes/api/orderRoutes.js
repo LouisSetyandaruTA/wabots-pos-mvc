@@ -9,5 +9,10 @@ router.put("/:id/payment", authMiddleware, orderController.completePayment);
 router.get("/:id", authMiddleware, orderController.getOrderById);
 router.delete("/:id", authMiddleware, orderController.deleteOrder);
 router.post("/:id/pay",authMiddleware,orderController.payOrder);
+router.put(
+  "/:id/complete",
+  authMiddleware,
+  orderController.completeOrder
+);
 
 module.exports = router;

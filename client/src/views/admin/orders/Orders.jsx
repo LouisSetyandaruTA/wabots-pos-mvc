@@ -51,6 +51,29 @@ export default function Orders() {
     }
   };
 
+  const completeOrder = async (id) => {
+
+  try {
+
+    await axios.put(
+      `/orders/${id}/complete`
+    );
+
+    alert("Order selesai");
+
+    fetchOrders();
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert(
+      err.response?.data?.message ||
+      "Gagal menyelesaikan order"
+    );
+  }
+};
+
   const formatDate = (date) => {
     return new Date(date).toLocaleString("id-ID");
   };
@@ -122,6 +145,7 @@ export default function Orders() {
               <th>Total</th>
               <th>Status</th>
               <th>Aksi</th>
+              <th>Fulfillment</th>
             </tr>
           </thead>
 
@@ -144,6 +168,7 @@ export default function Orders() {
                     </div>
                   </td>
                   <td>Rp {order.totalPrice}</td>
+
                   <td>
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${order.status === "pending"
@@ -185,21 +210,108 @@ export default function Orders() {
                       </button>
                     )}
 
-                    {order.status === "paid" && (
-                      <span className="text-green-600 font-semibold text-xs">
-                        ✔ Selesai
-                      </span>
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "ready_pickup" && (
+
+                       <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Diambil
+</button>
+                      )}
+
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "on_delivery" && (
+
+                     <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Sampai
+</button>
+                      )}
+
+                    {order.fulfillmentStatus ===
+                      "completed" && (
+                        <span className="text-green-600 font-semibold text-xs">
+                          ✔ Selesai
+                        </span>
+                      )}
+                  </td>
+                  <td>
+                    <span className="text-xs font-semibold">
+
+                      {order.fulfillmentStatus ===
+                        "waiting_choice" &&
+                        "Menunggu Pilihan"}
+
+                      {order.fulfillmentStatus ===
+                        "waiting_address" &&
+                        "Menunggu Alamat"}
+
+                      {order.fulfillmentStatus ===
+                        "ready_pickup" &&
+                        "Siap Diambil"}
+
+                      {order.fulfillmentStatus ===
+                        "on_delivery" &&
+                        "Sedang Dikirim"}
+
+                      {order.fulfillmentStatus ===
+                        "completed" &&
+                        "Selesai"}
+
+                    </span>
+
+                    {order.deliveryMethod && (
+                      <div className="text-xs text-gray-500">
+                        {order.deliveryMethod}
+                      </div>
                     )}
                   </td>
                 </tr>
 
                 {/* DETAIL */}
                 <tr className="bg-gray-50">
-                  <td colSpan="5" className="p-2">
+                  <td colSpan="7" className="p-2">
                     {order.items?.length > 0 ? (
                       order.items.map((item) => (
-                        <div key={item.id} className="text-xs">
-                          • {item.variant?.nama_variant} | qty: {item.quantity} | Rp {item.unitPrice}
+                        <div
+                          key={item.id}
+                          className="text-xs border-b py-1"
+                        >
+
+                          <div className="font-semibold">
+                            {item.variant?.product?.nama || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Variant:
+                            {item.variant?.nama_variant || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Qty:
+                            {item.quantity}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Harga:
+                            Rp {item.unitPrice}
+                          </div>
+
+                          <div className="text-gray-700 font-semibold">
+                            Subtotal:
+                            Rp {item.subtotal}
+                          </div>
+
                         </div>
                       ))
                     ) : (

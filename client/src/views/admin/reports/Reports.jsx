@@ -7,6 +7,8 @@ import TopProducts from "./components/TopProducts";
 import Filter from "./components/Filter";
 import TransactionTable from "./components/TransactionTable";
 import { exportReportPDF } from "../../../utils/exportReportPDF";
+import OngoingOrders from "./components/OngoingOrders";
+import { exportReportExcel } from "../../../utils/exportReportExcel";
 
 export default function Reports() {
     const reportRef = useRef();
@@ -71,16 +73,24 @@ const [error, setError] = useState("");
 
     if (!data) return <div>Loading...</div>;
 
-    if (!data.summary) return <div>No data available</div>;
+    const safeData = data || {
+    summary: {
+        totalRevenue: 0,
+        totalOrders: 0,
+        avgOrderValue: 0
+    },
+    trends: [],
+    topProducts: [],
+    transactions: [],
+    ongoingOrders: []
+};
+
 
     const isEmpty =
-        data.summary.totalOrders === 0 &&
-        data.trends.length === 0 &&
-        data.topProducts.length === 0;
+        safeData.summary.totalOrders === 0 &&
+        safeData.trends.length === 0 &&
+        safeData.topProducts.length === 0;
 
-    if (isEmpty) {
-        return <div>Tidak ada data dalam rentang tanggal</div>;
-    }
     return (
 
         <div className="p-6" ref={reportRef}>
@@ -89,20 +99,35 @@ const [error, setError] = useState("");
                 setFilter(f);
                 fetchData(f);
             }} />
+            {
+  safeData.transactions.length === 0 && (
+    <div className="bg-yellow-50 text-yellow-700 p-3 rounded mb-4">
+      Belum ada transaksi completed pada rentang tanggal ini.
+    </div>
+  )
+}
             <button
                 onClick={() => exportReportPDF(data, filter)}
                 className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
             >
                 Export PDF
             </button>
+            <button
+  onClick={() => exportReportExcel(data)}
+  className="bg-green-600 text-white px-4 py-2 rounded mb-4 ml-2"
+>
+  Export Excel
+</button>
 
-            <SummaryCards data={data.summary} />
+            <SummaryCards data={safeData.summary} />
 
-            <SalesChart data={data.trends} />
+            <SalesChart data={safeData.trends} />
 
-            <TopProducts data={data.topProducts} />
+            <TopProducts data={safeData.topProducts} />
 
-            <TransactionTable data={data.transactions} />
+            <TransactionTable data={safeData.transactions} />
+
+            <OngoingOrders data={safeData.ongoingOrders} />
 
         </div>
 

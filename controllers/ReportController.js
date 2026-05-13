@@ -5,11 +5,18 @@ const getReport = async (req, res) => {
     let { startDate, endDate, groupBy } = req.query;
 
     // 🔥 DEFAULT DATE (WAJIB)
-    if (!startDate || !endDate) {
-      const today = new Date().toISOString().split("T")[0];
-      startDate = today;
-      endDate = today;
-    }
+   if (!startDate || !endDate) {
+
+  const today = new Date();
+
+  const last30Days = new Date();
+
+  last30Days.setDate(today.getDate() - 30);
+
+  startDate = last30Days.toISOString().split("T")[0];
+
+  endDate = today.toISOString().split("T")[0];
+}
 
     if (!groupBy) groupBy = "day";
 

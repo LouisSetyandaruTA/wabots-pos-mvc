@@ -118,10 +118,21 @@ ${transaction.redirect_url}`;
 // =========================
 // KIRIM KE WHATSAPP
 // =========================
-await whatsappService.sendWhatsAppMessage(
-  order.customer.phoneNumber,
-  paymentText
-);
+try {
+
+  await whatsappService.sendWhatsAppMessage(
+    order.customer.phoneNumber,
+    paymentText
+  );
+
+} catch (err) {
+
+  console.error(
+    "GAGAL KIRIM WA:",
+    err.message
+  );
+
+}
 
 return transaction;
 };

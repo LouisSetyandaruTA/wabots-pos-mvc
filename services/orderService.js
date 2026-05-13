@@ -1,5 +1,12 @@
 const sequelize = require("../config/database");
-const { Order, OrderItem, ProductVariant, Customer , Business } = require("../models");
+const {
+  Order,
+  OrderItem,
+  ProductVariant,
+  Product,
+  Customer,
+  Business
+} = require("../models");
 const { Op } = require("sequelize");
 
 exports.getAllOrders = async (businessId, query) => {
@@ -35,7 +42,14 @@ exports.getAllOrders = async (businessId, query) => {
         include: [
           {
             model: ProductVariant,
-            as: "variant"
+            as: "variant",
+
+            include: [
+              {
+                model: Product,
+                as: "product"
+              }
+            ]
           }
         ]
       }
@@ -53,7 +67,14 @@ exports.createOrder = async (payload) => {
   const t = await sequelize.transaction();
 
   try {
-    const { customerId, items, businessId } = payload;
+    const {
+      customerId,
+      items,
+      businessId,
+      deliveryMethod,
+      deliveryAddress,
+      fulfillmentStatus
+    } = payload;
 
     if (!customerId || !items?.length) {
       throw new Error("Data order tidak valid");
@@ -62,10 +83,23 @@ exports.createOrder = async (payload) => {
     let totalPrice = 0;
 
     const order = await Order.create({
+
       customerId,
+
       businessId,
+
       totalPrice: 0,
-      status: "pending"
+
+      status: "pending",
+
+      deliveryMethod,
+
+      deliveryAddress,
+
+      fulfillmentStatus:
+        fulfillmentStatus ||
+        "waiting_choice"
+
     }, { transaction: t });
 
     for (const item of items) {
@@ -167,19 +201,121 @@ exports.deleteOrder = async (orderId) => {
   await order.destroy();
 };
 
-// exports.getAllOrders = async (businessId, search) => {
-//   const where = { businessId };
+const {
+  clearSession
+} = require("./whatsappSessionService");
 
-//   if (search) {
-//     where[Op.or] = [
-//       { id: { [Op.like]: `%${search}%` } },
-//       { "$customer.name$": { [Op.like]: `%${search}%` } },
-//       { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } }
-//     ];
-//   }
+const {
+  ChatSession
+} = require("../models");
 
-//   return await Order.findAll({
-//     where,
-//     include: [...],
-//   });
-// };
+const whatsappService =
+  require("./whatsappService");
+
+exports.completeOrder =
+async (orderId) => {
+
+  const order =
+    await Order.findByPk(orderId, {
+
+      include: [
+        {
+          model: Customer,
+          as: "customer"
+        }
+      ]
+    });
+
+  if (!order) {
+
+    throw new Error(
+      "Order tidak ditemukan"
+    );
+  }
+
+  if (order.status !== "paid") {
+
+    throw new Error(
+      "Order belum dibayar"
+    );
+  }
+
+  // =========================
+  // COMPLETE ORDER
+  // =========================
+  order.fulfillmentStatus =
+    "completed";
+
+  await order.save();
+
+  // =========================
+  // WHATSAPP NOTIFICATION
+  // =========================
+  const phone =
+    order.customer?.phoneNumber;
+
+  if (phone) {
+
+    let message = "";
+
+    // =====================
+    // PICKUP
+    // =====================
+    if (
+      order.deliveryMethod ===
+      "pickup"
+    ) {
+
+      message =
+`Pesanan Anda telah selesai ✅
+
+Pesanan sudah diambil di toko.
+
+Terima kasih telah berbelanja di ManSips 🙌`;
+
+    }
+
+    // =====================
+    // DELIVERY
+    // =====================
+    else {
+
+      message =
+`Pesanan Anda telah selesai ✅
+
+Pesanan berhasil dikirim dan diterima.
+
+Terima kasih telah berbelanja di ManSips 🙌`;
+    }
+
+    await whatsappService.sendWhatsAppMessage(
+      phone,
+      message
+    );
+
+    // =========================
+    // RESET SESSION MEMORY
+    // =========================
+    clearSession(phone);
+
+    // =========================
+    // NONAKTIFKAN CHAT SESSION
+    // =========================
+    await ChatSession.update(
+      {
+        isActive: false
+      },
+      {
+        where: {
+          customerId:
+            order.customerId,
+
+          businessId:
+            order.businessId
+        }
+      }
+    );
+  }
+
+  return order;
+};

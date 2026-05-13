@@ -131,23 +131,53 @@ exports.midtransWebhook = async (req, res) => {
     if (["settlement", "capture"].includes(data.transaction_status)) {
 
       await orderService.completePayment(order.id);
+      if (!order.customer.phoneNumber) {
+
+  await order.update({
+    deliveryMethod: "pickup",
+    fulfillmentStatus: "ready_pickup"
+  });
+
+}
 
       await paymentService.savePayment(order, data);
        console.log(
     "KIRIM WA PAYMENT SUCCESS KE:",
     order.customer.phoneNumber
   );
-  
-      await whatsappService.sendWhatsAppMessage(
+
+ await whatsappService.sendWhatsAppMessage(
   order.customer.phoneNumber,
-  `Pembayaran berhasil diterima ✅
+`Pembayaran berhasil diterima ✅
 
 Pesanan Anda sedang diproses.
 
-Terima kasih telah berbelanja 🙏`
+Pilih metode penerimaan pesanan:
+
+1. Ambil di toko
+2. Dikirim`
 );
 
       console.log("✅ SET PAID");
+
+      const {
+  setSession,
+  getSession
+} = require("../services/whatsappSessionService");
+
+const customerSession =
+  getSession(
+    order.customer.phoneNumber
+  );
+
+setSession(
+  order.customer.phoneNumber,
+  {
+    ...customerSession,
+    step: "waiting_delivery_method",
+    lastOrderId: order.id
+  }
+);
     }
 
     //  HANDLE PENDING)

@@ -7,6 +7,8 @@ export default function CreateOrder() {
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [cart, setCart] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState("");
+  const [deliveryMethod, setDeliveryMethod] =useState("pickup");
+  const [deliveryAddress, setDeliveryAddress] =useState("");
   const [qty, setQty] = useState(1);
 
   // 🔥 FETCH DATA
@@ -57,13 +59,27 @@ export default function CreateOrder() {
   // 🔥 SUBMIT ORDER
   const submitOrder = async () => {
     try {
-      await axios.post("/orders", {
-        customerId: selectedCustomer,
-        items: cart.map(item => ({
-          variantId: item.variantId,
-          quantity: item.quantity
-        }))
-      });
+   await axios.post("/orders", {
+
+  customerId: selectedCustomer,
+
+  deliveryMethod,
+
+  deliveryAddress:
+    deliveryMethod === "delivery"
+      ? deliveryAddress
+      : null,
+
+  fulfillmentStatus:
+    deliveryMethod === "pickup"
+      ? "ready_pickup"
+      : "on_delivery",
+
+  items: cart.map(item => ({
+    variantId: item.variantId,
+    quantity: item.quantity
+  }))
+});
 
       alert("Order berhasil dibuat");
       setCart([]);
@@ -137,6 +153,44 @@ export default function CreateOrder() {
             </div>
           ))}
         </div>
+        <div>
+  <label>Metode Pengambilan</label>
+
+  <select
+    className="w-full border p-2 rounded"
+    value={deliveryMethod}
+    onChange={(e) =>
+      setDeliveryMethod(e.target.value)
+    }
+  >
+    <option value="pickup">
+      Ambil di Toko
+    </option>
+
+    <option value="delivery">
+      Dikirim
+    </option>
+  </select>
+</div>
+
+{
+  deliveryMethod === "delivery" && (
+    <div>
+      <label>Alamat Pengiriman</label>
+
+      <textarea
+        className="w-full border p-2 rounded"
+        rows="3"
+        value={deliveryAddress}
+        onChange={(e) =>
+          setDeliveryAddress(
+            e.target.value
+          )
+        }
+      />
+    </div>
+  )
+}
 
         {/* SUBMIT */}
         <button

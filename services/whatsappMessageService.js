@@ -473,6 +473,140 @@ Percobaan: ${retryCount}/3`
         }
 
         // =========================
+// WAITING DELIVERY METHOD
+// =========================
+if (
+    session?.step ===
+    "waiting_delivery_method"
+) {
+
+    const {
+        Order
+    } = require("../models");
+
+    // =====================
+    // PICKUP
+    // =====================
+    if (
+        lowerText.includes("ambil") ||
+        lowerText === "1"
+    ) {
+
+        await Order.update(
+            {
+                deliveryMethod:
+                    "pickup",
+
+                fulfillmentStatus:
+                    "ready_pickup"
+            },
+            {
+                where: {
+                    id: session.lastOrderId
+                }
+            }
+        );
+
+        setSession(phone, {
+            ...session,
+            step: "chatting",
+            lastOrderId: null
+        });
+
+        return await msg.reply(
+`Pesanan Anda akan diambil di toko ✅
+
+Alamat toko:
+Jl Raya Ketintang No 12 Surabaya
+
+Pesanan akan segera disiapkan.`
+        );
+    }
+
+    // =====================
+    // DELIVERY
+    // =====================
+    if (
+        lowerText.includes("kirim") ||
+        lowerText === "2"
+    ) {
+
+        const {
+            Order
+        } = require("../models");
+
+        await Order.update(
+            {
+                fulfillmentStatus:
+                    "waiting_address"
+            },
+            {
+                where: {
+                    id: session.lastOrderId
+                }
+            }
+        );
+
+        setSession(phone, {
+            ...session,
+            step:
+                "waiting_delivery_address"
+        });
+
+        return await msg.reply(
+`Silakan kirim alamat lengkap pengiriman Anda.`
+        );
+    }
+
+    return await msg.reply(
+`Pilih metode penerimaan:
+
+1. Ambil di toko
+2. Dikirim`
+    );
+}
+
+// =========================
+// WAITING DELIVERY ADDRESS
+// =========================
+if (
+    session?.step ===
+    "waiting_delivery_address"
+) {
+
+    const { Order } =
+        require("../models");
+
+    await Order.update(
+        {
+            deliveryMethod:
+                "delivery",
+
+            deliveryAddress: text,
+
+            fulfillmentStatus:
+                "on_delivery"
+        },
+        {
+            where: {
+                id: session.lastOrderId
+            }
+        }
+    );
+
+    setSession(phone, {
+        ...session,
+        step: "chatting"
+    });
+
+    return await msg.reply(
+`Alamat berhasil disimpan.
+
+Pesanan akan segera dikirim.`
+    );
+}
+
+        // =========================
 // WAITING ORDER CONFIRMATION
 // =========================
 if (
@@ -669,11 +803,12 @@ for (const item of orderItems) {
     // =========================
     // RESET SESSION
     // =========================
-    setSession(phone, {
-        ...session,
-        pendingOrder: null,
-        step: "chatting"
-    });
+   setSession(phone, {
+    ...session,
+    pendingOrder: null,
+    lastOrderId: order.id,
+    step: "chatting"
+});
 
 const successMessage =
 `Pesanan berhasil dibuat.

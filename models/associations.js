@@ -43,7 +43,7 @@ module.exports = (db) => {
     });
     ProductVariant.belongsTo(Product, {
         foreignKey: "productId",
-        as: "Product"
+        as: "product"
     });
 
     // ======================

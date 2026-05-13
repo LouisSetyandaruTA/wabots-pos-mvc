@@ -8,7 +8,7 @@ const getSummaryReport = async ({
   businessId
 }) => {
   // 1. SUMMARY
-const summary = await Order.findAll({
+const summaryResult = await Order.findAll({
   attributes: [
     [fn("SUM", col("totalPrice")), "totalRevenue"],
     [fn("COUNT", col("id")), "totalOrders"],
@@ -18,7 +18,7 @@ const summary = await Order.findAll({
 ]
   ],
   where: {
-  status: "paid",
+  fulfillmentStatus: "completed",
   businessId,
 createdAt: {
   [Op.between]: [
@@ -29,6 +29,80 @@ createdAt: {
   },
   raw: true
 });
+
+const summary = summaryResult[0];
+
+const pendingOrders = await Order.count({
+  where: {
+    businessId,
+    status: "pending",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const paidOrders = await Order.count({
+  where: {
+    businessId,
+    status: "paid",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const readyPickupOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "ready_pickup",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const shippingOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "shipping",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const completedOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "completed",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+summary.pendingOrders = pendingOrders;
+summary.paidOrders = paidOrders;
+summary.readyPickupOrders = readyPickupOrders;
+summary.shippingOrders = shippingOrders;
+summary.completedOrders = completedOrders;
+
 
   // 2. GROUPING FORMAT
   let format = "%Y-%m-%d";
@@ -50,7 +124,7 @@ const trends = await Order.findAll({
     [fn("COUNT", col("id")), "orders"]
   ],
   where: {
-    status: "paid",
+    fulfillmentStatus: "completed",
     businessId,
     createdAt: {
       [Op.between]: [
@@ -67,7 +141,7 @@ const trends = await Order.findAll({
   // 4. TOP PRODUCTS
 const topProducts = await OrderItem.findAll({
   attributes: [
-    [col("variant.Product.nama"), "productName"],
+    [col("variant.product.nama"), "productName"],
     [fn("SUM", col("quantity")), "totalSold"],
     [fn("SUM", col("subtotal")), "revenue"]
   ],
@@ -78,7 +152,7 @@ const topProducts = await OrderItem.findAll({
       include: [
         {
          model: Product,
-as: "Product",
+as: "product",
 where: {
   businessId,
   status: "active"
@@ -90,7 +164,7 @@ where: {
       model: Order,
       as: "order",
       where: {
-        status: "paid",
+        fulfillmentStatus: "completed",
         businessId,
         createdAt: {
           [Op.between]: [
@@ -102,8 +176,8 @@ where: {
     }
   ],
  group: [
-  "variant.Product.id",
-  "variant.Product.nama"
+  "variant.product.id",
+  "variant.product.nama"
 ],
   order: [[literal("totalSold"), "DESC"]],
   limit: 10,
@@ -111,7 +185,7 @@ where: {
 });
 const transactions = await Order.findAll({
   where: {
-    status: "paid",
+    fulfillmentStatus: "completed",
     businessId,
     createdAt: {
       [Op.between]: [
@@ -140,7 +214,7 @@ const transactions = await Order.findAll({
           include: [
             {
               model: Product,
-              as: "Product",
+              as: "product",
               attributes: ["nama"],
               where: {
                 businessId,
@@ -155,11 +229,30 @@ const transactions = await Order.findAll({
   order: [["createdAt", "DESC"]]
 });
 
+const ongoingOrders = await Order.findAll({
+  where: {
+    businessId,
+    status: "paid",
+    fulfillmentStatus: {
+      [Op.ne]: "completed"
+    }
+  },
+  include: [
+    {
+      model: Customer,
+      as: "customer",
+      attributes: ["name", "phoneNumber"]
+    }
+  ],
+  order: [["createdAt", "DESC"]]
+});
+
   return {
-    summary: summary[0],
+    summary: summary,
     trends,
     topProducts,
-     transactions 
+     transactions,
+     ongoingOrders
   };
 };
 
