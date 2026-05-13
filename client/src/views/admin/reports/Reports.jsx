@@ -112,12 +112,12 @@ const [error, setError] = useState("");
             >
                 Export PDF
             </button>
-            <button
+            {/* <button
   onClick={() => exportReportExcel(data)}
   className="bg-green-600 text-white px-4 py-2 rounded mb-4 ml-2"
 >
   Export Excel
-</button>
+</button> */}
 
             <SummaryCards data={safeData.summary} />
 

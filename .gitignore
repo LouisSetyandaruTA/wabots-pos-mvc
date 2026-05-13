@@ -3,4 +3,5 @@ node_modules/
 dist/
 build/
 .wwebjs_auth/
+.wwebjs_cache/
 npm-debug.log*

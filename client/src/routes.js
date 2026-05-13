@@ -59,20 +59,14 @@ const routes = [
     icon: <MdReceipt className="h-6 w-6" />,
     component: <ProtectedRoute><Orders /></ProtectedRoute>,
   },
-  {
-    name: "Create Order",
-    layout: "/admin",
-    path: "createorder",
-    icon: <MdAddBox className="h-6 w-6" />,
-    component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
-  },
-  {
-    name: "Reports",
-    layout: "/admin",
-    path: "reports",
-    icon: <MdBarChart className="h-6 w-6" />,
-    component: <ProtectedRoute><Reports /></ProtectedRoute>,
-  },
+  // {
+  //   name: "Create Order",
+  //   layout: "/admin",
+  //   path: "createorder",
+  //   icon: <MdAddBox className="h-6 w-6" />,
+  //   component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
+  // },
+
   {
     name: "Business",
     layout: "/admin",
@@ -84,13 +78,13 @@ const routes = [
       </ProtectedRoute>
     ),
   },
-  {
-    name: "Payment",
-    layout: "/admin",
-    path: "payment/:orderId",
-    icon: <MdPayment className="h-6 w-6" />,
-    component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
-  },
+  // {
+  //   name: "Payment",
+  //   layout: "/admin",
+  //   path: "payment/:orderId",
+  //   icon: <MdPayment className="h-6 w-6" />,
+  //   component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
+  // },
   {
   name: "Chats",
   layout: "/admin",
@@ -102,76 +96,13 @@ const routes = [
     </ProtectedRoute>
   ),
 },
-  //   {
-  //   layout: "/auth",
-  //   path: "login",
-  //   component: (
-  //     <PublicRoute>
-  //       <Login />
-  //     </PublicRoute>
-  //   ),
-  // },
-  //   {
-  //   name: "Dashboard",
-  //   layout: "/admin",
-  //   path: "dashboard",
-  //  component: (
-  //     <ProtectedRoute>
-  //       <Dashboard />
-  //     </ProtectedRoute>
-  //   ),
-  // },
-  //   {
-  //     name: "Products",
-  //     layout: "/admin",
-  //     path: "products",
-  //     component: (
-  //       <ProtectedRoute>
-  //         <Products />
-  //       </ProtectedRoute>
-  //     ),
-  //   },
-  //   {
-  //   name: "Orders",
-  //   layout: "/admin",
-  //   path: "orders",
-  //   component: (
-  //     <ProtectedRoute>
-  //       <Orders />
-  //     </ProtectedRoute>
-  //   ),
-  // },
-  // {
-  //   name: "Create Order",
-  //   layout: "/admin",
-  //   path: "createorder",
-  //   component: (
-  //     <ProtectedRoute>
-  //       <CreateOrder />
-  //     </ProtectedRoute>
-  //   ),
-  // },
-  // {
-  //   name: "Reports",
-  //   layout: "/admin",
-  //   path: "reports",
-  //   component: (
-  //     <ProtectedRoute>
-  //       <Reports />
-  //     </ProtectedRoute>
-  //   ),
-  // },
-  // {
-  //   name: "Payment",
-  //   layout: "/admin",
-  //   path: "payment/:orderId",
-  //   component: (
-  //     <ProtectedRoute>
-  //       <PaymentPage />
-  //     </ProtectedRoute>
-  //   ),
-  // },
-
+  {
+    name: "Reports",
+    layout: "/admin",
+    path: "reports",
+    icon: <MdBarChart className="h-6 w-6" />,
+    component: <ProtectedRoute><Reports /></ProtectedRoute>,
+  },
 
 ];
 export default routes;
