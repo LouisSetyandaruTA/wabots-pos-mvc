@@ -30,15 +30,6 @@ const fetchDashboard = async () => {
   setData(res.data.data);
 };
 
-// useEffect(() => {
-//   axios.get("/dashboard")
-//     .then(res => {
-//       console.log(res.data); 
-//       setData(res.data);
-//     })
-//     .catch(err => console.error(err));
-// }, []);
-
   return (
     <div>
       {/* Card widget */}
@@ -53,25 +44,6 @@ const fetchDashboard = async () => {
           title={"Total Products"}
           subtitle={data?.totalProducts || 0}
         />
-        {/* <Widget
-          title={"Total Revenue"}
-          subtitle={dashboardData?.totalRevenue || "Loading..."}
-        />
-
-        <Widget
-          title={"Total Orders"}
-          subtitle={dashboardData?.totalOrders || "Loading..."}
-        />
-
-        <Widget
-          title={"Pending Orders"}
-          subtitle={dashboardData?.pendingOrders || "Loading..."}
-        />
-
-        <Widget
-          title={"Products"}
-          subtitle={dashboardData?.totalProducts || "Loading..."}
-        /> */}
       </div>
 
       {/* Charts */}

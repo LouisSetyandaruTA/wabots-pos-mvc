@@ -54,7 +54,6 @@ module.exports = (db) => {
         foreignKey: "customerId",
         as: "customer"
     });
-
     Order.hasMany(OrderItem, {
         foreignKey: "orderId",
         as: "items"

@@ -30,13 +30,13 @@ export default function Dashboard() {
                 date: dateObj.toLocaleDateString("id-ID", {
                     day: "2-digit",
                     month: "short"
-                }), 
+                }),
                 total: Number(item.total)
             };
         });
     };
     const formatTopProducts = () => {
-        console.log("RAW TOP PRODUCTS:", data?.topProducts); 
+        console.log("RAW TOP PRODUCTS:", data?.topProducts);
 
         if (!data?.topProducts) return [];
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
             total: Number(p?.totalSold || 0),
         }));
 
-        console.log("FORMATTED TOP PRODUCTS:", result); 
+        console.log("FORMATTED TOP PRODUCTS:", result);
 
         return result;
     };
@@ -54,7 +54,7 @@ export default function Dashboard() {
         try {
             const res = await axios.get("/dashboard");
 
-            console.log("API RESPONSE:", res.data.data); 
+            console.log("API RESPONSE:", res.data.data);
 
             setData(res.data.data);
         } catch (err) {
@@ -90,11 +90,11 @@ export default function Dashboard() {
                     </h3>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow">
-    <p className="text-gray-500">Paid Orders</p>
-    <h3 className="text-2xl font-bold">
-        {data?.paidOrders || 0}
-    </h3>
-</div>
+                    <p className="text-gray-500">Paid Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.paidOrders || 0}
+                    </h3>
+                </div>
                 <div className="bg-white p-4 rounded-xl shadow">
                     <p className="text-gray-500">Ready Pickup</p>
                     <h3 className="text-2xl font-bold">
@@ -128,8 +128,8 @@ export default function Dashboard() {
                             <XAxis dataKey="date" />
                             <YAxis tickFormatter={(value) => formatRupiah(value)} />
                             <Tooltip
-  formatter={(value) => formatRupiah(value)}
-/>
+                                formatter={(value) => formatRupiah(value)}
+                            />
                             <Line type="monotone" dataKey="total" stroke="#4F46E5" />
                         </LineChart>
                     </ResponsiveContainer>

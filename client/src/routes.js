@@ -59,13 +59,6 @@ const routes = [
     icon: <MdReceipt className="h-6 w-6" />,
     component: <ProtectedRoute><Orders /></ProtectedRoute>,
   },
-  // {
-  //   name: "Create Order",
-  //   layout: "/admin",
-  //   path: "createorder",
-  //   icon: <MdAddBox className="h-6 w-6" />,
-  //   component: <ProtectedRoute><CreateOrder /></ProtectedRoute>,
-  // },
 
   {
     name: "Business",
@@ -78,13 +71,7 @@ const routes = [
       </ProtectedRoute>
     ),
   },
-  // {
-  //   name: "Payment",
-  //   layout: "/admin",
-  //   path: "payment/:orderId",
-  //   icon: <MdPayment className="h-6 w-6" />,
-  //   component: <ProtectedRoute><PaymentPage /></ProtectedRoute>,
-  // },
+
   {
   name: "Chats",
   layout: "/admin",

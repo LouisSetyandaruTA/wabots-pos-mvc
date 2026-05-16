@@ -1,0 +1,4919 @@
+BERIKUT ISI FILE PROYEK SAYA :
+
+==================================================================
+BACKEND :
+
+wabots-pos-mvc\bot\whatsapp.js :
+const qrcode = require("qrcode-terminal");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const { handleIncomingMessage } = require("../services/whatsappMessageService");
+const {setWhatsAppClient} = require("../services/whatsappService");
+
+const client = new Client({
+  authStrategy: new LocalAuth({
+    clientId: "pos-bot"
+  }),
+  puppeteer: {
+    headless: true,
+    args: ["--no-sandbox"]
+  }
+});
+
+setWhatsAppClient(client);
+
+// QR
+client.on("qr", (qr) => {
+  console.log("Scan QR WhatsApp:");
+  qrcode.generate(qr, { small: true });
+});
+
+// READY
+client.on("ready", () => {
+  console.log("WhatsApp Bot Connected");
+});
+
+// AUTHENTICATED
+client.on("authenticated", () => {
+  console.log("WhatsApp Authenticated");
+});
+
+// AUTH FAILURE
+client.on("auth_failure", (msg) => {
+  console.log("Auth Failure:", msg);
+});
+
+// DISCONNECTED
+client.on("disconnected", (reason) => {
+  console.log("WhatsApp Disconnected:", reason);
+});
+
+// RECEIVE MESSAGE
+client.on("message", handleIncomingMessage);
+
+client.initialize();
+
+module.exports = client;
+
+==================================================================
+wabots-pos-mvc\config\database.js :
+require("dotenv").config();
+const { Sequelize } = require("sequelize");
+
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    dialect: "mysql",
+    port: process.env.DB_PORT
+  }
+);
+
+module.exports = sequelize;
+
+==================================================================
+wabots-pos-mvc\config\midtrans.js :
+
+const midtransClient = require('midtrans-client');
+
+const snap = new midtransClient.Snap({
+  isProduction: false, 
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY
+});
+
+module.exports = snap;
+
+==================================================================
+wabots-pos-mvc\controllers\AuthController.js :
+
+const { User, Business } = require("../models");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const user = await User.findOne({
+      where: { username },
+      include: {
+        model: Business,
+        attributes: ["name"]
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password salah" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        businessId: user.businessId,
+        businessName: user.Business?.name 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        businessId: user.businessId,
+        businessName: user.Business?.name
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+==================================================================
+wabots-pos-mvc\controllers\BusinessController.js :
+
+const businessService = require("../services/businessService");
+
+exports.getMyBusiness = async (req, res) => {
+  try {
+
+    const business =
+      await businessService.getBusiness(
+        req.user.businessId
+      );
+
+    res.json(business);
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
+};
+
+exports.updateMyBusiness = async (req, res) => {
+
+  try {
+
+    const updated =
+      await businessService.updateBusiness(
+        req.user.businessId,
+        req.body
+      );
+
+    res.json({
+      success: true,
+      data: updated
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
+};
+
+==================================================================
+wabots-pos-mvc\controllers\CategoryController.js
+
+const { Category } = require("../models");
+
+exports.getCategories = async (req, res) => {
+  const data = await Category.findAll({
+    where: { userId: req.user.id }
+  });
+  res.json(data);
+};
+
+exports.createCategory = async (req, res) => {
+  const data = await Category.create({
+    name: req.body.name,
+    userId: req.user.id
+  });
+  res.json(data);
+};
+
+exports.deleteCategory = async (req, res) => {
+  await Category.destroy({
+    where: {
+      id: req.params.id,
+      userId: req.user.id
+    }
+  });
+  res.json({ success: true });
+};
+
+==================================================================
+wabots-pos-mvc\controllers\ChatController.js :
+
+const {
+    ChatSession,
+    ChatMessage,
+    Customer
+} = require("../models");
+
+const whatsappService =
+    require("../services/whatsappService");
+
+// =========================
+// GET ALL SESSIONS
+// =========================
+exports.getSessions =
+    async (req, res) => {
+
+        try {
+
+            const sessions =
+                await ChatSession.findAll({
+
+                    where: {
+                        businessId:
+                            req.user.businessId
+                    },
+
+                    include: [
+                        {
+                            model: Customer,
+                            as: "customer"
+                        }
+                    ],
+
+                    order: [
+                        ["needAdmin", "DESC"],
+                        ["updatedAt", "DESC"]
+                    ]
+                });
+
+            res.json({
+                success: true,
+                data: sessions
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    };
+
+// =========================
+// GET SESSION DETAIL
+// =========================
+exports.getSessionDetail =
+    async (req, res) => {
+
+        try {
+
+            const messages =
+                await ChatMessage.findAll({
+
+                    where: {
+                        sessionId:
+                            req.params.id
+                    },
+
+                    order: [
+                        ["createdAt", "ASC"],
+                        ["id", "ASC"]
+                    ]
+                });
+
+            res.json({
+                success: true,
+                data: messages
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    };
+
+// =========================
+// TAKE OVER
+// =========================
+exports.takeOverSession =
+async (req, res) => {
+
+    try {
+
+        const session =
+            await ChatSession.findByPk(
+                req.params.id,
+                {
+                    include: [
+                        {
+                            model: Customer,
+                            as: "customer"
+                        }
+                    ]
+                }
+            );
+
+        await ChatSession.update(
+            {
+                mode: "HUMAN",
+                needAdmin: false
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            }
+        );
+
+        // =========================
+        // KIRIM KE WA
+        // =========================
+        await whatsappService.sendWhatsAppMessage(
+
+            session.customer.phoneNumber,
+
+`Admin telah bergabung ke percakapan.
+
+Sekarang Anda berbicara langsung dengan customer service.`
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+// =========================
+// BACK TO AI
+// =========================
+exports.backToAI =
+async (req, res) => {
+
+    try {
+
+        const session =
+            await ChatSession.findByPk(
+                req.params.id,
+                {
+                    include: [
+                        {
+                            model: Customer,
+                            as: "customer"
+                        }
+                    ]
+                }
+            );
+
+        await ChatSession.update(
+            {
+                mode: "AI",
+                needAdmin: false
+            },
+            {
+                where: {
+                    id: req.params.id
+                }
+            }
+        );
+
+        // =========================
+        // KIRIM KE WA
+        // =========================
+        await whatsappService.sendWhatsAppMessage(
+
+            session.customer.phoneNumber,
+
+`Percakapan telah dikembalikan ke AI Assistant.
+
+Silakan lanjutkan pertanyaan Anda.`
+        );
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// =========================
+// SEND MESSAGE
+// =========================
+exports.sendMessage =
+    async (req, res) => {
+
+        try {
+
+            const session =
+                await ChatSession.findByPk(
+                    req.params.id,
+                    {
+                        include: [
+                            {
+                                model: Customer,
+                                as: "customer"
+                            }
+                        ]
+                    }
+                );
+
+            if (!session) {
+
+                return res.status(404).json({
+                    success: false,
+                    message: "Session tidak ditemukan"
+                });
+            }
+
+            const message =
+                req.body.message;
+
+            // =========================
+            // SIMPAN KE DATABASE
+            // =========================
+            const newMessage =
+                await ChatMessage.create({
+
+                    sessionId: session.id,
+
+                    sender: "ADMIN",
+
+                    message
+                });
+
+            // =========================
+            // UPDATE LAST MESSAGE
+            // =========================
+            await ChatSession.update(
+                {
+                    lastMessage: message
+                },
+                {
+                    where: {
+                        id: session.id
+                    }
+                }
+            );
+
+            // =========================
+            // KIRIM KE WHATSAPP
+            // =========================
+            const phone =
+                session.customer.phoneNumber;
+
+            await whatsappService.sendWhatsAppMessage(
+                phone,
+                `Admin:\n${message}`
+            );
+
+            res.json({
+                success: true,
+                data: newMessage
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    };
+
+===========================================================
+wabots-pos-mvc\controllers\CustomerController.js :
+
+const customerService = require("../services/customerService");
+
+exports.getCustomers = async (req, res) => {
+  try {
+    const data = await customerService.getAll(req.user.businessId);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+============================================================
+wabots-pos-mvc\controllers\DashboardController.js :
+
+const dashboardService = require("../services/dashboardService");
+
+exports.getDashboard = async (req, res) => {
+  try {
+    const data = await dashboardService.getDashboardData(req.user.businessId);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+============================================================
+wabots-pos-mvc\controllers\OrderController.js :
+
+const orderService = require("../services/orderService");
+const paymentService = require("../services/paymentService");
+const whatsappService = require("../services/whatsappService");
+
+// CREATE
+exports.createOrder = async (req, res) => {
+  try {
+    const payload = {
+      ...req.body,
+      userId: req.user.id,
+      businessId: req.user.businessId
+    };
+
+    const data = await orderService.createOrder(payload);
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// APPROVE
+exports.approveOrder = async (req, res) => {
+
+  try {
+
+    const data =
+      await orderService.approveOrder(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
+  } catch (err) {
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+// PAYMENT SUCCESS (SIMULASI)
+exports.completePayment = async (req, res) => {
+  try {
+    const data = await orderService.completePayment(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+exports.getOrders = async (req, res) => {
+  try {
+    const data = await orderService.getAllOrders(
+      req.user.businessId,
+      req.query 
+    );
+
+    res.json({ success: true, data });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.createPayment = async (req, res) => {
+  try {
+    const url = await paymentService.createPayment(req.params.id);
+
+    res.json({
+      success: true,
+      paymentUrl: url
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    await orderService.deleteOrder(req.params.id);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+exports.payOrder = async (req, res) => {
+
+  try {
+
+    const data =
+      await paymentService.createPayment(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
+  } catch (err) {
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.completeOrder =
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await orderService.completeOrder(
+          req.params.id
+        );
+
+      res.json({
+        success: true,
+        data
+      });
+
+    } catch (err) {
+
+      res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+  };
+
+=============================================================
+wabots-pos-mvc\controllers\PaymentController.js :
+
+const { or } = require("sequelize");
+const { Customer, Order, OrderItem } = require("../models");
+const orderService = require("../services/orderService");
+const paymentService = require("../services/paymentService");
+const whatsappService = require("../services/whatsappService");
+
+exports.createPayment = async (req, res) => {
+
+  try {
+
+    console.log(
+      "CREATE PAYMENT ORDER:",
+      req.params.orderId
+    );
+
+    // CREATE MIDTRANS
+    const transaction =
+      await paymentService.createPayment(
+        req.params.orderId
+      );
+
+    // AMBIL ORDER
+    const order =
+      await Order.findByPk(
+        req.params.orderId,
+        {
+          include: [
+            {
+              model: Customer,
+              as: "customer"
+            }
+          ]
+        }
+      );
+
+    // FORMAT PAYMENT TEXT
+    let paymentText = "";
+
+    if (
+      transaction.va_numbers &&
+      transaction.va_numbers.length > 0
+    ) {
+
+      const va =
+        transaction.va_numbers[0];
+
+      paymentText = `
+Pesanan Anda telah disetujui ✅
+
+Silakan lakukan pembayaran:
+
+Bank:
+${va.bank.toUpperCase()}
+
+VA Number:
+${va.va_number}
+
+Total:
+Rp ${order.totalPrice}
+
+Link Pembayaran:
+${transaction.redirect_url}
+`;
+
+    } else {
+
+      paymentText = `
+Pesanan Anda telah disetujui ✅
+
+Total:
+Rp ${order.totalPrice}
+
+Link Pembayaran:
+${transaction.redirect_url}
+`;
+    }
+
+    // KIRIM WHATSAPP
+    await whatsappService.sendWhatsAppMessage(
+      order.customer.phoneNumber,
+      paymentText
+    );
+
+    console.log(
+      "MIDTRANS RESPONSE:",
+      transaction
+    );
+
+    res.json(transaction);
+
+  } catch (err) {
+
+    console.error(
+      "CREATE PAYMENT ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      message: err.message
+    });
+  }
+};
+
+exports.midtransWebhook = async (req, res) => {
+  try {
+    const data = req.body;
+
+    console.log("🔥 WEBHOOK:", data.transaction_status);
+
+ const order = await Order.findByPk(data.order_id, {
+  include: [
+    {
+      model: Customer,
+      as: "customer"
+    },
+    {
+      model: OrderItem,
+      as: "items"
+    }
+  ]
+});
+
+    if (!order) return res.status(404).json({ message: "Order tidak ditemukan" });
+
+    if (order.status === "paid") {
+      console.log("⛔ SUDAH PAID, SKIP");
+      return res.json({ success: true });
+    }
+
+    // HANDLE SUCCESS
+    if (["settlement", "capture"].includes(data.transaction_status)) {
+
+      await orderService.completePayment(order.id);
+      if (!order.customer.phoneNumber) {
+
+  await order.update({
+    deliveryMethod: "pickup",
+    fulfillmentStatus: "ready_pickup"
+  });
+
+}
+
+      await paymentService.savePayment(order, data);
+       console.log(
+    "KIRIM WA PAYMENT SUCCESS KE:",
+    order.customer.phoneNumber
+  );
+
+ await whatsappService.sendWhatsAppMessage(
+  order.customer.phoneNumber,
+`Pembayaran berhasil diterima ✅
+
+Pesanan Anda sedang diproses.
+
+Pilih metode penerimaan pesanan:
+
+1. Ambil di toko
+2. Dikirim`
+);
+
+      console.log("✅ SET PAID");
+
+      const {
+  setSession,
+  getSession
+} = require("../services/whatsappSessionService");
+
+const customerSession =
+  getSession(
+    order.customer.phoneNumber
+  );
+
+setSession(
+  order.customer.phoneNumber,
+  {
+    ...customerSession,
+    step: "waiting_delivery_method",
+    lastOrderId: order.id
+  }
+);
+    }
+
+    //  HANDLE PENDING)
+    else if (data.transaction_status === "pending" && order.status !== "paid") {
+      // order.status = "pending";
+      await order.save();
+    }
+
+    // 🔥 HANDLE CANCEL
+    else if (["cancel", "expire"].includes(data.transaction_status)) {
+      // order.status = "cancelled";
+      await order.save();
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("WEBHOOK ERROR:", err);
+    res.status(200).json({ success: true });
+  }
+};
+
+=============================================================
+wabots-pos-mvc\controllers\ProductController.js :
+
+const productService = require("../services/productService");
+
+//Get Product
+exports.getProducts = async (req, res) => {
+  try {
+    console.log("BUSINESS ID:", req.user.businessId); 
+    const data = await productService.getAll(req.user.businessId);
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// CREATE
+exports.createProduct = async (req, res) => {
+  const data = await productService.createProduct({
+    ...req.body,
+    businessId: req.user.businessId
+  });
+
+  res.json(data);
+};
+
+// UPDATE
+exports.updateProduct = async (req, res) => {
+  try {
+   await productService.update(req.params.id, req.body, req.user.businessId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// DELETE
+exports.deleteProduct = async (req, res) => {
+  try {
+    await productService.delete(req.params.id, req.user.businessId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+==============================================================
+wabots-pos-mvc\controllers\ProductVariantController.js :
+
+const service = require("../services/productVariantService");
+
+exports.getVariants = async (req, res) => {
+  const data = await service.getByProduct(
+    req.params.productId,
+    req.user.businessId
+  );
+  res.json(data);
+};
+
+exports.createVariant = async (req, res) => {
+  const data = await service.create(req.body, req.user.businessId);
+  res.json(data);
+};
+
+exports.deleteVariant = async (req, res) => {
+  await service.delete(req.params.id);
+  res.json({ success: true });
+};
+
+exports.updateVariant = async (req, res) => {
+  try {
+    const data = await service.update(req.params.id, req.body);
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+==============================================================
+wabots-pos-mvc\controllers\ReportController.js :
+
+const reportService = require("../services/reportService");
+
+const getReport = async (req, res) => {
+  try {
+    let { startDate, endDate, groupBy } = req.query;
+
+    // 🔥 DEFAULT DATE (WAJIB)
+   if (!startDate || !endDate) {
+
+  const today = new Date();
+
+  const last30Days = new Date();
+
+  last30Days.setDate(today.getDate() - 30);
+
+  startDate = last30Days.toISOString().split("T")[0];
+
+  endDate = today.toISOString().split("T")[0];
+}
+
+    if (!groupBy) groupBy = "day";
+
+    const data = await reportService.getSummaryReport({
+      startDate,
+      endDate,
+      groupBy,
+      businessId: req.user.businessId
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error("REPORT ERROR:", error);
+    res.status(500).json({ message: "Error generating report" });
+  }
+};
+
+module.exports = { getReport };
+
+==============================================================
+wabots-pos-mvc\middlewares\authMiddleware.js :
+
+const jwt = require("jsonwebtoken");
+
+module.exports = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+==============================================================
+wabots-pos-mvc\models\associations.js :
+
+module.exports = (db) => {
+    const {
+        User,
+        Order,
+        OrderItem,
+        Customer,
+        Product,
+        ProductVariant,
+        Category,
+        Business,
+        Payment,
+        ChatSession,
+        ChatMessage
+    } = db;
+
+    // ======================
+    // BUSINESS RELATIONS
+    // ======================
+    Business.hasMany(User, { foreignKey: "businessId" });
+    User.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Product, { foreignKey: "businessId" });
+    Product.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Category, { foreignKey: "businessId" });
+    Category.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Customer, { foreignKey: "businessId" });
+    Customer.belongsTo(Business, { foreignKey: "businessId" });
+
+    Business.hasMany(Order, { foreignKey: "businessId" });
+    Order.belongsTo(Business, { foreignKey: "businessId" });
+
+    // ======================
+    // PRODUCT & CATEGORY
+    // ======================
+    Category.hasMany(Product, { foreignKey: "categoryId" });
+    Product.belongsTo(Category, { foreignKey: "categoryId", as: "Category" });
+
+    Product.hasMany(ProductVariant, {
+        foreignKey: "productId",
+        as: "variants"
+    });
+    ProductVariant.belongsTo(Product, {
+        foreignKey: "productId",
+        as: "product"
+    });
+
+    // ======================
+    // ORDER SYSTEM
+    // ======================
+    Customer.hasMany(Order, { foreignKey: "customerId" });
+    Order.belongsTo(Customer, {
+        foreignKey: "customerId",
+        as: "customer"
+    });
+    Order.hasMany(OrderItem, {
+        foreignKey: "orderId",
+        as: "items"
+    });
+
+    OrderItem.belongsTo(Order, {
+        foreignKey: "orderId",
+        as: "order"
+    });
+
+    OrderItem.belongsTo(ProductVariant, {
+        foreignKey: "variantId",
+        as: "variant"
+    });
+
+    ProductVariant.hasMany(OrderItem, {
+        foreignKey: "variantId"
+    });
+
+    Order.hasOne(Payment, { foreignKey: "orderId" });
+    Payment.belongsTo(Order, { foreignKey: "orderId" });
+
+    Business.hasMany(Payment, { foreignKey: "businessId" });
+    Payment.belongsTo(Business, { foreignKey: "businessId" });
+
+    // =========================
+    // CHAT SESSION
+    // =========================
+    Customer.hasMany(ChatSession, {
+        foreignKey: "customerId",
+        as: "chatSessions"
+    });
+
+    ChatSession.belongsTo(Customer, {
+        foreignKey: "customerId",
+        as: "customer"
+    });
+    Business.hasMany(ChatSession, {
+        foreignKey: "businessId"
+    });
+
+    ChatSession.belongsTo(Business, {
+        foreignKey: "businessId",
+        as: "business"
+    });
+
+    // =========================
+    // CHAT MESSAGE
+    // =========================
+    ChatSession.hasMany(ChatMessage, {
+        foreignKey: "sessionId",
+        as: "messages"
+    });
+
+    ChatMessage.belongsTo(ChatSession, {
+        foreignKey: "sessionId",
+        as: "session"
+    });
+};
+
+==============================================================
+wabots-pos-mvc\models\Business.js :
+
+const { DataTypes } = require("sequelize");
+
+const sequelize =
+require("../config/database");
+
+const Business = sequelize.define(
+  "Business",
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue:
+        DataTypes.UUIDV4
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    description: {
+      type: DataTypes.TEXT
+    },
+    address: {
+      type: DataTypes.TEXT
+    },
+    phone: {
+      type: DataTypes.STRING
+    },
+    openHours: {
+      type: DataTypes.STRING
+    },
+    faq: {
+      type: DataTypes.TEXT
+    }
+  }
+);
+module.exports = Business;
+
+===============================================================
+wabots-pos-mvc\models\Category.js :
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Category = sequelize.define("Category", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+} 
+},{
+  tableName: "categories",
+  timestamps: true
+});
+
+module.exports = Category;
+
+================================================================
+wabots-pos-mvc\models\ChatMessage.js :
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const ChatMessage = sequelize.define(
+  "ChatMessage",
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+
+    sessionId: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+
+    sender: {
+      type: DataTypes.ENUM(
+        "CUSTOMER",
+        "BOT",
+        "ADMIN"
+      ),
+      allowNull: false
+    },
+
+    message: {
+      type: DataTypes.TEXT,
+      allowNull: false
+    }
+  },
+  {
+    tableName: "chat_messages"
+  }
+);
+
+module.exports = ChatMessage;
+
+================================================================
+wabots-pos-mvc\models\ChatSession.js :
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const ChatSession = sequelize.define(
+  "ChatSession",
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+
+    customerId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+
+    businessId: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+
+    mode: {
+      type: DataTypes.ENUM(
+        "AI",
+        "HUMAN"
+      ),
+      defaultValue: "AI"
+    },
+
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+
+    lastMessage: {
+      type: DataTypes.TEXT
+    },
+
+    needAdmin: {
+      type: DataTypes.BOOLEAN,
+        defaultValue: false
+    }
+  },
+  {
+    tableName: "chat_sessions"
+  }
+);
+
+module.exports = ChatSession;
+
+================================================================
+wabots-pos-mvc\models\Customer.js :
+
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Customer = sequelize.define("Customer", {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  phoneNumber: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  }
+}, {
+  tableName: "customers",
+  freezeTableName: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ["phoneNumber", "businessId"]
+    }
+  ]
+});
+
+module.exports = Customer;
+
+==============================================================
+wabots-pos-mvc\models\index.js :
+
+const sequelize = require("../config/database");
+
+const Product = require("./Product");
+const ProductVariant = require("./ProductVariant");
+const Order = require("./Order");
+const OrderItem = require("./OrderItem");
+const Customer = require("./Customer");
+const User = require("./User");
+const Category = require("./Category");
+const Business = require("./Business"); 
+const Payment = require("./Payment");
+const ChatSession = require("./ChatSession");
+const ChatMessage = require("./ChatMessage");
+
+const db = {};
+
+db.sequelize = sequelize;
+
+db.Product = Product;
+db.ProductVariant = ProductVariant;
+db.Order = Order;
+db.OrderItem = OrderItem;
+db.Customer = Customer;
+db.User = User;
+db.Category = Category;
+db.Business = Business;
+db.Payment = Payment;
+db.ChatSession = ChatSession;
+db.ChatMessage = ChatMessage;
+
+// associations
+require("./associations")(db);
+
+module.exports = db;
+
+==============================================================
+wabots-pos-mvc\models\Order.js :
+
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Order = sequelize.define('Order', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
+    defaultValue: "pending"
+  },
+  totalPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  deliveryMethod: {
+    type: DataTypes.ENUM(
+      "pickup",
+      "delivery"
+    ),
+    allowNull: true
+  },
+
+  deliveryAddress: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+
+  fulfillmentStatus: {
+    type: DataTypes.ENUM(
+      "waiting_choice",
+      "waiting_address",
+      "ready_pickup",
+      "on_delivery",
+      "completed"
+    ),
+    defaultValue: "waiting_choice"
+  }
+}, {
+  tableName: 'orders',
+  freezeTableName: true
+});
+
+module.exports = Order;
+
+==============================================================
+wabots-pos-mvc\models\OrderItem.js :
+
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const OrderItem = sequelize.define('OrderItem', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  orderId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  unitPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  variantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  subtotal: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  }
+}, {
+  tableName: 'order_items'
+});
+
+
+module.exports = OrderItem;
+
+=================================================================
+wabots-pos-mvc\models\Payment.js :
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Payment = sequelize.define("Payment", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+
+  orderId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+
+  customerName: DataTypes.STRING,
+  customerPhone: DataTypes.STRING,
+
+  totalPrice: DataTypes.FLOAT,
+  paidAmount: DataTypes.FLOAT,
+
+  method: DataTypes.STRING,
+  status: DataTypes.STRING,
+
+  midtransResponse: DataTypes.JSON
+
+}, {
+  tableName: "payments",
+  freezeTableName: true
+});
+
+module.exports = Payment;
+
+=================================================================
+wabots-pos-mvc\models\Product.js : 
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const Product = sequelize.define("Product", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  nama: { type: DataTypes.STRING, allowNull: false },
+  categoryId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+},
+  satuan: { type: DataTypes.STRING, allowNull: false },
+  berat: { type: DataTypes.FLOAT, allowNull: false },
+  keterangan: { type: DataTypes.TEXT, allowNull: true },
+  status: {
+  type: DataTypes.ENUM(
+    "active",
+    "inactive"
+  ),
+  defaultValue: "active"
+},
+}, {
+  tableName: 'products',
+  freezeTableName: true
+});
+
+module.exports = Product;
+
+=================================================================
+wabots-pos-mvc\models\ProductVariant.js :
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+
+const ProductVariant = sequelize.define("ProductVariant", {
+
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+
+  productId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+
+  nama_variant: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+
+  harga: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+
+  stok: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+
+  berat: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+
+  status: {
+    type: DataTypes.ENUM(
+      "active",
+      "inactive"
+    ),
+    defaultValue: "active"
+  }
+
+}, {
+  tableName: "product_variants",
+  freezeTableName: true
+});
+
+module.exports = ProductVariant;
+
+=================================================================
+wabots-pos-mvc\models\User.js :
+
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: 'admin'
+  },
+businessId: {
+  type: DataTypes.UUID,
+  allowNull: false
+}
+});
+
+module.exports = User;
+
+=================================================================
+wabots-pos-mvc\routes\api\authRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const authController = require("../../controllers/AuthController");
+
+router.post("/login", authController.login);
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\businessRoutes.js :
+
+const express = require("express");
+
+const router = express.Router();
+
+const businessController =
+require("../../controllers/businessController");
+
+const authMiddleware =
+require("../../middlewares/authMiddleware");
+
+router.get(
+  "/me",
+  authMiddleware,
+  businessController.getMyBusiness
+);
+
+router.put(
+  "/me",
+  authMiddleware,
+  businessController.updateMyBusiness
+);
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\categoryRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const { Category } = require("../../models");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", async (req, res) => {
+  const data = await Category.findAll({
+    where: { businessId: req.user.businessId }
+  });
+  res.json(data);
+});
+
+router.post("/", async (req, res) => {
+  const data = await Category.create({
+    name: req.body.name,
+    businessId: req.user.businessId
+  });
+  res.json(data);
+});
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\chatRoutes.js :
+
+const express = require("express");
+
+const router = express.Router();
+
+const authMiddleware =
+    require("../../middlewares/authMiddleware");
+
+const chatController =
+    require("../../controllers/ChatController");
+
+// =========================
+// GET SESSIONS
+// =========================
+router.get(
+    "/sessions",
+    authMiddleware,
+    chatController.getSessions
+);
+
+// =========================
+// GET DETAIL
+// =========================
+router.get(
+    "/sessions/:id",
+    authMiddleware,
+    chatController.getSessionDetail
+);
+
+// =========================
+// TAKE OVER
+// =========================
+router.put(
+    "/sessions/:id/takeover",
+    authMiddleware,
+    chatController.takeOverSession
+);
+
+// =========================
+// BACK TO AI
+// =========================
+router.put(
+    "/sessions/:id/ai",
+    authMiddleware,
+    chatController.backToAI
+);
+
+// =========================
+// SEND MESSAGE
+// =========================
+router.post(
+    "/sessions/:id/send",
+    authMiddleware,
+    chatController.sendMessage
+);
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\customerRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const { Customer } = require("../../models"); 
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", async (req, res) => {
+  try {
+    const data = await Customer.findAll({
+      where: { businessId: req.user.businessId }
+    });
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\dashboardRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const dashboardController = require("../../controllers/DashboardController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+// auth
+router.get("/", authMiddleware, dashboardController.getDashboard);
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\orderRoutes.js :
+
+const router = require("express").Router();
+const orderController = require("../../controllers/OrderController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.get("/", authMiddleware, orderController.getOrders);
+router.post("/", authMiddleware, orderController.createOrder);
+router.put("/:id/approve", authMiddleware, orderController.approveOrder);
+router.put("/:id/payment", authMiddleware, orderController.completePayment);
+router.get("/:id", authMiddleware, orderController.getOrderById);
+router.delete("/:id", authMiddleware, orderController.deleteOrder);
+router.post("/:id/pay",authMiddleware,orderController.payOrder);
+router.put(
+  "/:id/complete",
+  authMiddleware,
+  orderController.completeOrder
+);
+
+module.exports = router;
+
+=================================================================
+wabots-pos-mvc\routes\api\paymentRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const paymentController = require("../../controllers/PaymentController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.post("/webhook", paymentController.midtransWebhook); 
+
+router.use(authMiddleware);
+
+router.post("/create/:orderId", paymentController.createPayment);
+
+module.exports = router;
+
+======================================================================
+wabots-pos-mvc\routes\api\productRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const productController = require("../../controllers/ProductController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/", productController.getProducts);
+router.post("/", productController.createProduct);
+router.put("/:id", productController.updateProduct);
+router.delete("/:id", productController.deleteProduct);
+
+module.exports = router;
+
+=======================================================================
+wabots-pos-mvc\routes\api\productVariantRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const controller = require("../../controllers/ProductVariantController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.use(authMiddleware);
+
+router.get("/:productId", controller.getVariants);
+router.post("/", controller.createVariant);
+router.delete("/:id", controller.deleteVariant);
+router.put("/:id", controller.updateVariant);
+
+module.exports = router;
+
+=======================================================================
+wabots-pos-mvc\routes\api\reportRoutes.js :
+
+const express = require("express");
+const router = express.Router();
+const reportController = require("../../controllers/ReportController");
+const authMiddleware =require("../../middlewares/authMiddleware");
+
+router.get("/",authMiddleware,reportController.getReport);
+
+module.exports = router;
+
+========================================================================
+wabots-pos-mvc\services\aiService.js :
+
+const {
+    Product,
+    ProductVariant,
+    Category
+} = require("../models");
+
+const {
+    askDeepSeek
+} = require("./openrouterService");
+
+exports.processCustomerMessage = async ({
+    business,
+    message,
+    session
+}) => {
+
+    // =========================
+    // AMBIL PRODUCT
+    // =========================
+    const products = await Product.findAll({
+        where: {
+            businessId: business.id,
+            status: "active"
+        },
+        include: [
+            {
+                model: ProductVariant,
+                as: "variants"
+            },
+            {
+                model: Category,
+                as: "Category"
+            }
+        ]
+    });
+
+    // =========================
+    // FORMAT PRODUCT LIST
+    // =========================
+    let productText = "";
+
+    products.forEach((p) => {
+
+        productText += `
+Product: ${p.nama}
+Kategori: ${p.Category?.name || "-"}
+Keterangan: ${p.keterangan || "-"}
+`;
+
+        (p.variants || []).forEach((v) => {
+
+            productText += `
+- Variant: ${v.nama_variant}
+  Harga: ${v.harga}
+  Stok: ${v.stok}
+`;
+        });
+
+        productText += "\n";
+    });
+
+    // =========================
+    // AI PROMPT
+    // =========================
+    const prompt = `
+Anda adalah AI customer service WhatsApp.
+
+Tugas Anda:
+- memahami intent customer
+- menjawab pertanyaan toko
+- memahami pesanan
+- memahami pembatalan
+- memahami konfirmasi
+
+================================
+DATA TOKO
+================================
+Nama bisnis:
+${business.name}
+
+Deskripsi:
+${business.description || "-"}
+
+Alamat:
+${business.address || "-"}
+
+Nomor Telepon:
+${business.phone || "-"}
+
+Jam Operasional:
+${business.openHours || "-"}
+
+FAQ:
+${business.faq || "-"}
+
+================================
+PRODUCT TERSEDIA
+================================
+
+${productText}
+
+================================
+RULES
+================================
+
+Intent yang VALID:
+
+1. faq
+2. order
+3. cancel_order
+4. confirm_order
+5. greeting
+6. unknown
+
+================================
+JIKA ORDER
+================================
+
+Extract item.
+
+================================
+FORMAT JSON WAJIB
+================================
+
+{
+  "intent": "",
+  "reply": "",
+  "items": [
+    {
+      "product_name": "",
+      "variant": "",
+      "qty": 0
+    }
+  ]
+}
+
+================================
+CUSTOMER MESSAGE
+================================
+
+${message}
+`;
+
+    const aiRaw = await askDeepSeek(prompt);
+
+    if (!aiRaw) {
+
+        return {
+            intent: "unknown",
+            reply: "Maaf sistem sedang error."
+        };
+    }
+
+    try {
+
+        const clean =
+            aiRaw
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+
+        return JSON.parse(clean);
+
+    } catch (err) {
+
+        console.error("AI PARSE ERROR:", err);
+
+        return {
+            intent: "unknown",
+            reply: "Maaf saya tidak memahami pesan Anda."
+        };
+    }
+};
+
+=========================================================
+wabots-pos-mvc\services\businessService.js :
+
+const { Business } = require("../models");
+
+exports.getBusiness = async (businessId) => {
+
+  return await Business.findByPk(
+    businessId
+  );
+};
+
+exports.updateBusiness = async (
+  businessId,
+  payload
+) => {
+
+  const business =
+    await Business.findByPk(
+      businessId
+    );
+
+  if (!business) {
+    throw new Error(
+      "Business tidak ditemukan"
+    );
+  }
+
+  await business.update({
+
+    name: payload.name,
+
+    description:
+      payload.description,
+
+    address:
+      payload.address,
+
+    phone:
+      payload.phone,
+
+    openHours:
+      payload.openHours,
+
+    faq:
+      payload.faq
+
+  });
+
+  return business;
+};
+
+==========================================================
+wabots-pos-mvc\services\chatService.js
+
+const {
+    ChatSession,
+    ChatMessage,
+    Customer
+} = require("../models");
+
+// =========================
+// GET / CREATE SESSION
+// =========================
+exports.getOrCreateChatSession =
+async ({
+    customerId,
+    businessId
+}) => {
+
+    let session =
+        await ChatSession.findOne({
+            where: {
+                customerId,
+                businessId,
+                isActive: true
+            }
+        });
+
+    // =========================
+    // CREATE SESSION
+    // =========================
+    if (!session) {
+
+        session =
+            await ChatSession.create({
+                customerId,
+                businessId,
+                mode: "AI",
+                isActive: true
+            });
+    }
+
+    return session;
+};
+
+// =========================
+// SAVE MESSAGE
+// =========================
+exports.saveMessage =
+async ({
+    sessionId,
+    sender,
+    message
+}) => {
+
+    await ChatMessage.create({
+        sessionId,
+        sender,
+        message
+    });
+
+    // UPDATE LAST MESSAGE
+    await ChatSession.update(
+        {
+            lastMessage: message
+        },
+        {
+            where: {
+                id: sessionId
+            }
+        }
+    );
+};
+
+// =========================
+// GET SESSION
+// =========================
+exports.getSessionByCustomer =
+async ({
+    customerId,
+    businessId
+}) => {
+
+    return await ChatSession.findOne({
+        where: {
+            customerId,
+            businessId,
+            isActive: true
+        }
+    });
+};
+
+========================================================================
+wabots-pos-mvc\services\customerService.js :
+
+const { Customer } = require("../models");
+
+exports.getAll = async (businessId) => {
+  return await Customer.findAll({
+    where: { businessId }
+  });
+};
+
+exports.create = async (data, businessId) => {
+  return await Customer.create({
+    ...data,
+    businessId
+  });
+};
+
+========================================================================
+wabots-pos-mvc\services\dashboardService.js :
+
+const { Order, OrderItem, ProductVariant, Product } = require("../models");
+const sequelize = require("../config/database");
+
+exports.getDashboardData = async (businessId) => {
+
+  const totalRevenue = await Order.sum("totalPrice", {
+    where: {
+     fulfillmentStatus: "completed",
+      businessId
+    }
+  });
+
+  const totalOrders = await Order.count({
+    where: { businessId }
+  });
+
+  const pendingOrders = await Order.count({
+    where: {
+      status: "pending",
+      businessId
+    }
+  });
+
+  const paidOrders = await Order.count({
+  where: {
+    businessId,
+    status: "paid"
+  }
+});
+  
+  const readyPickupOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "ready_pickup"
+  }
+});
+
+const shippingOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "shipping"
+  }
+});
+
+const completedOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "completed"
+  }
+});
+
+  const topProductsRaw = await OrderItem.findAll({
+    attributes: [
+      "variantId",
+      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+    ],
+    include: [
+      {
+        model: Order,
+        as: "order",
+        attributes: [],
+        where: { businessId }
+      }
+    ],
+    group: ["variantId"],
+    order: [[sequelize.literal("totalSold"), "DESC"]],
+    limit: 5,
+    raw: true
+  });
+
+  const variantIds = topProductsRaw.map(p => p.variantId);
+
+ const variants = await ProductVariant.findAll({
+  where: {
+    id: variantIds,
+    status: "active"
+  },
+    include: [
+      {
+        model: Product,
+        as: "product",
+        attributes: ["nama"]
+      }
+    ],
+    raw: true,
+    nest: true
+  });
+
+  const topProducts = topProductsRaw.map(p => {
+    const variant = variants.find(v => v.id === p.variantId);
+
+    return {
+      variantId: p.variantId,
+      totalSold: Number(p.totalSold || 0),
+      variant: variant || null
+    };
+  });
+
+  // SALES PER DAY (FILTER USER)
+  const salesPerDay = await Order.findAll({
+    attributes: [
+      [
+        sequelize.fn(
+          "DATE",
+          sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+        ),
+        "date"
+      ],
+      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+    ],
+    where: {
+  fulfillmentStatus: "completed",
+      businessId
+    },
+    group: ["date"],
+    order: [["date", "ASC"]],
+    raw: true
+  });
+
+return {
+  totalRevenue: totalRevenue || 0,
+  totalOrders,
+  pendingOrders,
+  paidOrders,
+  readyPickupOrders,
+  shippingOrders,
+  completedOrders,
+  salesPerDay,
+  topProducts
+};
+};
+
+=======================================================================
+wabots-pos-mvc\services\openRouterService.js :
+
+const axios = require("axios");
+
+exports.askDeepSeek = async (prompt) => {
+
+    try {
+
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: process.env.OPENROUTER_MODEL,
+
+                temperature: 0.1,
+
+                response_format: {
+                    type: "json_object"
+                },
+
+                messages: [
+                    {
+                        role: "system",
+                        content:
+                            "Anda hanya boleh menjawab JSON valid."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ]
+            },
+            {
+                headers: {
+                    Authorization:
+                        `Bearer ${process.env.OPENROUTER_API_KEY}`,
+
+                    "Content-Type":
+                        "application/json"
+                }
+            }
+        );
+
+        return response.data
+            .choices[0]
+            .message
+            .content;
+
+    } catch (err) {
+
+        console.error(
+            "OPENROUTER ERROR:",
+            err.response?.data || err.message
+        );
+
+        return null;
+    }
+};
+
+========================================================================
+wabots-pos-mvc\services\orderService.js :
+
+const sequelize = require("../config/database");
+const {
+  Order,
+  OrderItem,
+  ProductVariant,
+  Product,
+  Customer,
+  Business
+} = require("../models");
+const { Op } = require("sequelize");
+
+exports.getAllOrders = async (businessId, query) => {
+  const { search = "", status = "" } = query;
+
+  const where = { businessId };
+
+  // SEARCH
+  if (search) {
+    where[Op.or] = [
+      { id: { [Op.like]: `%${search}%` } },
+      { "$customer.name$": { [Op.like]: `%${search}%` } },
+      { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } }
+    ];
+  }
+
+  // FILTER STATUS
+  if (status) {
+    where.status = status;
+  }
+
+  return await Order.findAll({
+    where,
+    include: [
+      {
+        model: Customer,
+        as: "customer",
+        attributes: ["id", "name", "phoneNumber"]
+      },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [
+          {
+            model: ProductVariant,
+            as: "variant",
+
+            include: [
+              {
+                model: Product,
+                as: "product"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    order: [["createdAt", "DESC"]]
+  });
+};
+
+const validateVariant = (variant, qty) => {
+  if (!variant) throw new Error("Variant tidak ditemukan");
+  if (variant.stok < qty) throw new Error("Stok tidak cukup");
+};
+
+exports.createOrder = async (payload) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const {
+      customerId,
+      items,
+      businessId,
+      deliveryMethod,
+      deliveryAddress,
+      fulfillmentStatus
+    } = payload;
+
+    if (!customerId || !items?.length) {
+      throw new Error("Data order tidak valid");
+    }
+
+    let totalPrice = 0;
+
+    const order = await Order.create({
+
+      customerId,
+
+      businessId,
+
+      totalPrice: 0,
+
+      status: "pending",
+
+      deliveryMethod,
+
+      deliveryAddress,
+
+      fulfillmentStatus:
+        fulfillmentStatus ||
+        "waiting_choice"
+
+    }, { transaction: t });
+
+    for (const item of items) {
+      const variant = await ProductVariant.findByPk(item.variantId, { transaction: t });
+
+      validateVariant(variant, item.quantity);
+
+      const subtotal = variant.harga * item.quantity;
+      totalPrice += subtotal;
+
+      await OrderItem.create({
+        orderId: order.id,
+        variantId: variant.id,
+        quantity: item.quantity,
+        unitPrice: variant.harga,
+        subtotal
+      }, { transaction: t });
+    }
+
+    await order.update({ totalPrice }, { transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.approveOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (order.status !== "pending") {
+    throw new Error("Order hanya bisa di-approve dari status pending");
+  }
+
+  order.status = "approved";
+  await order.save();
+
+  return order;
+};
+
+exports.completePayment = async (orderId) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          as: "items"
+        }
+      ],
+      transaction: t,
+      lock: t.LOCK.UPDATE
+    });
+
+    if (!order) throw new Error("Order tidak ditemukan");
+    if (order.status === "paid") return order;
+    if (order.status !== "approved") throw new Error("Order belum di-approve");
+
+    for (const item of order.items) {
+      const variant = await ProductVariant.findByPk(item.variantId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      validateVariant(variant, item.quantity);
+
+      await variant.update({
+        stok: variant.stok - item.quantity
+      }, { transaction: t });
+    }
+
+    order.status = "paid";
+    await order.save({ transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.deleteOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (!["pending", "cancelled"].includes(order.status)) {
+    throw new Error("Order tidak bisa dihapus");
+  }
+
+  await order.destroy();
+};
+
+const {
+  clearSession
+} = require("./whatsappSessionService");
+
+const {
+  ChatSession
+} = require("../models");
+
+const whatsappService =
+  require("./whatsappService");
+
+exports.completeOrder =
+async (orderId) => {
+
+  const order =
+    await Order.findByPk(orderId, {
+
+      include: [
+        {
+          model: Customer,
+          as: "customer"
+        }
+      ]
+    });
+
+  if (!order) {
+
+    throw new Error(
+      "Order tidak ditemukan"
+    );
+  }
+
+  if (order.status !== "paid") {
+
+    throw new Error(
+      "Order belum dibayar"
+    );
+  }
+
+  // =========================
+  // COMPLETE ORDER
+  // =========================
+  order.fulfillmentStatus =
+    "completed";
+
+  await order.save();
+
+  // =========================
+  // WHATSAPP NOTIFICATION
+  // =========================
+  const phone =
+    order.customer?.phoneNumber;
+
+  if (phone) {
+
+    let message = "";
+
+    // =====================
+    // PICKUP
+    // =====================
+    if (
+      order.deliveryMethod ===
+      "pickup"
+    ) {
+
+      message =
+`Pesanan Anda telah selesai ✅
+
+Pesanan sudah diambil di toko.
+
+Terima kasih telah berbelanja di ManSips 🙌`;
+
+    }
+
+    // =====================
+    // DELIVERY
+    // =====================
+    else {
+
+      message =
+`Pesanan Anda telah selesai ✅
+
+Pesanan berhasil dikirim dan diterima.
+
+Terima kasih telah berbelanja di ManSips 🙌`;
+    }
+
+    await whatsappService.sendWhatsAppMessage(
+      phone,
+      message
+    );
+
+    // =========================
+    // RESET SESSION MEMORY
+    // =========================
+    clearSession(phone);
+
+    // =========================
+    // NONAKTIFKAN CHAT SESSION
+    // =========================
+    await ChatSession.update(
+      {
+        isActive: false
+      },
+      {
+        where: {
+          customerId:
+            order.customerId,
+
+          businessId:
+            order.businessId
+        }
+      }
+    );
+  }
+
+  return order;
+};
+
+======================================================================
+wabots-pos-mvc\services\paymentService.js :
+
+const midtransClient = require("midtrans-client");
+const { Order, Payment, Customer, OrderItem, ProductVariant } = require("../models");
+const orderService = require("./orderService");
+const whatsappService =require("./whatsappService");
+
+const snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY
+});
+
+exports.createPayment = async (orderId) => {
+
+  const order = await Order.findByPk(orderId, {
+    include: [
+      {
+        model: Customer,
+        as: "customer"
+      },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [
+          {
+            model: ProductVariant,
+            as: "variant"
+          }
+        ]
+      }
+    ]
+  });
+
+  if (!order) {
+    throw new Error("Order tidak ditemukan");
+  }
+
+  const transaction = await snap.createTransaction({
+
+    transaction_details: {
+      order_id: order.id,
+      gross_amount: Number(order.totalPrice)
+    },
+
+    customer_details: {
+      first_name: order.customer?.name || "Customer",
+      phone: order.customer?.phoneNumber || ""
+    },
+
+    item_details: order.items.map(item => ({
+      id: item.variantId,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      name: item.variant?.nama_variant || "Item"
+    })),
+
+    enabled_payments: [
+      "bca_va",
+      "bni_va",
+      "permata_va"
+    ],
+
+    bank_transfer: {
+      bank: "bca"
+    }
+
+  });
+
+  await order.update({
+  paymentToken: transaction.token,
+  paymentUrl: transaction.redirect_url
+});
+
+// =========================
+// AMBIL VA NUMBER
+// =========================
+let paymentText = "";
+
+if (
+  transaction.va_numbers &&
+  transaction.va_numbers.length > 0
+) {
+
+  const va =
+    transaction.va_numbers[0];
+
+  paymentText =
+`Pembayaran Pesanan
+
+Order ID:
+${order.id}
+
+Total:
+Rp ${order.totalPrice}
+
+Metode:
+${va.bank.toUpperCase()} Virtual Account
+
+Nomor VA:
+${va.va_number}
+
+Silakan lakukan pembayaran sebelum transaksi expired.`;
+
+} else {
+
+  paymentText =
+`Pembayaran Pesanan
+
+Order ID:
+${order.id}
+
+Total:
+Rp ${order.totalPrice}
+
+Link Pembayaran:
+${transaction.redirect_url}`;
+}
+
+// =========================
+// KIRIM KE WHATSAPP
+// =========================
+try {
+
+  await whatsappService.sendWhatsAppMessage(
+    order.customer.phoneNumber,
+    paymentText
+  );
+
+} catch (err) {
+
+  console.error(
+    "GAGAL KIRIM WA:",
+    err.message
+  );
+
+}
+
+return transaction;
+};
+
+exports.savePayment = async (order, midtransData) => {
+  return await Payment.create({
+    orderId: order.id,
+    businessId: order.businessId,
+
+    customerName: order.customer?.name || "-",
+    customerPhone: order.customer?.phoneNumber || "-",
+
+    totalPrice: order.totalPrice,
+    paidAmount: order.totalPrice,
+
+    method: midtransData.payment_type,
+    status: midtransData.transaction_status,
+
+    midtransResponse: midtransData
+  });
+};
+
+=======================================================================
+wabots-pos-mvc\services\productMatchingService.js :
+
+const stringSimilarity = require("string-similarity");
+
+const {
+    Product
+} = require("../models");
+
+exports.matchProduct = async (
+    businessId,
+    itemName
+) => {
+
+    const products = await Product.findAll({
+        where: {
+   businessId,
+   status: "active"
+}
+    });
+
+    if (!products.length) {
+        return null;
+    }
+
+    const productNames = products.map(
+        p => p.nama
+    );
+
+    const result =
+        stringSimilarity.findBestMatch(
+            itemName,
+            productNames
+        );
+
+    const bestMatch =
+        result.bestMatch.target;
+
+    const matchedProduct =
+        products.find(
+            p => p.nama === bestMatch
+        );
+
+    return {
+        matchedProduct,
+        similarity:
+            result.bestMatch.rating
+    };
+};
+
+exports.matchMultipleProducts = async (
+    businessId,
+    items
+) => {
+
+    const results = [];
+
+    for (const item of items) {
+
+        const matched =
+            await exports.matchProduct(
+                businessId,
+                item.name
+            );
+
+        results.push({
+            requestedItem: item.name,
+            quantity: item.quantity,
+            matchedProduct:
+                matched?.matchedProduct || null,
+            similarity:
+                matched?.similarity || 0
+        });
+    }
+
+    return results;
+};
+
+========================================================================
+wabots-pos-mvc\services\productService.js :
+
+const { Product, ProductVariant, Category, Business } = require("../models");
+
+
+exports.getAll = async (businessId) => {
+  const products = await Product.findAll({
+    where: {
+  businessId,
+  status: "active"
+},
+    include: [
+      {
+  model: ProductVariant,
+  as: "variants",
+  where: {
+    status: "active"
+  },
+  required: false
+},
+      {
+        model: Category,
+        as: "Category",
+        attributes: ["id", "name"]
+      }
+    ]
+  });
+
+  return products.map(p => {
+    const variants = p.variants || [];
+
+    const totalStock = variants.reduce(
+      (sum, v) => sum + (v.stok || 0),
+      0
+    );
+
+    const minPrice =
+      variants.length > 0
+        ? Math.min(...variants.map(v => v.harga))
+        : 0;
+
+    return {
+      ...p.toJSON(),
+      stok: totalStock,
+      harga: minPrice 
+    };
+  });
+};
+
+// VALIDATION FUNCTION
+const validateProduct = (data) => {
+  if (
+    !data.nama ||
+    !data.categoryId ||
+    !data.satuan ||
+    !data.berat
+  ) {
+    throw new Error("Field product tidak lengkap");
+  }
+
+  if (data.berat <= 0) {
+    throw new Error("Berat harus lebih dari 0");
+  }
+};
+
+// CREATE
+exports.create = async (data, businessId) => {
+  validateProduct(data);
+
+  return await Product.create({
+    ...data,
+    businessId
+  });
+};
+
+exports.createProduct = async (data) => {
+  const product = await Product.create(data);
+
+  await ProductVariant.create({
+    productId: product.id,
+    businessId: data.businessId,
+    nama_variant: "Default",
+    harga: data.harga || 0,
+    stok: data.stok || 0,
+    berat: data.berat || 0
+  });
+
+  return product;
+};
+
+exports.update = async (id, data, businessId) => {
+ await Product.update(
+  {
+    nama: data.nama,
+    categoryId: data.categoryId,
+    satuan: data.satuan,
+    berat: data.berat,
+    keterangan: data.keterangan
+  },
+    {
+      where: { id, businessId }
+    }
+  );
+};
+
+exports.delete = async (id, businessId) => {
+ await ProductVariant.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: {
+      productId: id
+    }
+  }
+);
+
+await Product.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: {
+      id,
+      businessId
+    }
+  }
+);
+};
+
+========================================================================
+wabots-pos-mvc\services\productVariantService.js :
+
+const { ProductVariant, Product } = require("../models");
+
+exports.getByProduct = async (productId, businessId) => {
+  return await ProductVariant.findAll({
+    where: { productId },
+    include: [
+      {
+        model: Product,
+        as: "Product",
+        where: { businessId }
+      }
+    ]
+  });
+};
+
+exports.create = async (data, businessId) => {
+  const product = await Product.findOne({
+    where: {
+      id: data.productId,
+      businessId
+    }
+  });
+
+  if (!product) throw new Error("Produk tidak valid");
+
+  return await ProductVariant.create({
+    ...data,
+    businessId
+  });
+};
+
+exports.delete = async (id) => {
+  await ProductVariant.update(
+  {
+    status: "inactive"
+  },
+  {
+    where: { id }
+  }
+);
+};
+
+exports.update = async (id, data) => {
+  const variant = await ProductVariant.findByPk(id);
+  if (!variant) throw new Error("Variant tidak ditemukan");
+
+  if (data.harga !== undefined && data.harga <= 0) {
+    throw new Error("Harga tidak valid");
+  }
+
+  if (data.stok !== undefined && data.stok < 0) {
+    throw new Error("Stok tidak valid");
+  }
+
+  if (data.berat !== undefined && data.berat <= 0) {
+    throw new Error("Berat tidak valid");
+  }
+
+  await variant.update(data);
+
+  return variant;
+};
+
+========================================================================
+wabots-pos-mvc\services\reportService.js :
+
+const { Op, fn, col, literal } = require("sequelize");
+const { Order, OrderItem, ProductVariant, Product, Customer} = require("../models");
+
+const getSummaryReport = async ({
+  startDate,
+  endDate,
+  groupBy,
+  businessId
+}) => {
+  // 1. SUMMARY
+const summaryResult = await Order.findAll({
+  attributes: [
+    [fn("SUM", col("totalPrice")), "totalRevenue"],
+    [fn("COUNT", col("id")), "totalOrders"],
+    [
+  literal("COALESCE(SUM(totalPrice) / NULLIF(COUNT(id), 0), 0)"),
+  "avgOrderValue"
+]
+  ],
+  where: {
+  fulfillmentStatus: "completed",
+  businessId,
+createdAt: {
+  [Op.between]: [
+    startDate + " 00:00:00",
+    endDate + " 23:59:59"
+  ]
+}
+  },
+  raw: true
+});
+
+const summary = summaryResult[0];
+
+const pendingOrders = await Order.count({
+  where: {
+    businessId,
+    status: "pending",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const paidOrders = await Order.count({
+  where: {
+    businessId,
+    status: "paid",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const readyPickupOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "ready_pickup",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const shippingOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "shipping",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+const completedOrders = await Order.count({
+  where: {
+    businessId,
+    fulfillmentStatus: "completed",
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  }
+});
+
+summary.pendingOrders = pendingOrders;
+summary.paidOrders = paidOrders;
+summary.readyPickupOrders = readyPickupOrders;
+summary.shippingOrders = shippingOrders;
+summary.completedOrders = completedOrders;
+
+
+  // 2. GROUPING FORMAT
+  let format = "%Y-%m-%d";
+  if (groupBy === "month") format = "%Y-%m";
+  if (groupBy === "week") format = "%Y-%u";
+
+  // 3. TRENDS
+const trends = await Order.findAll({
+  attributes: [
+    [
+      fn(
+        "DATE_FORMAT",
+        fn("CONVERT_TZ", col("createdAt"), "+00:00", "+07:00"),
+        format
+      ),
+      "period"
+    ],
+    [fn("SUM", col("totalPrice")), "revenue"],
+    [fn("COUNT", col("id")), "orders"]
+  ],
+  where: {
+    fulfillmentStatus: "completed",
+    businessId,
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  },
+  group: ["period"],
+  order: [[literal("period"), "ASC"]],
+  raw: true
+});
+
+  // 4. TOP PRODUCTS
+const topProducts = await OrderItem.findAll({
+  attributes: [
+    [col("variant.product.nama"), "productName"],
+    [fn("SUM", col("quantity")), "totalSold"],
+    [fn("SUM", col("subtotal")), "revenue"]
+  ],
+  include: [
+    {
+      model: ProductVariant,
+      as: "variant",
+      include: [
+        {
+         model: Product,
+as: "product",
+where: {
+  businessId,
+  status: "active"
+}
+        }
+      ]
+    },
+    {
+      model: Order,
+      as: "order",
+      where: {
+        fulfillmentStatus: "completed",
+        businessId,
+        createdAt: {
+          [Op.between]: [
+            startDate + " 00:00:00",
+            endDate + " 23:59:59"
+          ]
+}
+      }
+    }
+  ],
+ group: [
+  "variant.product.id",
+  "variant.product.nama"
+],
+  order: [[literal("totalSold"), "DESC"]],
+  limit: 10,
+  raw: true
+});
+const transactions = await Order.findAll({
+  where: {
+    fulfillmentStatus: "completed",
+    businessId,
+    createdAt: {
+      [Op.between]: [
+        startDate + " 00:00:00",
+        endDate + " 23:59:59"
+      ]
+    }
+  },
+  include: [
+    {
+      model: Customer,
+      as: "customer",
+      attributes: ["name", "phoneNumber"]
+    },
+    {
+      model: OrderItem,
+      as: "items",
+      include: [
+        {
+          model: ProductVariant,
+          as: "variant",
+          where: {
+            businessId,
+  status: "active"
+},
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: ["nama"],
+              where: {
+                businessId,
+                status: "active"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  order: [["createdAt", "DESC"]]
+});
+
+const ongoingOrders = await Order.findAll({
+  where: {
+    businessId,
+    status: "paid",
+    fulfillmentStatus: {
+      [Op.ne]: "completed"
+    }
+  },
+  include: [
+    {
+      model: Customer,
+      as: "customer",
+      attributes: ["name", "phoneNumber"]
+    }
+  ],
+  order: [["createdAt", "DESC"]]
+});
+
+  return {
+    summary: summary,
+    trends,
+    topProducts,
+     transactions,
+     ongoingOrders
+  };
+};
+
+module.exports = { getSummaryReport };
+
+======================================================================
+wabots-pos-mvc\services\whatsappMessageService.js :
+
+const {
+    isSpamMessage
+} = require("./whatsappSpamService");
+
+const {
+    getSession,
+    setSession
+} = require("./whatsappSessionService");
+
+const {
+    processCustomerMessage
+} = require("./aiService");
+
+const {
+    Business,
+    Customer,
+    ChatSession
+} = require("../models");
+
+const {
+    cleanCustomerName,
+    isEmptyMessage,
+    isMediaMessage,
+    isValidCustomerName
+} = require("../utils/chatbotUtils");
+
+const {
+    getOrCreateChatSession,
+    saveMessage
+} = require("./chatService");
+
+const getCleanPhoneNumber = async (msg) => {
+
+    try {
+
+        const contact =
+            await msg.getContact();
+
+        // =========================
+        // NOMOR ASLI WA
+        // =========================
+        let phone =
+            contact.id.user || "";
+
+        // HAPUS SELAIN ANGKA
+        phone =
+            phone.replace(/\D/g, "");
+
+        // NORMALISASI
+        if (
+            phone.startsWith("0")
+        ) {
+
+            phone =
+                "62" + phone.slice(1);
+        }
+
+        return phone;
+
+    } catch (err) {
+
+        console.log(
+            "GET PHONE ERROR:",
+            err.message
+        );
+
+        return "";
+    }
+};
+const getWhatsAppProfileName = async (msg) => {
+
+    try {
+
+        const contact = await msg.getContact();
+
+        return (
+            contact.pushname ||
+            contact.name ||
+            msg.notifyName ||
+            null
+        );
+
+    } catch (err) {
+
+        return null;
+    }
+};
+
+
+exports.handleIncomingMessage = async (msg) => {
+    try {
+
+        // =========================
+        // FILTER
+        // =========================
+        if (msg.from.includes("@g.us")) return;
+        if (msg.from === "status@broadcast") return;
+        if (msg.fromMe) return;
+
+
+        const phone = await getCleanPhoneNumber(msg);
+        if (isSpamMessage(phone)) {
+
+            return await msg.reply(
+                "Terlalu banyak pesan dikirim.\nSilakan tunggu beberapa saat."
+            );
+        }
+
+        const text = msg.body || "";
+        const lowerText = text.toLowerCase();
+
+        if (isMediaMessage(msg)) {
+
+            return await msg.reply(
+                "Saat ini bot hanya mendukung pesan teks."
+            );
+        }
+
+        if (isEmptyMessage(text)) {
+
+            return await msg.reply(
+                "Pesan tidak boleh kosong."
+            );
+        }
+
+
+        if (text.toLowerCase() === "/reset") {
+
+            const { clearSession } = require("./whatsappSessionService");
+
+            clearSession(phone);
+
+            return await msg.reply(
+                "Session berhasil direset. Silakan kirim pesan kembali."
+            );
+        }
+        if (lowerText === "/help") {
+
+            return await msg.reply(
+                `Daftar Command:
+
+/menu  → pilih bisnis ulang
+/reset → reset session
+/help  → bantuan chatbot`
+            );
+        }
+        if (lowerText === "/menu") {
+
+            const { clearSession } = require("./whatsappSessionService");
+
+            clearSession(phone);
+
+            const businesses = await Business.findAll();
+
+            let menu = "Silakan pilih bisnis:\n\n";
+
+            businesses.forEach((b, index) => {
+                menu += `${index + 1}. ${b.name}\n`;
+            });
+
+            setSession(phone, {
+                step: "choose_business"
+            });
+
+            return await msg.reply(menu);
+        }
+
+        // =========================
+        // CEK SESSION
+        // =========================
+        const session = getSession(phone);
+        console.log("SESSION:", session);
+
+        // =========================
+        // JIKA BELUM PILIH BUSINESS
+        // =========================
+        if (!session?.businessId) {
+
+            // =========================
+            // JIKA BELUM ADA STEP
+            // =========================
+            if (!session?.step) {
+
+                const businesses = await Business.findAll();
+
+                let menu = "Selamat datang.\n\n";
+                menu += "Silakan pilih bisnis:\n\n";
+
+                businesses.forEach((b, index) => {
+                    menu += `${index + 1}. ${b.name}\n`;
+                });
+
+                setSession(phone, {
+                    step: "choose_business"
+                });
+
+                return await msg.reply(menu);
+            }
+
+            // =========================
+            // HANDLE PILIHAN BUSINESS
+            // =========================
+            if (session.step === "choose_business") {
+
+                const businesses = await Business.findAll();
+
+                let selectedBusiness = null;
+
+                // =========================
+                // PILIH BERDASARKAN ANGKA
+                // =========================
+                const selectedIndex = parseInt(text) - 1;
+
+                if (!isNaN(selectedIndex) && businesses[selectedIndex]) {
+
+                    selectedBusiness = businesses[selectedIndex];
+                }
+
+                // =========================
+                // PILIH BERDASARKAN NAMA
+                // =========================
+               if (!selectedBusiness && text.length >= 3) {
+
+                    selectedBusiness = businesses.find((b) =>
+                        b.name.toLowerCase().includes(text.toLowerCase())
+                    );
+                }
+
+                // =========================
+                // JIKA TIDAK DITEMUKAN
+                // =========================
+                if (!selectedBusiness) {
+
+                    let menu = "Pilihan bisnis tidak valid.\n\n";
+                    menu += "Silakan pilih bisnis berikut:\n\n";
+
+                    businesses.forEach((b, index) => {
+                        menu += `${index + 1}. ${b.name}\n`;
+                    });
+
+                    return await msg.reply(menu);
+                }
+                const existingCustomer = await Customer.findOne({
+                    where: {
+                        phoneNumber: phone,
+                        businessId: selectedBusiness.id
+                    }
+                });
+
+                if (existingCustomer) {
+
+                    setSession(phone, {
+                        businessId: selectedBusiness.id,
+                        businessName: selectedBusiness.name,
+                        customerId: existingCustomer.id,
+                        customerName: existingCustomer.name,
+                        step: "chatting"
+                    });
+
+                    return await msg.reply(
+                        `Selamat datang kembali ${existingCustomer.name}.\n\nAnda terhubung ke ${selectedBusiness.name}.`
+                    );
+                }
+
+                const profileNameRaw = await getWhatsAppProfileName(msg);
+
+                const profileName = cleanCustomerName(profileNameRaw || "");
+
+                const isProfileNameValid =
+                    isValidCustomerName(profileName);
+
+                // =========================
+                // JIKA NAMA PROFILE VALID
+                // =========================
+                if (isProfileNameValid) {
+
+                    setSession(phone, {
+                        businessId: selectedBusiness.id,
+                        businessName: selectedBusiness.name,
+                        profileName,
+                        step: "confirm_profile_name"
+                    });
+
+                    return await msg.reply(
+                        `Anda terhubung ke ${selectedBusiness.name}.
+
+Apakah nama Anda benar:
+${profileName} ?
+
+1. Ya
+2. Ganti Nama`
+                    );
+                }
+
+                // =========================
+                // FALLBACK MANUAL INPUT
+                // =========================
+                setSession(phone, {
+                    businessId: selectedBusiness.id,
+                    businessName: selectedBusiness.name,
+                    step: "waiting_name"
+                });
+
+                return await msg.reply(
+                    `Anda terhubung ke ${selectedBusiness.name}.\n\nSiapa nama Anda?`
+                );
+            }
+
+        }
+        if (session?.step === "confirm_profile_name") {
+
+    // =========================
+    // USER SETUJU
+    // =========================
+    const confirmWords = [
+    "1",
+    "ya",
+    "iya",
+    "y",
+    "yes",
+    "benar",
+    "betul",
+    "ok",
+    "oke"
+];
+
+if (confirmWords.includes(lowerText))  {
+
+        let customer = await Customer.findOne({
+            where: {
+                phoneNumber: phone,
+                businessId: session.businessId
+            }
+        });
+
+        if (!customer) {
+
+            customer = await Customer.create({
+                name: session.profileName,
+                phoneNumber: phone,
+                businessId: session.businessId
+            });
+
+            console.log("NEW CUSTOMER CREATED");
+        }
+
+        setSession(phone, {
+            ...session,
+            customerId: customer.id,
+            customerName: customer.name,
+            step: "chatting"
+        });
+
+        return await msg.reply(
+`Halo ${customer.name},
+Anda berhasil terhubung ke ${session.businessName}.
+
+Silakan kirim pesanan Anda.`
+        );
+    }
+
+    // =========================
+    // USER MAU GANTI NAMA
+    // =========================
+    const changeNameWords = [
+    "2",
+    "ganti",
+    "ubah",
+    "ubah nama",
+    "ganti nama",
+    "salah"
+];
+
+if (changeNameWords.includes(lowerText)) {
+
+        setSession(phone, {
+            ...session,
+            step: "waiting_name"
+        });
+
+        return await msg.reply(
+            "Silakan masukkan nama Anda."
+        );
+    }
+
+    // =========================
+    // INPUT TIDAK VALID
+    // =========================
+    return await msg.reply(
+`Pilihan tidak valid.
+
+1. Ya
+2. Ganti Nama`
+    );
+}
+      if (session?.step === "waiting_name") {
+
+            const customerName = cleanCustomerName(text);
+            if (!isValidCustomerName(customerName)) {
+
+                const retryCount = (session.retryCount || 0) + 1;
+
+                // =========================
+                // MAX RETRY
+                // =========================
+                if (retryCount >= 3) {
+
+                    const { clearSession } = require("./whatsappSessionService");
+
+                    clearSession(phone);
+
+                    return await msg.reply(
+                        `Terlalu banyak percobaan gagal.
+
+Session direset otomatis.
+Silakan mulai kembali.`
+                    );
+                }
+
+                // =========================
+                // UPDATE RETRY
+                // =========================
+                setSession(phone, {
+                    ...session,
+                    retryCount
+                });
+
+                return await msg.reply(
+                    `Nama tidak valid.
+
+Gunakan nama asli.
+Contoh:
+- Budi
+- Arman Hermasyah
+
+Percobaan: ${retryCount}/3`
+                );
+            }
+
+            let customer = await Customer.findOne({
+                where: {
+                    phoneNumber: phone,
+                    businessId: session.businessId
+                }
+            });
+
+            if (!customer) {
+
+                customer = await Customer.create({
+                    name: customerName,
+                    phoneNumber: phone,
+                    businessId: session.businessId
+                });
+
+                console.log("NEW CUSTOMER CREATED");
+            }
+            else {
+
+                console.log("CUSTOMER EXIST");
+            }
+
+            setSession(phone, {
+                ...session,
+                retryCount: 0,
+                customerId: customer.id,
+                customerName: customer.name,
+                step: "chatting"
+            });
+
+            return await msg.reply(
+                `Halo ${customer.name}, Anda berhasil terhubung ke ${session.businessName}.\n\nSilakan kirim pesanan Anda.`
+            );
+        }
+
+        // =========================
+// WAITING DELIVERY METHOD
+// =========================
+if (
+    session?.step ===
+    "waiting_delivery_method"
+) {
+
+    const {
+        Order
+    } = require("../models");
+
+    // =====================
+    // PICKUP
+    // =====================
+    if (
+        lowerText.includes("ambil") ||
+        lowerText === "1"
+    ) {
+
+        await Order.update(
+            {
+                deliveryMethod:
+                    "pickup",
+
+                fulfillmentStatus:
+                    "ready_pickup"
+            },
+            {
+                where: {
+                    id: session.lastOrderId
+                }
+            }
+        );
+
+        setSession(phone, {
+            ...session,
+            step: "chatting",
+            lastOrderId: null
+        });
+
+        return await msg.reply(
+`Pesanan Anda akan diambil di toko ✅
+
+Alamat toko:
+Jl Raya Ketintang No 12 Surabaya
+
+Pesanan akan segera disiapkan.`
+        );
+    }
+
+    // =====================
+    // DELIVERY
+    // =====================
+    if (
+        lowerText.includes("kirim") ||
+        lowerText === "2"
+    ) {
+
+        const {
+            Order
+        } = require("../models");
+
+        await Order.update(
+            {
+                fulfillmentStatus:
+                    "waiting_address"
+            },
+            {
+                where: {
+                    id: session.lastOrderId
+                }
+            }
+        );
+
+        setSession(phone, {
+            ...session,
+            step:
+                "waiting_delivery_address"
+        });
+
+        return await msg.reply(
+`Silakan kirim alamat lengkap pengiriman Anda.`
+        );
+    }
+
+    return await msg.reply(
+`Pilih metode penerimaan:
+
+1. Ambil di toko
+2. Dikirim`
+    );
+}
+
+// =========================
+// WAITING DELIVERY ADDRESS
+// =========================
+if (
+    session?.step ===
+    "waiting_delivery_address"
+) {
+
+    const { Order } =
+        require("../models");
+
+    await Order.update(
+        {
+            deliveryMethod:
+                "delivery",
+
+            deliveryAddress: text,
+
+            fulfillmentStatus:
+                "on_delivery"
+        },
+        {
+            where: {
+                id: session.lastOrderId
+            }
+        }
+    );
+
+    setSession(phone, {
+        ...session,
+        step: "chatting"
+    });
+
+    return await msg.reply(
+`Alamat berhasil disimpan.
+
+Pesanan akan segera dikirim.`
+    );
+}
+
+        // =========================
+// WAITING ORDER CONFIRMATION
+// =========================
+if (
+    session?.step ===
+    "waiting_order_confirmation"
+) {
+
+    const chatSession =
+        await getOrCreateChatSession({
+
+            customerId:
+                session.customerId,
+
+            businessId:
+                session.businessId
+        });
+
+    await saveMessage({
+
+        sessionId: chatSession.id,
+
+        sender: "CUSTOMER",
+
+        message: text
+    });
+
+    const yesWords = [
+        "ya",
+        "iya",
+        "yes",
+        "benar",
+        "ok",
+        "oke"
+    ];
+
+    const cancelWords = [
+        "batal",
+        "cancel"
+    ];
+
+    // =========================
+    // CONFIRM
+    // =========================
+  if (
+    yesWords.includes(lowerText)
+) {
+
+    const {
+        Order,
+        OrderItem,
+        Product,
+        ProductVariant
+    } = require("../models");
+
+    // =========================
+    // AMBIL ITEM DARI SESSION
+    // =========================
+    const pendingItems =
+        session.pendingOrder || [];
+
+    if (!pendingItems.length) {
+
+        return await msg.reply(
+            "Pesanan kosong."
+        );
+    }
+
+    let totalPrice = 0;
+
+    const orderItems = [];
+
+    // =========================
+    // VALIDASI PRODUK
+    // =========================
+    for (const item of pendingItems) {
+
+        const product =
+            await Product.findOne({
+                where: {
+                    nama: item.product_name,
+                    businessId:
+                        session.businessId,
+                    status: "active"
+                },
+                include: [
+                    {
+                        model: ProductVariant,
+                        as: "variants"
+                    }
+                ]
+            });
+
+        if (!product) continue;
+
+        let variant = null;
+
+        // =========================
+        // CARI VARIANT
+        // =========================
+        if (item.variant) {
+
+            variant =
+                product.variants.find(
+                    v =>
+                    v.nama_variant
+                    .toLowerCase()
+                    ===
+                    item.variant
+                    .toLowerCase()
+                );
+        }
+
+        // =========================
+        // DEFAULT VARIANT
+        // =========================
+        if (!variant) {
+
+            variant =
+                product.variants[0];
+        }
+
+        if (!variant) continue;
+
+        // =========================
+        // CEK STOK
+        // =========================
+        if (
+            variant.stok <
+            item.qty
+        ) {
+
+            return await msg.reply(
+`${product.nama} stok tidak cukup.`
+            );
+        }
+
+        const subtotal =
+            variant.harga *
+            item.qty;
+
+        totalPrice += subtotal;
+
+        console.log("MATCHED VARIANT:");
+console.log(variant);
+
+        orderItems.push({
+            variantId: variant.id,
+            quantity: item.qty,
+            unitPrice: variant.harga,
+            subtotal
+        });
+    }
+
+    // =========================
+    // BUAT ORDER
+    // =========================
+    const order =
+        await Order.create({
+
+            businessId:
+                session.businessId,
+
+            customerId:
+                session.customerId,
+
+            totalPrice,
+
+            status: "pending"
+        });
+
+  // =========================
+// BUAT ORDER ITEMS
+// =========================
+for (const item of orderItems) {
+
+    await OrderItem.create({
+
+        orderId: order.id,
+
+        variantId:
+            item.variantId,
+
+        quantity:
+            item.quantity,
+
+        unitPrice:
+            item.unitPrice,
+
+        subtotal:
+            item.subtotal
+    });
+}
+
+    // =========================
+    // RESET SESSION
+    // =========================
+   setSession(phone, {
+    ...session,
+    pendingOrder: null,
+    lastOrderId: order.id,
+    step: "chatting"
+});
+
+const successMessage =
+`Pesanan berhasil dibuat.
+
+Total:
+Rp ${totalPrice}
+
+Pesanan sedang menunggu approval admin.`;
+
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: successMessage
+});
+
+return await msg.reply(
+    successMessage
+);
+}
+
+    // =========================
+    // CANCEL
+    // =========================
+    if (
+        cancelWords.includes(lowerText)
+    ) {
+
+        setSession(phone, {
+            ...session,
+            pendingOrder: null,
+            step: "chatting"
+        });
+
+        return await msg.reply(
+            "Pesanan dibatalkan."
+        );
+    }
+
+    return await msg.reply(
+`Ketik:
+- ya
+- batal`
+    );
+}
+
+        // =========================
+        // CUSTOMER SUDAH PILIH BUSINESS
+        // =========================
+        console.log("================================");
+        console.log("BUSINESS:", session.businessName);
+        console.log("PHONE:", phone);
+        console.log("MESSAGE:", text);
+        console.log("================================");
+
+        // =========================
+        // SEMENTARA AUTO REPLY
+        // =========================
+
+// =========================
+// GET CHAT SESSION
+// =========================
+const chatSession =
+    await getOrCreateChatSession({
+
+        customerId:
+            session.customerId,
+
+        businessId:
+            session.businessId
+    });
+
+// =========================
+// SAVE CUSTOMER MESSAGE
+// =========================
+await saveMessage({
+
+    sessionId:
+        chatSession.id,
+
+    sender: "CUSTOMER",
+
+    message: text
+});
+
+// =========================
+// JIKA MODE HUMAN
+// =========================
+if (chatSession.mode === "HUMAN") {
+
+    return;
+}
+      // =========================
+// AMBIL BUSINESS
+// =========================
+const business = await Business.findByPk(
+    session.businessId
+);
+
+// =========================
+// PROCESS AI
+// =========================
+const aiResult =
+    await processCustomerMessage({
+        business,
+        message: text,
+        session
+    });
+
+console.log("AI RESULT:");
+console.log(aiResult);
+
+// =========================
+// REQUEST HUMAN ADMIN
+// =========================
+const adminKeywords = [
+
+    "admin",
+    "cs",
+    "customer service",
+    "orang asli",
+    "manusia",
+    "bantuan admin",
+    "bicara admin",
+    "chat admin",
+    "admin langsung",
+    "mau admin",
+    "mau cs",
+    "operator",
+    "staff",
+    "pegawai"
+];
+
+const needHuman =
+    adminKeywords.some(keyword =>
+        lowerText.includes(keyword)
+    );
+
+if (needHuman) {
+
+    // =========================
+    // UPDATE SESSION
+    // =========================
+    await ChatSession.update(
+        {
+            needAdmin: true
+        },
+        {
+            where: {
+                id: chatSession.id
+            }
+        }
+    );
+
+    const adminMessage =
+`Baik, saya akan menghubungkan Anda dengan admin.
+
+Mohon tunggu beberapa saat.`;
+
+    await saveMessage({
+
+        sessionId: chatSession.id,
+
+        sender: "BOT",
+
+        message: adminMessage
+    });
+
+    return await msg.reply(
+        adminMessage
+    );
+}
+
+// =========================
+// FAQ
+// =========================
+if (aiResult.intent === "faq") {
+
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
+
+return await msg.reply(
+    aiResult.reply
+);
+}
+
+// =========================
+// GREETING
+// =========================
+if (aiResult.intent === "greeting") {
+
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
+
+    return await msg.reply(
+        aiResult.reply
+    );
+}
+
+// =========================
+// ORDER
+// =========================
+if (aiResult.intent === "order") {
+
+    if (!aiResult.items?.length) {
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: "Saya tidak menemukan item pesanan."
+});
+        return await msg.reply(
+            "Saya tidak menemukan item pesanan."
+        );
+    }
+
+    let summary = "Pesanan Anda:\n\n";
+
+    aiResult.items.forEach((item) => {
+
+        summary +=
+`${item.qty}x ${item.product_name}
+Variant: ${item.variant || "-"}
+\n`;
+    });
+
+    summary +=
+`\nApakah pesanan sudah benar?
+
+Ketik:
+- ya
+- batal`;
+
+    setSession(phone, {
+        ...session,
+        pendingOrder: aiResult.items,
+        step: "waiting_order_confirmation"
+    });
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: summary
+});
+
+    return await msg.reply(summary);
+}
+
+// =========================
+// CANCEL
+// =========================
+if (
+    aiResult.intent === "cancel_order"
+) {
+
+    setSession(phone, {
+        ...session,
+        pendingOrder: null
+    });
+    await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message:  "Pesanan berhasil dibatalkan."
+});
+
+    return await msg.reply(
+        "Pesanan berhasil dibatalkan."
+    );
+}
+
+// =========================
+// UNKNOWN
+// =========================
+await saveMessage({
+
+    sessionId: chatSession.id,
+
+    sender: "BOT",
+
+    message: aiResult.reply
+});
+return await msg.reply(
+    aiResult.reply ||
+    "Maaf saya tidak memahami pesan Anda."
+);
+
+    } catch (err) {
+        console.error("WHATSAPP MESSAGE SERVICE ERROR:", err);
+    }
+};
+
+==========================================================================
+wabots-pos-mvc\services\whatsappService.js :
+
+let clientInstance = null;
+
+exports.setWhatsAppClient = (client) => {
+  clientInstance = client;
+};
+
+exports.sendWhatsAppMessage = async (
+  phone,
+  message
+) => {
+
+  try {
+
+    if (!clientInstance) {
+
+      console.log(
+        "CLIENT BELUM READY"
+      );
+
+      return;
+    }
+
+    // NORMALISASI
+    let cleanPhone = phone
+      .replace(/\D/g, "");
+
+    // 08 → 628
+    if (cleanPhone.startsWith("0")) {
+
+      cleanPhone =
+        "62" + cleanPhone.slice(1);
+    }
+    if (
+      cleanPhone.length < 10
+    ) {
+
+      console.log(
+        "NOMOR INVALID:",
+        cleanPhone
+      );
+
+      return;
+    }
+
+    const chatId =
+      `${cleanPhone}@c.us`;
+
+    console.log(
+      "KIRIM WA KE:",
+      chatId
+    );
+
+    console.log(
+      "ISI PESAN:",
+      message
+    );
+
+    await clientInstance.sendMessage(
+      chatId,
+      message
+    );
+
+    console.log(
+      "WA BERHASIL TERKIRIM"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "SEND WA ERROR:"
+    );
+
+    console.error(err);
+  }
+};
+==========================================================================
+wabots-pos-mvc\services\whatsappSessionService.js :
+
+const sessions = {};
+
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+
+exports.getSession = (phone) => {
+
+    const session = sessions[phone];
+
+    if (!session) return null;
+
+    const now = Date.now();
+
+    if (now - session.lastActivity > SESSION_TIMEOUT) {
+
+        delete sessions[phone];
+
+        return null;
+    }
+
+    return session;
+};
+
+exports.setSession = (phone, data) => {
+
+    sessions[phone] = {
+        ...sessions[phone],
+        ...data,
+        lastActivity: Date.now()
+    };
+};
+
+exports.clearSession = (phone) => {
+    delete sessions[phone];
+};
+
+==========================================================================
+wabots-pos-mvc\services\whatsappSpamService.js :
+
+const spamTracker = {};
+
+const MESSAGE_LIMIT = 5;
+const TIME_WINDOW = 10000;
+
+exports.isSpamMessage = (phone) => {
+
+    const now = Date.now();
+
+    if (!spamTracker[phone]) {
+
+        spamTracker[phone] = [];
+    }
+
+    // HAPUS MESSAGE LAMA
+    spamTracker[phone] = spamTracker[phone].filter(
+        (timestamp) => now - timestamp < TIME_WINDOW
+    );
+
+    // TAMBAH MESSAGE BARU
+    spamTracker[phone].push(now);
+
+    return spamTracker[phone].length > MESSAGE_LIMIT;
+};
+
+===========================================================================
+wabots-pos-mvc\utils\aiUtils.js :
+
+exports.extractJsonFromAI = (text) => {
+
+    try {
+
+        // HAPUS ```json
+        let cleaned = text
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+
+        return JSON.parse(cleaned);
+
+    } catch (err) {
+
+        console.error("AI JSON PARSE ERROR:", err);
+
+        return null;
+    }
+};
+
+=======================================================================
+wabots-pos-mvc\utils\chatbotUtils.js:
+
+exports.cleanCustomerName = (text) => {
+
+    let name = text.toLowerCase();
+
+    name = name.replace("nama saya", "");
+    name = name.replace("nama aku", "");
+    name = name.replace("nama ku", "");
+    name = name.replace("saya", "");
+    name = name.replace("aku", "");
+
+    name = name.replace(/[.,!?]/g, "");
+
+    name = name.trim();
+
+    name = name
+        .split(" ")
+        .map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        )
+        .join(" ");
+
+    return name;
+};
+
+exports.isEmptyMessage = (text) => {
+    return !text || text.trim().length === 0;
+};
+
+exports.isMediaMessage = (msg) => {
+    return msg.hasMedia;
+};
+
+exports.isValidCustomerName = (name) => {
+
+    if (!name) return false;
+
+    // MINIMAL 2 KARAKTER
+    if (name.length < 2) {
+        return false;
+    }
+
+    // HANYA HURUF DAN SPASI
+    const regex = /^[A-Za-z\s]+$/;
+
+    if (!regex.test(name)) {
+        return false;
+    }
+
+    // MINIMAL ADA 1 HURUF
+    const hasLetter = /[A-Za-z]/.test(name);
+
+    if (!hasLetter) {
+        return false;
+    }
+
+    return true;
+};
+
+=======================================================================
+wabots-pos-mvc\app.js :
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+
+const dashboardRoutes = require("./routes/api/dashboardRoutes");
+const productRoutes = require("./routes/api/productRoutes");
+const customerRoutes = require("./routes/api/customerRoutes");
+const variantRoutes = require("./routes/api/productVariantRoutes");
+const reportRoutes = require("./routes/api/reportRoutes");
+const paymentRoutes = require("./routes/api/paymentRoutes");
+const authRoutes = require("./routes/api/authRoutes");
+const categoryRoutes = require("./routes/api/categoryRoutes");
+const businessRoutes = require("./routes/api/businessRoutes");
+const chatRoutes = require("./routes/api/chatRoutes");
+
+
+app.use("/api/auth", authRoutes); // PUBLIC
+
+app.use("/api/products", productRoutes);
+app.use("/api/orders", require("./routes/api/orderRoutes"));
+app.use("/api/customers", customerRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/variants", variantRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/business",businessRoutes);
+app.use("/api/chat", chatRoutes);
+
+
+
+// TEST
+app.use((req, res, next) => {
+  console.log("Request masuk:", req.url);
+  next();
+});
+
+
+app.get("/", (req, res) => {
+  res.send("API RUNNING");
+});
+
+module.exports = app;
+=======================================================================
+wabots-pos-mvc\server.js :
+
+require("./bot/whatsapp");
+
+const app = require("./app");
+const db = require("./models"); 
+
+const PORT = process.env.PORT || 5000;
+
+
+
+(async () => {
+  try {
+    await db.sequelize.authenticate();
+    console.log("Database connected");
+
+    await db.sequelize.sync();
+    console.log("Database synced");
+
+    app.listen(PORT, () => {
+      console.log("Server running on port " + PORT);
+    });
+
+  } catch (err) {
+    console.error("DB Error:", err);
+  }
+})();

@@ -43,37 +43,7 @@ client.on("disconnected", (reason) => {
 
 // RECEIVE MESSAGE
 client.on("message", handleIncomingMessage);
-// client.on("message", async (msg) => {
-//   try {
 
-//     // =========================
-//     // FILTER GROUP
-//     // =========================
-//     if (msg.from.includes("@g.us")) return;
-
-//     // =========================
-//     // FILTER STATUS
-//     // =========================
-//     if (msg.from === "status@broadcast") return;
-
-//     // =========================
-//     // FILTER PESAN DARI DIRI SENDIRI
-//     // =========================
-//     if (msg.fromMe) return;
-
-//     console.log("MESSAGE FROM:", msg.from);
-//     console.log("================================");
-//     console.log("FROM:", msg.from);
-//     console.log("NAME:", msg.notifyName);
-//     console.log("MESSAGE:", msg.body);
-//     console.log("================================");
-
-//     await msg.reply("Halo, pesan Anda sudah diterima.");
-
-//   } catch (err) {
-//     console.error("WA MESSAGE ERROR:", err);
-//   }
-// });
 
 client.initialize();
 

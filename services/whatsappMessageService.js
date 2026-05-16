@@ -97,7 +97,7 @@ exports.handleIncomingMessage = async (msg) => {
         if (msg.from === "status@broadcast") return;
         if (msg.fromMe) return;
 
-        // const phone = msg.from.replace("@c.us", "");
+
         const phone = await getCleanPhoneNumber(msg);
         if (isSpamMessage(phone)) {
 

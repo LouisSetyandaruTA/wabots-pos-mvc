@@ -1,0 +1,3789 @@
+BERIKUT ISI FILE PROYEK SAYA :
+
+==================================================================
+FRONTEND :
+
+wabots-pos-mvc\client\src\components\sidebar\index.jsx :
+
+/* eslint-disable */
+
+import { HiX } from "react-icons/hi";
+import Links from "./components/Links";
+import routes from "routes.js";
+
+import { useEffect, useState } from "react";
+import { getUser } from "utils/auth";
+
+const Sidebar = ({ open, onClose }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const loadUser = () => {
+      const u = getUser();
+      setUser(u);
+    };
+
+    // load pertama
+    loadUser();
+
+    // 🔥 listen perubahan login/logout
+    window.addEventListener("userChanged", loadUser);
+
+    return () => {
+      window.removeEventListener("userChanged", loadUser);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`fixed !z-50 flex min-h-full flex-col bg-white pb-10 shadow-2xl transition-all dark:!bg-navy-800 ${
+        open ? "translate-x-0" : "-translate-x-96"
+      }`}
+    >
+      {/* CLOSE BTN */}
+      <span
+        className="absolute top-4 right-4 block cursor-pointer xl:hidden"
+        onClick={onClose}
+      >
+        <HiX />
+      </span>
+
+      {/* HEADER */}
+      <div className="mx-6 mt-10 flex flex-col gap-1">
+
+        {/* APP NAME */}
+        <h1 className="text-2xl font-extrabold text-navy-700 dark:text-white">
+          Wabots <span className="text-blue-500">POS</span>
+        </h1>
+
+        {/* DIVIDER */}
+        <div className="mt-4 mb-4 h-px bg-gray-200 dark:bg-white/20" />
+
+        {/* BUSINESS */}
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          {user?.businessName || "Your Business"}
+        </p>
+
+        {/* USER */}
+        <p className="text-xs text-gray-500">
+          Logged in as {user?.username || "-"}
+        </p>
+      </div>
+
+      {/* DIVIDER */}
+      <div className="mt-5 mb-7 h-px bg-gray-300 dark:bg-white/30" />
+
+      {/* MENU */}
+      <ul className="mb-auto pt-1">
+        <Links routes={routes} />
+      </ul>
+    </div>
+  );
+};
+
+export default Sidebar;
+
+===================================================================
+wabots-pos-mvc\client\src\components\sidebar\componentsrtl\Links.jsx :
+
+/* eslint-disable */
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import DashIcon from "components/icons/DashIcon";
+// chakra imports
+
+export function SidebarLinks(props) {
+  // Chakra color mode
+  let location = useLocation();
+
+  const { routes } = props;
+
+  // verifies if routeName is the one active (in browser input)
+  const activeRoute = (routeName) => {
+    return location.pathname.includes(routeName);
+  };
+
+  const createLinks = (routes) => {
+    return routes.map((route, index) => {
+      if (
+        route.layout === "/admin" ||
+        route.layout === "/auth" ||
+        route.layout === "/rtl"
+      ) {
+        return (
+          <Link key={index} to={route.layout + "/" + route.path}>
+            <div className="relative mb-3 flex hover:cursor-pointer">
+              <li
+                className="my-[3px] flex cursor-pointer items-center px-8"
+                key={index}
+              >
+                <span
+                  className={`${
+                    activeRoute(route.path) === true
+                      ? "font-bold text-brand-500 dark:text-white"
+                      : "font-medium text-gray-600"
+                  }`}
+                >
+                  {route.icon ? route.icon : <DashIcon />}{" "}
+                </span>
+                <p
+                  className={`leading-1 flex ms-4 ${
+                    activeRoute(route.path) === true
+                      ? "font-bold text-navy-700 dark:text-white"
+                      : "font-medium text-gray-600"
+                  }`}
+                >
+                  {route.name}
+                </p>
+              </li>
+              {activeRoute(route.path) ? (
+                <div class="absolute top-px h-9 w-1 rounded-lg bg-brand-500 end-0 dark:bg-brand-400" />
+              ) : null}
+            </div>
+          </Link>
+        );
+      }
+    });
+  };
+  // BRAND
+  return createLinks(routes);
+}
+
+export default SidebarLinks;
+
+===================================================================
+wabots-pos-mvc\client\src\components\sidebar\components\Links.jsx :
+
+/* eslint-disable */
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import DashIcon from "components/icons/DashIcon";
+// chakra imports
+
+export function SidebarLinks(props) {
+  // Chakra color mode
+  let location = useLocation();
+
+  const { routes } = props;
+
+  // verifies if routeName is the one active (in browser input)
+  const activeRoute = (routeName) => {
+    return location.pathname.includes(routeName);
+  };
+
+  const createLinks = (routes) => {
+    return routes.map((route, index) => {
+      if (
+        route.layout === "/admin" ||
+        route.layout === "/auth" ||
+        route.layout === "/rtl"
+      ) {
+        return (
+          <Link key={index} to={route.layout + "/" + route.path}>
+            <div className="relative mb-3 flex hover:cursor-pointer">
+              <li
+                className="my-[3px] flex cursor-pointer items-center px-8"
+                key={index}
+              >
+                <span
+                  className={`${
+                    activeRoute(route.path) === true
+                      ? "font-bold text-brand-500 dark:text-white"
+                      : "font-medium text-gray-600"
+                  }`}
+                >
+                  {route.icon ? route.icon : <DashIcon />}{" "}
+                </span>
+                <p
+                  className={`leading-1 ml-4 flex ${
+                    activeRoute(route.path) === true
+                      ? "font-bold text-navy-700 dark:text-white"
+                      : "font-medium text-gray-600"
+                  }`}
+                >
+                  {route.name}
+                </p>
+              </li>
+              {activeRoute(route.path) ? (
+                <div class="absolute right-0 top-px h-9 w-1 rounded-lg bg-brand-500 dark:bg-brand-400" />
+              ) : null}
+            </div>
+          </Link>
+        );
+      }
+    });
+  };
+  // BRAND
+  return createLinks(routes);
+}
+
+export default SidebarLinks;
+
+
+====================================================================
+wabots-pos-mvc\client\src\layouts\admin\index.jsx :
+
+import React from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import Navbar from "components/navbar";
+import Sidebar from "components/sidebar";
+import Footer from "components/footer/Footer";
+import routes from "routes.js";
+import { useEffect } from "react";
+
+
+
+export default function Admin(props) {
+  const { ...rest } = props;
+  const location = useLocation();
+  const [open, setOpen] = React.useState(true);
+  const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
+
+  React.useEffect(() => {
+    window.addEventListener("resize", () =>
+      window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
+    );
+  }, []);
+  React.useEffect(() => {
+    getActiveRoute(routes);
+  }, [location.pathname]);
+  useEffect(() => {
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = function () {
+    window.history.pushState(null, "", window.location.href);
+  };
+}, []);
+
+  const getActiveRoute = (routes) => {
+    let activeRoute = "Main Dashboard";
+    for (let i = 0; i < routes.length; i++) {
+      if (
+        window.location.href.indexOf(
+          routes[i].layout + "/" + routes[i].path
+        ) !== -1
+      ) {
+        setCurrentRoute(routes[i].name);
+      }
+    }
+    return activeRoute;
+  };
+  const getActiveNavbar = (routes) => {
+    let activeNavbar = false;
+    for (let i = 0; i < routes.length; i++) {
+      if (
+        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+      ) {
+        return routes[i].secondary;
+      }
+    }
+    return activeNavbar;
+  };
+  const getRoutes = (routes) => {
+    return routes.map((prop, key) => {
+      if (prop.layout === "/admin") {
+        return (
+          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+        );
+      } else {
+        return null;
+      }
+    });
+  };
+
+  document.documentElement.dir = "ltr";
+  return (
+    <div className="flex h-full w-full">
+      <Sidebar open={open} onClose={() => setOpen(false)} />
+      {/* Navbar & Main Content */}
+      <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
+        {/* Main Content */}
+        <main
+          className={`mx-[12px] h-full flex-none transition-all md:pr-2 xl:ml-[313px]`}
+        >
+          {/* Routes */}
+          <div className="h-full">
+            <Navbar
+              onOpenSidenav={() => setOpen(true)}
+              logoText={"Horizon UI Tailwind React"}
+              brandText={currentRoute}
+              secondary={getActiveNavbar(routes)}
+              {...rest}
+            />
+            <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
+              <Routes>
+                {getRoutes(routes)}
+
+                <Route
+                  path="/"
+                  element={<Navigate to="/admin/dashboard" replace />}
+                />
+              </Routes>
+            </div>
+            <div className="p-3">
+              <Footer />
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+====================================================================
+wabots-pos-mvc\client\src\layouts\auth\index.jsx :
+
+import { Routes, Route } from "react-router-dom";
+import Login from "views/auth/Login";
+
+export default function Auth() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-lightPrimary">
+      <Routes>
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </div>
+  );
+}
+
+====================================================================
+wabots-pos-mvc\client\src\layouts\rtl\index.jsx :
+
+import React from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import Navbar from "components/navbar/RTL";
+import Sidebar from "components/sidebar/RTL";
+import Footer from "components/footer/Footer";
+import routes from "routes.js";
+
+export default function RTL(props) {
+  const { ...rest } = props;
+  const location = useLocation();
+  const [open, setOpen] = React.useState(true);
+  const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
+
+  React.useEffect(() => {
+    window.addEventListener("resize", () =>
+      window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
+    );
+  }, []);
+  React.useEffect(() => {
+    getActiveRoute(routes);
+  }, [location.pathname]);
+
+  const getActiveRoute = (routes) => {
+    let activeRoute = "RTL";
+    for (let i = 0; i < routes.length; i++) {
+      if (
+        window.location.href.indexOf(
+          routes[i].layout + "/" + routes[i].path
+        ) !== -1
+      ) {
+        setCurrentRoute(routes[i].name);
+      }
+    }
+    return activeRoute;
+  };
+  const getActiveNavbar = (routes) => {
+    let activeNavbar = false;
+    for (let i = 0; i < routes.length; i++) {
+      if (
+        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+      ) {
+        return routes[i].secondary;
+      }
+    }
+    return activeNavbar;
+  };
+  const getRoutes = (routes) => {
+    return routes.map((prop, key) => {
+      if (prop.layout === "/rtl") {
+        return (
+          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+        );
+      } else {
+        return null;
+      }
+    });
+  };
+
+  document.documentElement.dir = "rtl";
+  return (
+    <div className="flex h-full w-full">
+      <Sidebar open={open} onClose={() => setOpen(false)} />
+      {/* Navbar & Main Content */}
+      <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
+        {/* Main Content */}
+        <main
+          className={`mx-[12px] h-full flex-none transition-all md:pe-2 xl:mr-[313px]`}
+        >
+          {/* Routes */}
+          <div className="h-full">
+            <Navbar
+              onOpenSidenav={() => setOpen(true)}
+              logoText={"Horizon UI Tailwind React"}
+              brandText={currentRoute}
+              secondary={getActiveNavbar(routes)}
+              {...rest}
+            />
+            <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
+              <Routes>
+                {getRoutes(routes)}
+
+                <Route
+                  path="/"
+                  element={<Navigate to="/admin/default" replace />}
+                />
+              </Routes>
+            </div>
+            <div className="p-3">
+              <Footer />
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+====================================================================
+wabots-pos-mvc\client\src\utils\auth.js :
+
+import { jwtDecode } from "jwt-decode";
+
+export const getUser = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+
+  try {
+    return jwtDecode(token);
+  } catch {
+    return null;
+  }
+};
+
+====================================================================
+wabots-pos-mvc\client\src\utils\axiosInstance.js :
+
+import axios from "axios";
+
+const instance = axios.create({
+  baseURL: "http://localhost:5000/api"
+});
+
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  console.log("TOKEN SENT:", token);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export default instance;
+
+====================================================================
+wabots-pos-mvc\client\src\utils\exportReportPDF.js :
+
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+export const exportReportPDF = (data, filter) => {
+  const pdf = new jsPDF();
+
+  const { summary, trends, topProducts, transactions } = data;
+
+  const start = filter.startDate;
+  const end = filter.endDate;
+
+  // 🔷 HEADER
+  pdf.setFontSize(18);
+  pdf.text("LAPORAN PENJUALAN", 14, 15);
+
+  pdf.setFontSize(10);
+  pdf.text(`Periode: ${start} s/d ${end}`, 14, 22);
+
+  pdf.line(14, 25, 196, 25);
+
+  // 🔷 RINGKASAN
+  pdf.setFontSize(12);
+  pdf.text("Ringkasan", 14, 35);
+
+  autoTable(pdf, {
+    startY: 38,
+    head: [["Metric", "Nilai"]],
+    body: [
+      ["Total Revenue", `Rp ${summary.totalRevenue.toLocaleString("id-ID")}`],
+      ["Total Orders", summary.totalOrders],
+      ["AOV", `Rp ${Math.round(summary.avgOrderValue).toLocaleString("id-ID")}`],
+      ["Pending Orders", summary.pendingOrders],
+["Paid Orders", summary.paidOrders],
+["Ready Pickup", summary.readyPickupOrders],
+["Shipping", summary.shippingOrders],
+["Completed", summary.completedOrders]
+    ]
+  });
+
+  // 🔷 TRENDS
+  pdf.text("Penjualan per Hari", 14, pdf.lastAutoTable.finalY + 10);
+
+  autoTable(pdf, {
+    startY: pdf.lastAutoTable.finalY + 13,
+    head: [["Tanggal", "Revenue", "Orders"]],
+    body: trends.map(t => [
+      t.period,
+      `Rp ${Number(t.revenue).toLocaleString("id-ID")}`,
+      t.orders
+    ])
+  });
+
+  // 🔷 TOP PRODUCTS
+  pdf.text("Produk Terlaris", 14, pdf.lastAutoTable.finalY + 10);
+
+  autoTable(pdf, {
+    startY: pdf.lastAutoTable.finalY + 13,
+    head: [["Produk", "Terjual", "Revenue"]],
+    body: topProducts.map(p => [
+      p.productName,
+      p.totalSold,
+      `Rp ${Number(p.revenue).toLocaleString("id-ID")}`
+    ])
+  });
+
+  // 🔷 TRANSAKSI DETAIL
+  pdf.text("Detail Transaksi", 14, pdf.lastAutoTable.finalY + 10);
+
+  autoTable(pdf, {
+    startY: pdf.lastAutoTable.finalY + 13,
+    head: [[
+  "Customer",
+  "Produk",
+  "Metode",
+  "Status",
+  "Total"
+]],
+   body: transactions.map(t => [
+
+  t.customer?.name || "-",
+
+  t.items.map(i =>
+    `${i.variant?.product?.nama} (${i.quantity}x)`
+  ).join(", "),
+
+  t.deliveryMethod || "-",
+
+  t.fulfillmentStatus || "-",
+
+  `Rp ${Number(t.totalPrice).toLocaleString("id-ID")}`
+])
+  });
+
+  // 🔷 FOOTER
+  const pageCount = pdf.internal.getNumberOfPages();
+
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.text(
+      `Halaman ${i} dari ${pageCount}`,
+      170,
+      290
+    );
+  }
+
+  // 🔷 SAVE FILE
+  pdf.save(`laporan-${start}_sampai_${end}.pdf`);
+};
+
+=====================================================================
+wabots-pos-mvc\client\src\utils\format.js :
+
+export const formatRupiah = (number) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0
+  }).format(number || 0);
+};
+
+export const formatNumber = (number) => {
+  return new Intl.NumberFormat("id-ID").format(number || 0);
+};
+
+export const formatAOV = (number) => {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(number || 0);
+};
+
+======================================================================
+wabots-pos-mvc\client\src\utils\ProtectedRoute.jsx :
+
+import { Navigate } from "react-router-dom";
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  return children;
+};
+
+export default ProtectedRoute;
+
+======================================================================
+wabots-pos-mvc\client\src\utils\PublicRoute.jsx :
+
+import { Navigate } from "react-router-dom";
+
+const PublicRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
+};
+
+export default PublicRoute;
+
+=======================================================================
+wabots-pos-mvc\client\src\views\admin\business\BusinessSettings.jsx :
+
+import React,
+{
+  useEffect,
+  useState
+} from "react";
+
+import axios
+from "../../../utils/axiosInstance";
+
+import Card
+from "components/card";
+
+export default function BusinessSettings() {
+
+  const [loading, setLoading]
+    = useState(true);
+
+  const [saving, setSaving]
+    = useState(false);
+
+  const [form, setForm]
+    = useState({
+
+    name: "",
+    description: "",
+    address: "",
+    phone: "",
+    openHours: "",
+    faq: ""
+
+  });
+
+  useEffect(() => {
+
+    fetchBusiness();
+
+  }, []);
+
+  const fetchBusiness =
+  async () => {
+
+    try {
+
+      const res =
+        await axios.get(
+          "/business/me"
+        );
+
+      setForm({
+
+        name:
+          res.data.name || "",
+
+        description:
+          res.data.description || "",
+
+        address:
+          res.data.address || "",
+
+        phone:
+          res.data.phone || "",
+
+        openHours:
+          res.data.openHours || "",
+
+        faq:
+          res.data.faq || ""
+
+      });
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        "Gagal mengambil data bisnis"
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+  };
+
+  const handleSave =
+  async () => {
+
+    try {
+
+      setSaving(true);
+
+      await axios.put(
+        "/business/me",
+        form
+      );
+
+      alert(
+        "Business berhasil diupdate"
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        "Gagal update business"
+      );
+
+    } finally {
+
+      setSaving(false);
+
+    }
+  };
+
+  if (loading) {
+
+    return (
+      <div className="p-6">
+        Loading...
+      </div>
+    );
+  }
+
+  return (
+
+    <div className="p-6">
+
+      <Card extra="p-6">
+
+        <h1 className="text-2xl font-bold mb-6">
+          Business Settings
+        </h1>
+
+        <div className="grid grid-cols-1 gap-4">
+
+          <div>
+            <label className="font-semibold">
+              Nama Business
+            </label>
+
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold">
+              Deskripsi
+            </label>
+
+            <textarea
+              rows={4}
+              value={form.description}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  description: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold">
+              Alamat
+            </label>
+
+            <textarea
+              rows={3}
+              value={form.address}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  address: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold">
+              Nomor Telepon
+            </label>
+
+            <input
+              type="text"
+              value={form.phone}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  phone: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold">
+              Jam Operasional
+            </label>
+
+            <input
+              type="text"
+              value={form.openHours}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  openHours: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold">
+              FAQ Business
+            </label>
+
+            <textarea
+              rows={8}
+              value={form.faq}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  faq: e.target.value
+                })
+              }
+              className="border p-3 rounded w-full"
+              placeholder="
+Contoh:
+- Bisa QRIS
+- Bisa delivery
+- Free wifi
+- Minimal order 20rb
+              "
+            />
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="
+              bg-blue-500
+              text-white
+              px-5
+              py-3
+              rounded
+              mt-4
+            "
+          >
+            {
+              saving
+              ? "Menyimpan..."
+              : "Simpan Business"
+            }
+          </button>
+
+        </div>
+
+      </Card>
+
+    </div>
+  );
+}
+
+=======================================================================
+wabots-pos-mvc\client\src\views\admin\chat\ChatDashboard.jsx :
+
+import React,
+{
+    useEffect,
+    useState,
+    useRef
+} from "react";
+
+import axios from "../../../utils/axiosInstance";
+
+export default function ChatDashboard() {
+
+    const [sessions, setSessions] = useState([]);
+    const [selectedSession, setSelectedSession] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [reply, setReply] = useState("");
+    const [search, setSearch] = useState("");
+    const chatEndRef = useRef(null);
+
+    // =========================
+    // FETCH CHAT SESSIONS
+    // =========================
+    const fetchSessions = async () => {
+
+        try {
+
+            const res =
+                await axios.get("/chat/sessions");
+
+            setSessions(res.data.data);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // FETCH CHAT DETAIL
+    // =========================
+    const fetchMessages = async (sessionId) => {
+
+        try {
+
+            const res =
+                await axios.get(
+                    `/chat/sessions/${sessionId}`
+                );
+
+            setMessages(res.data.data);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // TAKE OVER
+    // =========================
+    const takeOver = async () => {
+
+        try {
+
+            await axios.put(
+                `/chat/sessions/${selectedSession.id}/takeover`
+            );
+
+            fetchSessions();
+
+            setSelectedSession({
+                ...selectedSession,
+                mode: "HUMAN"
+            });
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // BACK TO AI
+    // =========================
+    const backToAI = async () => {
+
+        try {
+
+            await axios.put(
+                `/chat/sessions/${selectedSession.id}/ai`
+            );
+
+            fetchSessions();
+
+            setSelectedSession({
+                ...selectedSession,
+                mode: "AI"
+            });
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // SEND MESSAGE
+    // =========================
+    const sendMessage = async () => {
+
+        if (!reply.trim()) return;
+
+        try {
+
+            await axios.post(
+                `/chat/sessions/${selectedSession.id}/send`,
+                {
+                    message: reply
+                }
+            );
+
+            setReply("");
+
+            fetchMessages(selectedSession.id);
+
+        } catch (err) {
+
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // AUTO REFRESH
+    // =========================
+    useEffect(() => {
+
+        fetchSessions();
+
+        const interval = setInterval(() => {
+
+            fetchSessions();
+
+            if (selectedSession) {
+
+                fetchMessages(selectedSession.id);
+            }
+
+        }, 3000);
+
+        return () => clearInterval(interval);
+
+    }, [selectedSession]);
+
+const filteredSessions =
+    sessions.filter((session) => {
+
+        const customerName =
+            session.customer?.name?.toLowerCase() || "";
+
+        const phone =
+            session.customer?.phoneNumber || "";
+
+        return (
+            customerName.includes(
+                search.toLowerCase()
+            ) ||
+            phone.includes(search)
+        );
+    });
+
+    const sortedMessages =
+        [...messages].sort((a, b) => {
+
+            const dateA =
+                new Date(a.createdAt);
+
+            const dateB =
+                new Date(b.createdAt);
+
+            if (
+                dateA.getTime() ===
+                dateB.getTime()
+            ) {
+
+                return a.id.localeCompare(b.id);
+            }
+
+            return dateA - dateB;
+        });
+
+  useEffect(() => {
+
+    const chatContainer =
+        document.getElementById(
+            "chat-container"
+        );
+
+    if (!chatContainer) return;
+
+    const isNearBottom =
+        chatContainer.scrollHeight -
+        chatContainer.scrollTop -
+        chatContainer.clientHeight < 100;
+
+    if (isNearBottom) {
+
+        setTimeout(() => {
+
+            chatEndRef.current?.scrollIntoView({
+                behavior: "smooth"
+            });
+
+        }, 100);
+    }
+
+}, [messages]);
+
+    return (
+        <div className="p-6 h-[85vh]">
+
+            <div className="grid grid-cols-12 gap-4 h-full">
+
+                {/* SIDEBAR */}
+                <div className="col-span-4 bg-white rounded-2xl shadow p-4 overflow-y-auto">
+
+                    <div className="mb-4">
+
+    <h2 className="text-xl font-bold mb-3">
+        Customer Chats
+    </h2>
+
+    <input
+        type="text"
+        placeholder="Cari customer..."
+        value={search}
+        onChange={(e) =>
+            setSearch(e.target.value)
+        }
+        className="
+w-full
+border
+rounded-xl
+px-4
+py-3
+text-sm
+focus:outline-none
+focus:ring-2
+focus:ring-blue-400
+"
+    />
+
+</div>
+
+                    <div className="space-y-3">
+
+                       {filteredSessions.map((session) => (
+
+                            <div
+                                key={session.id}
+                                onClick={() => {
+
+                                    setSelectedSession(session);
+
+                                    fetchMessages(session.id);
+                                }}
+                                className={`p-4 rounded-xl cursor-pointer border transition
+                                
+                                ${selectedSession?.id === session.id
+                                        ? "border-blue-500 bg-blue-50"
+                                        : "border-gray-200 hover:bg-gray-50"
+                                    }`}
+                            >
+
+                                <div className="flex justify-between items-center">
+
+                                    <div>
+
+                                        <h3 className="font-bold">
+                                            {session.customer?.name}
+                                        </h3>
+
+                                        <p className="text-sm text-gray-500">
+                                            {session.customer?.phoneNumber}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-2">
+
+                                        {session.needAdmin && (
+
+                                            <span
+                                                className="
+            text-xs
+            px-2
+            py-1
+            rounded-full
+            font-bold
+            bg-red-500
+            text-white
+            animate-pulse
+            "
+                                            >
+                                                NEED HELP
+                                            </span>
+                                        )}
+
+                                        <span
+                                            className={`text-xs px-2 py-1 rounded-full font-semibold
+        
+        ${session.mode === "AI"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : "bg-red-100 text-red-700"
+                                                }`}
+                                        >
+                                            {session.mode}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                                <p className="text-sm text-gray-600 mt-2 truncate">
+                                    {session.lastMessage}
+                                </p>
+
+                            </div>
+                        ))}
+
+                    </div>
+
+                </div>
+
+                {/* CHAT AREA */}
+                <div className="col-span-8 bg-white rounded-2xl shadow flex flex-col">
+
+                    {!selectedSession ? (
+
+                        <div className="flex flex-1 justify-center items-center text-gray-400">
+                            Pilih customer chat
+                        </div>
+
+                    ) : (
+
+                        <>
+                            {/* HEADER */}
+                            <div
+className="
+sticky
+top-0
+z-10
+bg-white
+p-4
+border-b
+flex
+justify-between
+items-center
+"
+>
+
+                                <div>
+
+                                    <h2 className="font-bold text-lg">
+                                        {selectedSession.customer?.name}
+                                    </h2>
+
+                                    <p className="text-sm text-gray-500">
+                                        {selectedSession.customer?.phoneNumber}
+                                    </p>
+
+                                </div>
+
+                                <div className="space-x-2">
+
+                                    {selectedSession.mode === "AI" ? (
+
+                                        <button
+                                            onClick={takeOver}
+                                            className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm"
+                                        >
+                                            TAKE OVER
+                                        </button>
+
+                                    ) : (
+
+                                        <button
+                                            onClick={backToAI}
+                                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm"
+                                        >
+                                            KEMBALIKAN KE AI
+                                        </button>
+                                    )}
+
+                                </div>
+
+                            </div>
+
+                            {/* CHAT BODY */}
+                        
+                           <div
+id="chat-container"
+className="
+flex
+flex-col
+gap-4
+h-[calc(85vh-180px)]
+overflow-y-auto
+p-5
+bg-gray-50
+scroll-smooth
+"
+>
+
+                                {sortedMessages.map((msg) => (
+
+                                    <div
+                                        key={msg.id}
+                                        className={`flex
+                
+            ${msg.sender === "CUSTOMER"
+                                                ? "justify-start"
+                                                : "justify-end"
+                                            }`}
+                                    >
+
+                                        <div
+                                            className={`
+                
+                px-4
+                py-3
+                rounded-2xl
+                text-sm
+                whitespace-pre-wrap
+                break-words
+                shadow-sm
+                
+                max-w-[380px]
+min-w-[120px]
+                
+                ${msg.sender === "CUSTOMER"
+                                                    ? `
+                            bg-white
+                            border
+                            text-gray-800
+                          `
+                                                    : msg.sender === "ADMIN"
+                                                        ? `
+                                bg-blue-500
+                                text-white
+                              `
+                                                        : `
+                                bg-green-500
+                                text-white
+                              `
+                                                }
+                `}
+                                        >
+
+                                            {/* LABEL SENDER */}
+                                            <div
+                                                className="
+                    text-[11px]
+                    font-bold
+                    opacity-80
+                    mb-2
+                    "
+                                            >
+                                                {msg.sender}
+                                            </div>
+
+                                            {/* ISI PESAN */}
+                                           <div
+className="
+overflow-auto
+max-h-[120px]
+whitespace-pre-wrap
+break-words
+leading-relaxed
+"
+>
+                                                {msg.message}
+                                            </div>
+
+                                            {/* JAM */}
+                                            <div
+                                                className="
+                    text-[10px]
+                    opacity-70
+                    mt-2
+                    text-right
+                    "
+                                            >
+                                                {new Date(msg.createdAt)
+                                                    .toLocaleTimeString(
+                                                        "id-ID",
+                                                        {
+                                                            hour: "2-digit",
+                                                            minute: "2-digit"
+                                                        }
+                                                    )}
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                ))}
+
+                                <div ref={chatEndRef}></div>
+
+                            </div>
+
+                            {/* INPUT */}
+                            <div className="p-4 border-t flex gap-2">
+
+                                <input
+                                    type="text"
+                                    value={reply}
+                                    onChange={(e) => setReply(e.target.value)}
+                                    placeholder="Ketik balasan..."
+                                    className="
+flex-1
+border
+rounded-xl
+p-3
+focus:outline-none
+focus:ring-2
+focus:ring-blue-400
+"
+                                />
+
+                                <button
+                                    onClick={sendMessage}
+                                    className="bg-blue-500 text-white px-6 rounded-xl"
+                                >
+                                    Kirim
+                                </button>
+
+                            </div>
+                        </>
+                    )}
+
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+==============================================================================================
+wabots-pos-mvc\client\src\views\admin\dashboard\Dashboard.jsx :
+
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+} from "recharts";
+
+import { formatRupiah } from "../../../utils/format";
+
+export default function Dashboard() {
+    const [data, setData] = useState(null);
+
+    useEffect(() => {
+        fetchDashboard();
+    }, []);
+    const formatChartData = () => {
+        if (!data?.salesPerDay) return [];
+
+        return data.salesPerDay.map(item => {
+            const dateObj = new Date(item.date);
+
+            return {
+                date: dateObj.toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short"
+                }),
+                total: Number(item.total)
+            };
+        });
+    };
+    const formatTopProducts = () => {
+        console.log("RAW TOP PRODUCTS:", data?.topProducts);
+
+        if (!data?.topProducts) return [];
+
+        const result = data.topProducts.map((p) => ({
+            name: `${p?.variant?.product?.nama || "Unknown"} - ${p?.variant?.nama_variant || ""}`,
+            total: Number(p?.totalSold || 0),
+        }));
+
+        console.log("FORMATTED TOP PRODUCTS:", result);
+
+        return result;
+    };
+
+    const fetchDashboard = async () => {
+        try {
+            const res = await axios.get("/dashboard");
+
+            console.log("API RESPONSE:", res.data.data);
+
+            setData(res.data.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    return (
+        <div className="p-6">
+            <h2 className="text-xl font-bold mb-6">Dashboard Analytics</h2>
+
+            {/* CARD METRICS */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Total Revenue</p>
+                    <h3 className="text-2xl font-bold">
+                        {formatRupiah(data?.totalRevenue)}
+                    </h3>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Total Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.totalOrders || 0}
+                    </h3>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Pending Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.pendingOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Paid Orders</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.paidOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Ready Pickup</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.readyPickupOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Shipping</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.shippingOrders || 0}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <p className="text-gray-500">Completed</p>
+                    <h3 className="text-2xl font-bold">
+                        {data?.completedOrders || 0}
+                    </h3>
+                </div>
+
+            </div>
+
+            {/* CHART AREA (NEXT STEP) */}
+            <div className="bg-white p-4 rounded-xl shadow">
+                <h3 className="font-bold mb-4">Sales Chart</h3>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <h3 className="font-bold mb-4">Sales Per Day</h3>
+
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={formatChartData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis tickFormatter={(value) => formatRupiah(value)} />
+                            <Tooltip
+                                formatter={(value) => formatRupiah(value)}
+                            />
+                            <Line type="monotone" dataKey="total" stroke="#4F46E5" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl shadow mt-6">
+                <h3 className="font-bold mb-4">Top Products</h3>
+
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={formatTopProducts()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="total" fill="#22C55E" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+        </div>
+    );
+}
+================================================================================
+wabots-pos-mvc\client\src\views\admin\default\index.jsx :
+
+import MiniCalendar from "components/calendar/MiniCalendar";
+import WeeklyRevenue from "views/admin/default/components/WeeklyRevenue";
+import TotalSpent from "views/admin/default/components/TotalSpent";
+import PieChartCard from "views/admin/default/components/PieChartCard";
+import { IoMdHome } from "react-icons/io";
+import { IoDocuments } from "react-icons/io5";
+import { MdBarChart, MdDashboard } from "react-icons/md";
+
+import { columnsDataCheck, columnsDataComplex } from "./variables/columnsData";
+
+import Widget from "components/widget/Widget";
+import CheckTable from "views/admin/default/components/CheckTable";
+import ComplexTable from "views/admin/default/components/ComplexTable";
+import DailyTraffic from "views/admin/default/components/DailyTraffic";
+import TaskCard from "views/admin/default/components/TaskCard";
+import tableDataCheck from "./variables/tableDataCheck.json";
+import tableDataComplex from "./variables/tableDataComplex.json";
+import { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+
+const Dashboard = () => {
+const [data, setData] = useState(null);
+
+useEffect(() => {
+  fetchDashboard();
+}, []);
+
+const fetchDashboard = async () => {
+  const res = await axios.get("/dashboard");
+  setData(res.data.data);
+};
+
+  return (
+    <div>
+      {/* Card widget */}
+
+      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-6">
+        <Widget
+          title={"Total Orders"}
+          subtitle={data?.totalOrders || 0}
+        />
+
+        <Widget
+          title={"Total Products"}
+          subtitle={data?.totalProducts || 0}
+        />
+      </div>
+
+      {/* Charts */}
+
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <TotalSpent />
+        <WeeklyRevenue />
+      </div>
+
+      {/* Tables & Charts */}
+
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {/* Check Table */}
+        <div>
+          <CheckTable
+            columnsData={columnsDataCheck}
+            tableData={tableDataCheck}
+          />
+        </div>
+
+        {/* Traffic chart & Pie Chart */}
+
+        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
+          <DailyTraffic />
+          <PieChartCard />
+        </div>
+
+        {/* Complex Table , Task & Calendar */}
+
+        <ComplexTable
+          columnsData={columnsDataComplex}
+          tableData={tableDataComplex}
+        />
+
+        {/* Task chart & Calendar */}
+
+        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
+          <TaskCard />
+          <div className="grid grid-cols-1 rounded-[20px]">
+            <MiniCalendar />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
+
+================================================================================
+wabots-pos-mvc\client\src\views\admin\orders\CreateOrder.jsx :
+
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+import { useLocation } from "react-router-dom";
+
+export default function Orders() {
+  const [orders, setOrders] = useState([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("/orders", {
+        params: { search, status }
+      });
+      setOrders(res.data.data);
+    } catch (err) {
+      console.error("ORDERS ERROR:", err.response?.data || err.message);
+    }
+  };
+  const approve = async (id) => {
+    try {
+      await axios.put(`/orders/${id}/approve`);
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert(JSON.stringify(err?.response?.data || err.message));
+    }
+  };
+  const pay = async (id) => {
+
+    try {
+
+      const res = await axios.post(
+        `/orders/${id}/pay`
+      );
+
+      alert(
+        "Pembayaran berhasil dikirim ke WhatsApp customer"
+      );
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal mengirim pembayaran"
+      );
+    }
+  };
+
+  const completeOrder = async (id) => {
+
+  try {
+
+    await axios.put(
+      `/orders/${id}/complete`
+    );
+
+    alert("Order selesai");
+
+    fetchOrders();
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert(
+      err.response?.data?.message ||
+      "Gagal menyelesaikan order"
+    );
+  }
+};
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString("id-ID");
+  };
+
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchOrders();
+    }, 400);
+
+    return () => clearTimeout(delay);
+  }, [search, status]);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Yakin hapus order?")) return;
+
+    try {
+      await axios.delete(`/orders/${id}`);
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal hapus");
+    }
+  };
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearch(params.get("search") || "");
+  }, [location.search]);
+
+  return (
+    <div className="p-6">
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Cari order / customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="">Semua</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+      <select onChange={(e) => setStatus(e.target.value)}>
+        <option value="">Semua</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="paid">Paid</option>
+      </select>
+      <h2 className="text-xl font-bold mb-4">Order Management</h2>
+
+      <div className="bg-white rounded-xl shadow p-4">
+        <table className="w-full text-sm text-left">
+
+          <thead className="border-b">
+            <tr>
+              <th className="py-2">ID</th>
+              <th>Waktu</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Aksi</th>
+              <th>Fulfillment</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orders.map((order) => (
+              <React.Fragment key={order.id}>
+
+                {/* ROW UTAMA */}
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-2">{order.id.slice(0, 8)}...</td>
+                  <td>{formatDate(order.createdAt)}</td>
+                  <td>
+                    <div>
+                      <div className="font-semibold">
+                        {order.customer?.name || "-"}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {order.customer?.phoneNumber || "-"}
+                      </div>
+                    </div>
+                  </td>
+                  <td>Rp {order.totalPrice}</td>
+
+                  <td>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${order.status === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : order.status === "approved"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-green-100 text-green-700"
+                        }`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+
+                  <td className="space-x-2">
+                    {["pending", "cancelled"].includes(order.status) && (
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Hapus
+                      </button>
+                    )}
+
+                    {order.status === "pending" && (
+                      <button
+                        onClick={() => approve(order.id)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Approve
+                      </button>
+                    )}
+
+                    {order.status === "approved" && (
+                      <button
+                        onClick={() => pay(order.id)}
+                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Bayar
+                      </button>
+                    )}
+
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "ready_pickup" && (
+
+                       <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Diambil
+</button>
+                      )}
+
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "on_delivery" && (
+
+                     <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Sampai
+</button>
+                      )}
+
+                    {order.fulfillmentStatus ===
+                      "completed" && (
+                        <span className="text-green-600 font-semibold text-xs">
+                          ✔ Selesai
+                        </span>
+                      )}
+                  </td>
+                  <td>
+                    <span className="text-xs font-semibold">
+
+                      {order.fulfillmentStatus ===
+                        "waiting_choice" &&
+                        "Menunggu Pilihan"}
+
+                      {order.fulfillmentStatus ===
+                        "waiting_address" &&
+                        "Menunggu Alamat"}
+
+                      {order.fulfillmentStatus ===
+                        "ready_pickup" &&
+                        "Siap Diambil"}
+
+                      {order.fulfillmentStatus ===
+                        "on_delivery" &&
+                        "Sedang Dikirim"}
+
+                      {order.fulfillmentStatus ===
+                        "completed" &&
+                        "Selesai"}
+
+                    </span>
+
+                    {order.deliveryMethod && (
+                      <div className="text-xs text-gray-500">
+                        {order.deliveryMethod}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+
+                {/* DETAIL */}
+                <tr className="bg-gray-50">
+                  <td colSpan="7" className="p-2">
+                    {order.items?.length > 0 ? (
+                      order.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="text-xs border-b py-1"
+                        >
+
+                          <div className="font-semibold">
+                            {item.variant?.product?.nama || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Variant:
+                            {item.variant?.nama_variant || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Qty:
+                            {item.quantity}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Harga:
+                            Rp {item.unitPrice}
+                          </div>
+
+                          <div className="text-gray-700 font-semibold">
+                            Subtotal:
+                            Rp {item.subtotal}
+                          </div>
+
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-xs">
+                        Tidak ada item
+                      </span>
+                    )}
+                  </td>
+                </tr>
+
+              </React.Fragment>
+            ))}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+  );
+}
+================================================================================
+wabots-pos-mvc\client\src\views\admin\orders\Orders.jsx :
+
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+import { useLocation } from "react-router-dom";
+
+export default function Orders() {
+  const [orders, setOrders] = useState([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("/orders", {
+        params: { search, status }
+      });
+      setOrders(res.data.data);
+    } catch (err) {
+      console.error("ORDERS ERROR:", err.response?.data || err.message);
+    }
+  };
+  const approve = async (id) => {
+    try {
+      await axios.put(`/orders/${id}/approve`);
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert(JSON.stringify(err?.response?.data || err.message));
+    }
+  };
+  const pay = async (id) => {
+
+    try {
+
+      const res = await axios.post(
+        `/orders/${id}/pay`
+      );
+
+      alert(
+        "Pembayaran berhasil dikirim ke WhatsApp customer"
+      );
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal mengirim pembayaran"
+      );
+    }
+  };
+
+  const completeOrder = async (id) => {
+
+  try {
+
+    await axios.put(
+      `/orders/${id}/complete`
+    );
+
+    alert("Order selesai");
+
+    fetchOrders();
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert(
+      err.response?.data?.message ||
+      "Gagal menyelesaikan order"
+    );
+  }
+};
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString("id-ID");
+  };
+
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchOrders();
+    }, 400);
+
+    return () => clearTimeout(delay);
+  }, [search, status]);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Yakin hapus order?")) return;
+
+    try {
+      await axios.delete(`/orders/${id}`);
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal hapus");
+    }
+  };
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearch(params.get("search") || "");
+  }, [location.search]);
+
+  return (
+    <div className="p-6">
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Cari order / customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="">Semua</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+      <select onChange={(e) => setStatus(e.target.value)}>
+        <option value="">Semua</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="paid">Paid</option>
+      </select>
+      <h2 className="text-xl font-bold mb-4">Order Management</h2>
+
+      <div className="bg-white rounded-xl shadow p-4">
+        <table className="w-full text-sm text-left">
+
+          <thead className="border-b">
+            <tr>
+              <th className="py-2">ID</th>
+              <th>Waktu</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Aksi</th>
+              <th>Fulfillment</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orders.map((order) => (
+              <React.Fragment key={order.id}>
+
+                {/* ROW UTAMA */}
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-2">{order.id.slice(0, 8)}...</td>
+                  <td>{formatDate(order.createdAt)}</td>
+                  <td>
+                    <div>
+                      <div className="font-semibold">
+                        {order.customer?.name || "-"}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {order.customer?.phoneNumber || "-"}
+                      </div>
+                    </div>
+                  </td>
+                  <td>Rp {order.totalPrice}</td>
+
+                  <td>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${order.status === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : order.status === "approved"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-green-100 text-green-700"
+                        }`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+
+                  <td className="space-x-2">
+                    {["pending", "cancelled"].includes(order.status) && (
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Hapus
+                      </button>
+                    )}
+
+                    {order.status === "pending" && (
+                      <button
+                        onClick={() => approve(order.id)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Approve
+                      </button>
+                    )}
+
+                    {order.status === "approved" && (
+                      <button
+                        onClick={() => pay(order.id)}
+                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Bayar
+                      </button>
+                    )}
+
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "ready_pickup" && (
+
+                       <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Diambil
+</button>
+                      )}
+
+                   {order.status === "paid" &&
+ order.fulfillmentStatus ===
+  "on_delivery" && (
+
+                     <button
+  onClick={() =>
+    completeOrder(order.id)
+  }
+  className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+>
+  Sudah Sampai
+</button>
+                      )}
+
+                    {order.fulfillmentStatus ===
+                      "completed" && (
+                        <span className="text-green-600 font-semibold text-xs">
+                          ✔ Selesai
+                        </span>
+                      )}
+                  </td>
+                  <td>
+                    <span className="text-xs font-semibold">
+
+                      {order.fulfillmentStatus ===
+                        "waiting_choice" &&
+                        "Menunggu Pilihan"}
+
+                      {order.fulfillmentStatus ===
+                        "waiting_address" &&
+                        "Menunggu Alamat"}
+
+                      {order.fulfillmentStatus ===
+                        "ready_pickup" &&
+                        "Siap Diambil"}
+
+                      {order.fulfillmentStatus ===
+                        "on_delivery" &&
+                        "Sedang Dikirim"}
+
+                      {order.fulfillmentStatus ===
+                        "completed" &&
+                        "Selesai"}
+
+                    </span>
+
+                    {order.deliveryMethod && (
+                      <div className="text-xs text-gray-500">
+                        {order.deliveryMethod}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+
+                {/* DETAIL */}
+                <tr className="bg-gray-50">
+                  <td colSpan="7" className="p-2">
+                    {order.items?.length > 0 ? (
+                      order.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="text-xs border-b py-1"
+                        >
+
+                          <div className="font-semibold">
+                            {item.variant?.product?.nama || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Variant:
+                            {item.variant?.nama_variant || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Qty:
+                            {item.quantity}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Harga:
+                            Rp {item.unitPrice}
+                          </div>
+
+                          <div className="text-gray-700 font-semibold">
+                            Subtotal:
+                            Rp {item.subtotal}
+                          </div>
+
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-xs">
+                        Tidak ada item
+                      </span>
+                    )}
+                  </td>
+                </tr>
+
+              </React.Fragment>
+            ))}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+  );
+}
+
+==============================================================================
+wabots-pos-mvc\client\src\views\admin\products\Products.jsx :
+import Card from "components/card";
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+
+export default function Products() {
+
+  // =========================
+  // STATE
+  // =========================
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [search, setSearch] = useState("");
+
+  const [openedProduct, setOpenedProduct] =
+    useState(null);
+
+  const [customCategory, setCustomCategory] =
+    useState("");
+
+  const [editProduct, setEditProduct] =
+    useState(null);
+
+  const [editVariant, setEditVariant] =
+    useState(null);
+
+  // =========================
+  // PRODUCT FORM
+  // =========================
+  const [productForm, setProductForm] =
+    useState({
+      nama: "",
+      categoryId: "",
+      satuan: "",
+      keterangan: "",
+      harga: "",
+      stok: "",
+      berat: ""
+    });
+
+  // =========================
+  // VARIANT FORM
+  // =========================
+  const [variantForm, setVariantForm] =
+    useState({
+      productId: "",
+      nama_variant: "",
+      harga: "",
+      stok: "",
+      berat: ""
+    });
+
+  // =========================
+  // OPTIONS
+  // =========================
+  const satuanOptions = [
+    "pcs",
+    "cup",
+    "botol",
+    "liter",
+    "kg",
+    "gram"
+  ];
+
+  // =========================
+  // FETCH
+  // =========================
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "/products"
+      );
+
+      setProducts(res.data);
+
+    } catch (err) {
+
+      console.error(err);
+    }
+  };
+
+  const fetchCategories = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "/categories"
+      );
+
+      setCategories(res.data);
+
+    } catch (err) {
+
+      console.error(err);
+    }
+  };
+
+  // =========================
+  // SEARCH
+  // =========================
+  const filteredProducts =
+    products.filter(product => {
+
+      const keyword =
+        search.toLowerCase();
+
+      const productMatch =
+        product.nama
+          .toLowerCase()
+          .includes(keyword);
+
+      const variantMatch =
+        (product.variants || []).some(v =>
+          v.nama_variant
+            .toLowerCase()
+            .includes(keyword)
+        );
+
+      return (
+        productMatch ||
+        variantMatch
+      );
+    });
+
+  // =========================
+  // CREATE CATEGORY
+  // =========================
+  const handleCreateCategory =
+    async () => {
+
+      if (!customCategory) return;
+
+      try {
+
+        const res = await axios.post(
+          "/categories",
+          {
+            name: customCategory
+          }
+        );
+
+        setCategories([
+          ...categories,
+          res.data
+        ]);
+
+        setProductForm({
+          ...productForm,
+          categoryId: res.data.id
+        });
+
+        setCustomCategory("");
+
+      } catch (err) {
+
+        alert("Gagal tambah kategori");
+      }
+    };
+
+  // =========================
+  // CREATE PRODUCT
+  // =========================
+  const createProduct = async () => {
+
+    try {
+
+      await axios.post(
+        "/products",
+        productForm
+      );
+
+      setProductForm({
+        nama: "",
+        categoryId: "",
+        satuan: "",
+        keterangan: "",
+        harga: "",
+        stok: "",
+        berat: ""
+      });
+
+      fetchProducts();
+
+    } catch (err) {
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal tambah product"
+      );
+    }
+  };
+
+  // =========================
+  // CREATE VARIANT
+  // =========================
+  const createVariant = async () => {
+
+    try {
+
+      await axios.post(
+        "/variants",
+        variantForm
+      );
+
+      setVariantForm({
+        productId: "",
+        nama_variant: "",
+        harga: "",
+        stok: "",
+        berat: ""
+      });
+
+      fetchProducts();
+
+    } catch (err) {
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal tambah variant"
+      );
+    }
+  };
+
+  // =========================
+  // DELETE PRODUCT
+  // =========================
+  const deleteProduct = async (id) => {
+
+    if (
+      !window.confirm(
+        "Nonaktifkan product?"
+      )
+    ) return;
+
+    await axios.delete(
+      `/products/${id}`
+    );
+
+    fetchProducts();
+  };
+
+  // =========================
+  // DELETE VARIANT
+  // =========================
+  const deleteVariant = async (id) => {
+
+    if (
+      !window.confirm(
+        "Nonaktifkan variant?"
+      )
+    ) return;
+
+    await axios.delete(
+      `/variants/${id}`
+    );
+
+    fetchProducts();
+  };
+
+  // =========================
+  // EDIT PRODUCT
+  // =========================
+  const handleEditProduct = (
+    product
+  ) => {
+
+    setEditProduct({
+      productId: product.id,
+      nama: product.nama,
+      categoryId: product.categoryId,
+      satuan: product.satuan,
+      keterangan:
+        product.keterangan || ""
+    });
+  };
+
+  // =========================
+  // UPDATE PRODUCT
+  // =========================
+  const updateProduct = async () => {
+
+    try {
+
+      await axios.put(
+        `/products/${editProduct.productId}`,
+        {
+          nama: editProduct.nama,
+          categoryId:
+            editProduct.categoryId,
+          satuan:
+            editProduct.satuan,
+          keterangan:
+            editProduct.keterangan
+        }
+      );
+
+      setEditProduct(null);
+
+      fetchProducts();
+
+    } catch (err) {
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal update product"
+      );
+    }
+  };
+
+  // =========================
+  // UPDATE VARIANT
+  // =========================
+  const updateVariant = async () => {
+
+    try {
+
+      await axios.put(
+        `/variants/${editVariant.id}`,
+        {
+          nama_variant:
+            editVariant.nama_variant,
+          harga:
+            editVariant.harga,
+          stok:
+            editVariant.stok,
+          berat:
+            editVariant.berat
+        }
+      );
+
+      setEditVariant(null);
+
+      fetchProducts();
+
+    } catch (err) {
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal update variant"
+      );
+    }
+  };
+
+  // =========================
+  // UI
+  // =========================
+  return (
+    <div className="p-6 space-y-5">
+
+      {/* ========================= */}
+      {/* CREATE PRODUCT */}
+      {/* ========================= */}
+      <Card extra="p-5">
+
+        <h2 className="font-bold text-lg mb-4">
+          Tambah Product
+        </h2>
+
+        <div className="grid grid-cols-3 gap-3">
+
+          <input
+            placeholder="Nama Product"
+            value={productForm.nama}
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                nama: e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <div className="flex gap-2">
+
+            <select
+              value={productForm.categoryId}
+              onChange={(e) =>
+                setProductForm({
+                  ...productForm,
+                  categoryId:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded w-full"
+            >
+              <option value="">
+                Pilih Kategori
+              </option>
+
+              {categories.map(c => (
+                <option
+                  key={c.id}
+                  value={c.id}
+                >
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              placeholder="Tambah"
+              value={customCategory}
+              onChange={(e) =>
+                setCustomCategory(
+                  e.target.value
+                )
+              }
+              className="border p-2 rounded"
+            />
+
+            <button
+              onClick={
+                handleCreateCategory
+              }
+              className="bg-green-500 text-white px-3 rounded"
+            >
+              +
+            </button>
+
+          </div>
+
+          <select
+            value={productForm.satuan}
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                satuan:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          >
+            <option value="">
+              Pilih Satuan
+            </option>
+
+            {satuanOptions.map(
+              (s, i) => (
+                <option
+                  key={i}
+                  value={s}
+                >
+                  {s}
+                </option>
+              )
+            )}
+          </select>
+
+          <input
+            type="number"
+            placeholder="Harga Default"
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                harga:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <input
+            type="number"
+            placeholder="Stok Default"
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                stok:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <input
+            type="number"
+            placeholder="Berat Variant"
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                berat:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <textarea
+            placeholder="Keterangan Product"
+            value={
+              productForm.keterangan
+            }
+            onChange={(e) =>
+              setProductForm({
+                ...productForm,
+                keterangan:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded col-span-3"
+          />
+
+        </div>
+
+        <button
+          onClick={createProduct}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Tambah Product
+        </button>
+
+      </Card>
+
+      {/* ========================= */}
+      {/* CREATE VARIANT */}
+      {/* ========================= */}
+      <Card extra="p-5">
+
+        <h2 className="font-bold mb-3">
+          Tambah Variant
+        </h2>
+
+        <div className="grid grid-cols-5 gap-2">
+
+          <select
+            value={variantForm.productId}
+            onChange={(e) =>
+              setVariantForm({
+                ...variantForm,
+                productId:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          >
+            <option value="">
+              Pilih Product
+            </option>
+
+            {products.map(p => (
+              <option
+                key={p.id}
+                value={p.id}
+              >
+                {p.nama}
+              </option>
+            ))}
+          </select>
+
+          <input
+            placeholder="Nama Variant"
+            onChange={(e) =>
+              setVariantForm({
+                ...variantForm,
+                nama_variant:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <input
+            type="number"
+            placeholder="Harga"
+            onChange={(e) =>
+              setVariantForm({
+                ...variantForm,
+                harga:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <input
+            type="number"
+            placeholder="Stok"
+            onChange={(e) =>
+              setVariantForm({
+                ...variantForm,
+                stok:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+          <input
+            type="number"
+            placeholder="Berat"
+            onChange={(e) =>
+              setVariantForm({
+                ...variantForm,
+                berat:
+                  e.target.value
+              })
+            }
+            className="border p-2 rounded"
+          />
+
+        </div>
+
+        <button
+          onClick={createVariant}
+          className="mt-3 bg-green-500 text-white px-4 py-2 rounded"
+        >
+          Tambah Variant
+        </button>
+
+      </Card>
+
+      {/* ========================= */}
+      {/* SEARCH */}
+      {/* ========================= */}
+      <input
+        placeholder="Search product / variant..."
+        value={search}
+        onChange={(e) =>
+          setSearch(
+            e.target.value
+          )
+        }
+        className="border p-2 rounded w-full"
+      />
+
+      {/* ========================= */}
+      {/* PRODUCTS */}
+      {/* ========================= */}
+      <Card extra="p-5">
+
+        <h2 className="font-bold text-lg mb-4">
+          Daftar Product
+        </h2>
+
+        {filteredProducts.map(product => (
+
+          <div
+            key={product.id}
+            className="border rounded-xl p-4 mb-4"
+          >
+
+            <div className="flex justify-between">
+
+              <div>
+
+                <h2 className="font-bold text-lg">
+                  {product.nama}
+                </h2>
+
+                <p>
+                  Kategori:
+                  {" "}
+                  {product.Category?.name}
+                </p>
+
+                <p>
+                  Satuan:
+                  {" "}
+                  {product.satuan}
+                </p>
+
+                <p>
+                  Keterangan:
+                  {" "}
+                  {
+                    product.keterangan ||
+                    "-"
+                  }
+                </p>
+
+                <p>
+                  Total Stok:
+                  {" "}
+                  {
+                    (product.variants || [])
+                      .reduce(
+                        (sum, v) =>
+                          sum + v.stok,
+                        0
+                      )
+                  }
+                </p>
+
+              </div>
+
+              <div className="flex gap-2">
+
+                <button
+                  onClick={() =>
+                    handleEditProduct(
+                      product
+                    )
+                  }
+                  className="bg-blue-500 text-white px-3 py-1 rounded h-fit"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() =>
+                    deleteProduct(
+                      product.id
+                    )
+                  }
+                  className="bg-red-500 text-white px-3 py-1 rounded h-fit"
+                >
+                  Nonaktifkan
+                </button>
+
+                <button
+                  onClick={() =>
+                    setOpenedProduct(
+                      openedProduct ===
+                        product.id
+                        ? null
+                        : product.id
+                    )
+                  }
+                  className="bg-gray-200 px-3 py-1 rounded h-fit"
+                >
+                  {
+                    openedProduct ===
+                    product.id
+                      ? "Tutup"
+                      : "Detail"
+                  }
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* VARIANTS */}
+            {openedProduct ===
+              product.id && (
+
+              <div className="mt-4 border-t pt-4">
+
+                {(product.variants || [])
+                  .map(v => (
+
+                    <div
+                      key={v.id}
+                      className="border rounded p-3 mb-3"
+                    >
+
+                      <h3 className="font-bold">
+                        #{v.nama_variant}
+                      </h3>
+
+                      <p>
+                        Berat:
+                        {" "}
+                        {v.berat} gr
+                      </p>
+
+                      <p>
+                        Harga:
+                        {" "}
+                        Rp {v.harga}
+                      </p>
+
+                      <p>
+                        Stok:
+                        {" "}
+                        {v.stok}
+                      </p>
+
+                      <div className="flex gap-2 mt-2">
+
+                        <button
+                          onClick={() =>
+                            setEditVariant(v)
+                          }
+                          className="bg-yellow-400 px-3 py-1 rounded"
+                        >
+                          Edit Variant
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            deleteVariant(v.id)
+                          }
+                          className="bg-red-500 text-white px-3 py-1 rounded"
+                        >
+                          Nonaktifkan
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+        ))}
+
+      </Card>
+
+      {/* ========================= */}
+      {/* EDIT PRODUCT */}
+      {/* ========================= */}
+      {editProduct && (
+
+        <Card extra="p-5">
+
+          <h2 className="font-bold text-lg mb-4">
+            Edit Product
+          </h2>
+
+          <div className="grid grid-cols-2 gap-3">
+
+            <input
+              value={editProduct.nama}
+              onChange={(e) =>
+                setEditProduct({
+                  ...editProduct,
+                  nama:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+            <select
+              value={
+                editProduct.categoryId
+              }
+              onChange={(e) =>
+                setEditProduct({
+                  ...editProduct,
+                  categoryId:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            >
+              {categories.map(c => (
+                <option
+                  key={c.id}
+                  value={c.id}
+                >
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={
+                editProduct.satuan
+              }
+              onChange={(e) =>
+                setEditProduct({
+                  ...editProduct,
+                  satuan:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            >
+              {satuanOptions.map(
+                (s, i) => (
+                  <option
+                    key={i}
+                    value={s}
+                  >
+                    {s}
+                  </option>
+                )
+              )}
+            </select>
+
+            <textarea
+              value={
+                editProduct.keterangan
+              }
+              onChange={(e) =>
+                setEditProduct({
+                  ...editProduct,
+                  keterangan:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded col-span-2"
+            />
+
+          </div>
+
+          <div className="flex gap-2 mt-4">
+
+            <button
+              onClick={updateProduct}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={() =>
+                setEditProduct(null)
+              }
+              className="bg-gray-400 text-white px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </Card>
+
+      )}
+
+      {/* ========================= */}
+      {/* EDIT VARIANT */}
+      {/* ========================= */}
+      {editVariant && (
+
+        <Card extra="p-5">
+
+          <h2 className="font-bold text-lg mb-4">
+            Edit Variant
+          </h2>
+
+          <div className="grid grid-cols-2 gap-3">
+
+            <input
+              value={
+                editVariant.nama_variant
+              }
+              onChange={(e) =>
+                setEditVariant({
+                  ...editVariant,
+                  nama_variant:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+            <input
+              type="number"
+              value={
+                editVariant.harga
+              }
+              onChange={(e) =>
+                setEditVariant({
+                  ...editVariant,
+                  harga:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+            <input
+              type="number"
+              value={
+                editVariant.stok
+              }
+              onChange={(e) =>
+                setEditVariant({
+                  ...editVariant,
+                  stok:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+            <input
+              type="number"
+              value={
+                editVariant.berat
+              }
+              onChange={(e) =>
+                setEditVariant({
+                  ...editVariant,
+                  berat:
+                    e.target.value
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+          </div>
+
+          <div className="flex gap-2 mt-4">
+
+            <button
+              onClick={updateVariant}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={() =>
+                setEditVariant(null)
+              }
+              className="bg-gray-400 text-white px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </Card>
+
+      )}
+
+    </div>
+  );
+}
+
+
+==============================================================================
+wabots-pos-mvc\client\src\views\admin\reports\Reports.jsx :
+
+import React, { useEffect, useState, useRef } from "react";
+import axios from "../../../utils/axiosInstance";
+
+import SummaryCards from "./components/SummaryCards";
+import SalesChart from "./components/SalesChart";
+import TopProducts from "./components/TopProducts";
+import Filter from "./components/Filter";
+import TransactionTable from "./components/TransactionTable";
+import { exportReportPDF } from "../../../utils/exportReportPDF";
+import OngoingOrders from "./components/OngoingOrders";
+import { exportReportExcel } from "../../../utils/exportReportExcel";
+
+export default function Reports() {
+    const reportRef = useRef();
+    const [data, setData] = useState(null);
+const [error, setError] = useState("");
+    const [filter, setFilter] = useState({
+        startDate: "",
+        endDate: "",
+        groupBy: "day"
+    });
+
+ const fetchData = async (params) => {
+
+  try {
+
+    setError("");
+
+    const res = await axios.get(
+      "/reports",
+      { params }
+    );
+
+    console.log(res.data);
+
+    setData(res.data);
+
+  } catch (err) {
+
+    console.error(err);
+
+    setError(
+      err.response?.data?.message ||
+      "Gagal mengambil report"
+    );
+  }
+};
+
+    useEffect(() => {
+        const today = new Date();
+        const last30Days = new Date();
+        last30Days.setDate(today.getDate() - 30);
+
+
+        const defaultFilter = {
+            startDate: last30Days.toISOString().split("T")[0],
+            endDate: today.toISOString().split("T")[0],
+            groupBy: "day"
+        };
+
+        setFilter(defaultFilter);
+        fetchData(defaultFilter);
+    }, []);
+
+    if (error) {
+
+  return (
+    <div className="p-6 text-red-500">
+      {error}
+    </div>
+  );
+}
+
+    if (!data) return <div>Loading...</div>;
+
+    const safeData = data || {
+    summary: {
+        totalRevenue: 0,
+        totalOrders: 0,
+        avgOrderValue: 0
+    },
+    trends: [],
+    topProducts: [],
+    transactions: [],
+    ongoingOrders: []
+};
+
+
+    const isEmpty =
+        safeData.summary.totalOrders === 0 &&
+        safeData.trends.length === 0 &&
+        safeData.topProducts.length === 0;
+
+    return (
+
+        <div className="p-6" ref={reportRef}>
+
+            <Filter onFilterChange={(f) => {
+                setFilter(f);
+                fetchData(f);
+            }} />
+            {
+  safeData.transactions.length === 0 && (
+    <div className="bg-yellow-50 text-yellow-700 p-3 rounded mb-4">
+      Belum ada transaksi completed pada rentang tanggal ini.
+    </div>
+  )
+}
+            <button
+                onClick={() => exportReportPDF(data, filter)}
+                className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+            >
+                Export PDF
+            </button>
+
+            <SummaryCards data={safeData.summary} />
+
+            <SalesChart data={safeData.trends} />
+
+            <TopProducts data={safeData.topProducts} />
+
+            <TransactionTable data={safeData.transactions} />
+
+            <OngoingOrders data={safeData.ongoingOrders} />
+
+        </div>
+
+    );
+}
+
+==============================================================================
+wabots-pos-mvc\client\src\views\auth\Login.jsx :
+
+import React, { useState } from "react";
+import axios from "utils/axiosInstance";
+import { useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+const handleLogin = async () => {
+  try {
+    const res = await axios.post("/auth/login", {
+      username,
+      password,
+    });
+
+    localStorage.setItem("token", res.data.token);
+
+    window.dispatchEvent(new Event("userChanged"));
+
+    navigate("/admin/dashboard");
+
+    console.log("LOGIN SUCCESS:", res.data);
+
+  } catch (err) {
+    alert(err?.response?.data?.message || "Login gagal");
+  }
+};
+
+  return (
+    <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-navy-800">
+      
+      {/* HEADER */}
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold text-navy-700 dark:text-white">
+          Wabots POS
+        </h1>
+        <p className="text-sm text-gray-500">
+          Selamat datang di sistem Point of Sales berbasis AI
+        </p>
+      </div>
+
+      {/* FORM */}
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-gray-600">Username</label>
+          <input
+            type="text"
+            placeholder="Masukkan username"
+            className="mt-1 w-full rounded-lg border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm text-gray-600">Password</label>
+          <input
+            type="password"
+            placeholder="Masukkan password"
+            className="mt-1 w-full rounded-lg border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button
+          onClick={handleLogin}
+          className="w-full rounded-lg bg-blue-600 py-2 text-white font-semibold hover:bg-blue-700 transition"
+        >
+          Login
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
+==============================================================================
+wabots-pos-mvc\client\src\App.jsx :
+
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import RtlLayout from "layouts/rtl";
+import AdminLayout from "layouts/admin";
+import AuthLayout from "layouts/auth";
+import ProtectedRoute from "utils/ProtectedRoute";
+
+const App = () => {
+  return (
+    <Routes>
+      <Route path="auth/*" element={<AuthLayout />} />
+      <Route
+        path="admin/*"
+        element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="rtl/*" element={<RtlLayout />} />
+      <Route path="/" element={<Navigate to="/auth/login" />} />
+      {/* <Route path="/" element={<Navigate to="/admin" replace />} /> */}
+    </Routes>
+  );
+};
+
+export default App;
+
+==============================================================================
+wabots-pos-mvc\client\src\routes.js :
+
+import React from "react";
+
+// Admin Imports
+import MainDashboard from "views/admin/default";
+import NFTMarketplace from "views/admin/marketplace";
+import Profile from "views/admin/profile";
+import DataTables from "views/admin/tables";
+import RTLDefault from "views/rtl/default";
+
+import Products from "views/admin/products/Products";
+import Orders from "views/admin/orders/Orders";
+import CreateOrder from "views/admin/orders/CreateOrder";
+import Dashboard from "views/admin/dashboard/Dashboard";
+import Reports from "views/admin/reports/Reports";
+import PaymentPage from "views/admin/payment/PaymentPage";
+import ProtectedRoute from "utils/ProtectedRoute";
+import BusinessSettings from "views/admin/business/BusinessSettings";
+import ChatDashboard from "views/admin/chat/ChatDashboard";
+
+
+import PublicRoute from "utils/PublicRoute";
+import Login from "views/auth/Login";
+// import Payment from "views/admin/payment/:orderId";
+
+// Auth Imports
+import SignIn from "views/auth/SignIn";
+
+// Icon Imports
+import {
+  MdHome,
+  MdShoppingCart,
+  MdReceipt,
+  MdAddBox,
+  MdBarChart,
+  MdPayment,
+  MdStore,
+  MdChat,
+} from "react-icons/md";
+
+const routes = [
+  {
+    name: "Dashboard",
+    layout: "/admin",
+    path: "dashboard",
+    icon: <MdHome className="h-6 w-6" />,
+    component: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+  },
+  {
+    name: "Products",
+    layout: "/admin",
+    path: "products",
+    icon: <MdShoppingCart className="h-6 w-6" />,
+    component: <ProtectedRoute><Products /></ProtectedRoute>,
+  },
+  {
+    name: "Orders",
+    layout: "/admin",
+    path: "orders",
+    icon: <MdReceipt className="h-6 w-6" />,
+    component: <ProtectedRoute><Orders /></ProtectedRoute>,
+  },
+
+  {
+    name: "Business",
+    layout: "/admin",
+    path: "business",
+    icon: <MdStore className="h-6 w-6" />,
+    component: (
+      <ProtectedRoute>
+        <BusinessSettings />
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+  name: "Chats",
+  layout: "/admin",
+  path: "chats",
+  icon: <MdChat className="h-6 w-6" />,
+  component: (
+    <ProtectedRoute>
+      <ChatDashboard />
+    </ProtectedRoute>
+  ),
+},
+  {
+    name: "Reports",
+    layout: "/admin",
+    path: "reports",
+    icon: <MdBarChart className="h-6 w-6" />,
+    component: <ProtectedRoute><Reports /></ProtectedRoute>,
+  },
+
+];
+export default routes;

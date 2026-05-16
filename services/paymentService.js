@@ -137,48 +137,6 @@ try {
 return transaction;
 };
 
-// exports.handleWebhook = async (req, res) => {
-//   const data = req.body;
-
-//   const order = await Order.findByPk(data.order_id, {
-//     include: [
-//       { model: Customer, as: "customer" },
-//       {
-//         model: OrderItem,
-//         as: "items",
-//         include: [{ model: ProductVariant, as: "variant" }]
-//       }
-//     ]
-//   });
-
-//   if (!order) return res.status(404).json({ message: "Order tidak ditemukan" });
-
-//   if (data.transaction_status === "settlement") {
-
-//     // potong stok & update status
-//     await orderService.completePayment(order.id);
-
-//     // simpan ke payment table
-//     await Payment.create({
-//       orderId: order.id,
-//       businessId: order.businessId,
-
-//       customerName: order.customer.name,
-//       customerPhone: order.customer.phoneNumber,
-
-//       totalPrice: order.totalPrice,
-//       paidAmount: order.totalPrice,
-
-//       method: data.payment_type,
-//       status: data.transaction_status,
-
-//       midtransResponse: data
-//     });
-//   }
-
-//   res.json({ success: true });
-// };
-
 exports.savePayment = async (order, midtransData) => {
   return await Payment.create({
     orderId: order.id,
@@ -196,20 +154,3 @@ exports.savePayment = async (order, midtransData) => {
     midtransResponse: midtransData
   });
 };
-
-// exports.handleMidtransWebhook = async (req, res) => {
-//   const data = req.body;
-
-//   if (data.transaction_status === "settlement") {
-
-//     const order = await Order.findByPk(data.order_id, {
-//       include: ["customer", "items"]
-//     });
-
-//     await orderService.completePayment(order.id);
-
-//     await paymentService.savePayment(order, data);
-//   }
-
-//   res.json({ success: true });
-// };
