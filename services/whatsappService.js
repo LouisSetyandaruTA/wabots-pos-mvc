@@ -4,71 +4,55 @@ exports.setWhatsAppClient = (client) => {
   clientInstance = client;
 };
 
-exports.sendWhatsAppMessage = async (
-  phone,
-  message
-) => {
-
+exports.sendWhatsAppMessage = async (phone, message) => {
   try {
-
     if (!clientInstance) {
-
-      console.log(
-        "CLIENT BELUM READY"
-      );
+      console.log("CLIENT BELUM READY");
 
       return;
     }
 
     // NORMALISASI
-    let cleanPhone = phone
-      .replace(/\D/g, "");
+    let cleanPhone = phone.replace(/\D/g, "");
 
     // 08 → 628
     if (cleanPhone.startsWith("0")) {
-
-      cleanPhone =
-        "62" + cleanPhone.slice(1);
+      cleanPhone = "62" + cleanPhone.slice(1);
     }
-    if (
-      cleanPhone.length < 10
-    ) {
-
-      console.log(
-        "NOMOR INVALID:",
-        cleanPhone
-      );
+    if (cleanPhone.length < 10) {
+      console.log("NOMOR INVALID:", cleanPhone);
 
       return;
     }
 
-    const chatId =
-      `${cleanPhone}@c.us`;
+    const chatId = `${cleanPhone}@c.us`;
 
-    console.log(
-      "KIRIM WA KE:",
-      chatId
-    );
+    console.log("KIRIM WA KE:", chatId);
 
-    console.log(
-      "ISI PESAN:",
-      message
-    );
+    console.log("ISI PESAN:", message);
+
+    // ====================================
+    // DOKUMENTASI
+    // Menampilkan log pengiriman WA
+    // ====================================
+
+    console.log("TARGET:", chatId);
+
+    console.log("PESAN:");
+
+    console.log(message);
 
     await clientInstance.sendMessage(
       chatId,
-      message
+
+      message,
     );
 
-    console.log(
-      "WA BERHASIL TERKIRIM"
-    );
+    console.log("WA BERHASIL TERKIRIM");
 
+    console.log("WA BERHASIL TERKIRIM");
   } catch (err) {
-
-    console.error(
-      "SEND WA ERROR:"
-    );
+    console.error("SEND WA ERROR:");
 
     console.error(err);
   }

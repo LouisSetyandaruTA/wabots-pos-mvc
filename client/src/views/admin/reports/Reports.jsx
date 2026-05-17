@@ -11,119 +11,98 @@ import OngoingOrders from "./components/OngoingOrders";
 import { exportReportExcel } from "../../../utils/exportReportExcel";
 
 export default function Reports() {
-    const reportRef = useRef();
-    const [data, setData] = useState(null);
-const [error, setError] = useState("");
-    const [filter, setFilter] = useState({
-        startDate: "",
-        endDate: "",
-        groupBy: "day"
-    });
+  const reportRef = useRef();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState({
+    startDate: "",
+    endDate: "",
+    groupBy: "day",
+  });
 
- const fetchData = async (params) => {
+  const fetchData = async (params) => {
+    try {
+      setError("");
 
-  try {
+      const res = await axios.get("/reports", { params });
 
-    setError("");
+      console.log(res.data);
 
-    const res = await axios.get(
-      "/reports",
-      { params }
-    );
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
 
-    console.log(res.data);
+      setError(err.response?.data?.message || "Gagal mengambil report");
+    }
+  };
 
-    setData(res.data);
+  useEffect(() => {
+    const today = new Date();
+    const last30Days = new Date();
+    last30Days.setDate(today.getDate() - 30);
 
-  } catch (err) {
+    const defaultFilter = {
+      startDate: last30Days.toISOString().split("T")[0],
+      endDate: today.toISOString().split("T")[0],
+      groupBy: "day",
+    };
 
-    console.error(err);
+    setFilter(defaultFilter);
+    fetchData(defaultFilter);
+  }, []);
 
-    setError(
-      err.response?.data?.message ||
-      "Gagal mengambil report"
-    );
+  if (error) {
+    return <div className="p-6 text-red-500">{error}</div>;
   }
-};
 
-    useEffect(() => {
-        const today = new Date();
-        const last30Days = new Date();
-        last30Days.setDate(today.getDate() - 30);
+  if (!data) return <div>Loading...</div>;
 
-
-        const defaultFilter = {
-            startDate: last30Days.toISOString().split("T")[0],
-            endDate: today.toISOString().split("T")[0],
-            groupBy: "day"
-        };
-
-        setFilter(defaultFilter);
-        fetchData(defaultFilter);
-    }, []);
-
-    if (error) {
-
-  return (
-    <div className="p-6 text-red-500">
-      {error}
-    </div>
-  );
-}
-
-    if (!data) return <div>Loading...</div>;
-
-    const safeData = data || {
+  const safeData = data || {
     summary: {
-        totalRevenue: 0,
-        totalOrders: 0,
-        avgOrderValue: 0
+      totalRevenue: 0,
+      totalOrders: 0,
+      avgOrderValue: 0,
     },
     trends: [],
     topProducts: [],
     transactions: [],
-    ongoingOrders: []
-};
+    ongoingOrders: [],
+  };
 
+  const isEmpty =
+    safeData.summary.totalOrders === 0 &&
+    safeData.trends.length === 0 &&
+    safeData.topProducts.length === 0;
 
-    const isEmpty =
-        safeData.summary.totalOrders === 0 &&
-        safeData.trends.length === 0 &&
-        safeData.topProducts.length === 0;
-
-    return (
-
-        <div className="p-6" ref={reportRef}>
-
-            <Filter onFilterChange={(f) => {
-                setFilter(f);
-                fetchData(f);
-            }} />
-            {
-  safeData.transactions.length === 0 && (
-    <div className="bg-yellow-50 text-yellow-700 p-3 rounded mb-4">
-      Belum ada transaksi completed pada rentang tanggal ini.
-    </div>
-  )
-}
-            <button
-                onClick={() => exportReportPDF(data, filter)}
-                className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
-            >
-                Export PDF
-            </button>
-
-            <SummaryCards data={safeData.summary} />
-
-            <SalesChart data={safeData.trends} />
-
-            <TopProducts data={safeData.topProducts} />
-
-            <TransactionTable data={safeData.transactions} />
-
-            <OngoingOrders data={safeData.ongoingOrders} />
-
+  return (
+    <div className="p-6" ref={reportRef}>
+      <Filter
+        onFilterChange={(f) => {
+          setFilter(f);
+          fetchData(f);
+        }}
+      />
+      {safeData.transactions.length === 0 && (
+        <div className="mb-4 rounded bg-yellow-50 p-3 text-yellow-700">
+          Belum ada transaksi completed pada rentang tanggal ini.
         </div>
+      )}
+      <button
+        onClick={() => exportReportPDF(data, filter)}
+        className="mb-4 rounded bg-blue-600 px-4 py-2 text-white"
+      >
+        Export PDF
+      </button>
 
-    );
+      <SummaryCards data={safeData.summary} />
+
+      <SalesChart data={safeData.trends} />
+
+      <TopProducts data={safeData.topProducts} />
+
+      <TransactionTable data={safeData.transactions} />
+
+      <OngoingOrders data={safeData.ongoingOrders} />
+    </div>
+  );
 }

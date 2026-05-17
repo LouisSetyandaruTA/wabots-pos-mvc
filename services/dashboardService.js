@@ -2,97 +2,112 @@ const { Order, OrderItem, ProductVariant, Product } = require("../models");
 const sequelize = require("../config/database");
 
 exports.getDashboardData = async (businessId) => {
-
   const totalRevenue = await Order.sum("totalPrice", {
     where: {
-     fulfillmentStatus: "completed",
-      businessId
-    }
+      businessId,
+      status: "paid",
+      fulfillmentStatus: "completed",
+    },
   });
 
   const totalOrders = await Order.count({
-    where: { businessId }
+    where: {
+      businessId,
+      status: ["pending", "approved", "paid"],
+    },
   });
 
   const pendingOrders = await Order.count({
     where: {
+      businessId,
       status: "pending",
-      businessId
-    }
+    },
   });
 
   const paidOrders = await Order.count({
-  where: {
-    businessId,
-    status: "paid"
-  }
-});
-  
+    where: {
+      businessId,
+
+      status: "paid",
+
+      fulfillmentStatus: [
+        "waiting_choice",
+        "waiting_address",
+        "delivery",
+        "ready_pickup",
+        "shipping",
+      ],
+    },
+  });
+
   const readyPickupOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "ready_pickup"
-  }
-});
+    where: {
+      businessId,
+      status: "paid",
+      fulfillmentStatus: "ready_pickup",
+    },
+  });
 
-const shippingOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "shipping"
-  }
-});
+  const shippingOrders = await Order.count({
+    where: {
+      businessId,
+      status: "paid",
+      fulfillmentStatus: ["delivery", "shipping"],
+    },
+  });
 
-const completedOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "completed"
-  }
-});
+  const completedOrders = await Order.count({
+    where: {
+      businessId,
+
+      fulfillmentStatus: "completed",
+    },
+  });
 
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
       "variantId",
-      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"],
     ],
     include: [
       {
         model: Order,
         as: "order",
         attributes: [],
-        where: { businessId }
-      }
+        where: { businessId },
+      },
     ],
     group: ["variantId"],
     order: [[sequelize.literal("totalSold"), "DESC"]],
     limit: 5,
-    raw: true
+    raw: true,
   });
 
-  const variantIds = topProductsRaw.map(p => p.variantId);
+  const variantIds = topProductsRaw.map((p) => p.variantId);
 
- const variants = await ProductVariant.findAll({
-  where: {
-    id: variantIds,
-    status: "active"
-  },
+  const variants = await ProductVariant.findAll({
+    where: {
+      id: variantIds,
+      status: "active",
+    },
     include: [
       {
         model: Product,
         as: "product",
-        attributes: ["nama"]
-      }
+        attributes: ["nama"],
+      },
     ],
     raw: true,
-    nest: true
+    nest: true,
   });
 
-  const topProducts = topProductsRaw.map(p => {
-    const variant = variants.find(v => v.id === p.variantId);
+  const topProducts = topProductsRaw.map((p) => {
+    const variant = variants.find((v) => v.id === p.variantId);
 
     return {
       variantId: p.variantId,
       totalSold: Number(p.totalSold || 0),
-      variant: variant || null
+      variant: variant || null,
     };
   });
 
@@ -102,32 +117,35 @@ const completedOrders = await Order.count({
       [
         sequelize.fn(
           "DATE",
-          sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+          sequelize.fn(
+            "CONVERT_TZ",
+            sequelize.col("createdAt"),
+            "+00:00",
+            "+07:00",
+          ),
         ),
-        "date"
+        "date",
       ],
-      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"],
     ],
     where: {
-  fulfillmentStatus: "completed",
-      businessId
+      fulfillmentStatus: "completed",
+      businessId,
     },
     group: ["date"],
     order: [["date", "ASC"]],
-    raw: true
+    raw: true,
   });
 
-return {
-  totalRevenue: totalRevenue || 0,
-  totalOrders,
-  pendingOrders,
-  paidOrders,
-  readyPickupOrders,
-  shippingOrders,
-  completedOrders,
-  salesPerDay,
-  topProducts
+  return {
+    totalRevenue: totalRevenue || 0,
+    totalOrders,
+    pendingOrders,
+    paidOrders,
+    readyPickupOrders,
+    shippingOrders,
+    completedOrders,
+    salesPerDay,
+    topProducts,
+  };
 };
-};
-
-

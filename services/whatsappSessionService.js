@@ -3,32 +3,35 @@ const sessions = {};
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 
 exports.getSession = (phone) => {
+  const session = sessions[phone];
 
-    const session = sessions[phone];
+  if (!session) return null;
 
-    if (!session) return null;
+  const now = Date.now();
 
-    const now = Date.now();
+  if (now - session.lastActivity > SESSION_TIMEOUT) {
+    delete sessions[phone];
 
-    if (now - session.lastActivity > SESSION_TIMEOUT) {
+    return {
+      expired: true,
+    };
+  }
 
-        delete sessions[phone];
-
-        return null;
-    }
-
-    return session;
+  return session;
 };
 
 exports.setSession = (phone, data) => {
-
-    sessions[phone] = {
-        ...sessions[phone],
-        ...data,
-        lastActivity: Date.now()
-    };
+  sessions[phone] = {
+    ...sessions[phone],
+    ...data,
+    lastActivity: Date.now(),
+  };
 };
 
 exports.clearSession = (phone) => {
-    delete sessions[phone];
+  delete sessions[phone];
+};
+
+exports.isSessionExpired = (session) => {
+  return session?.expired === true;
 };

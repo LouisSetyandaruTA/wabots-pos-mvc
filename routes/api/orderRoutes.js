@@ -5,14 +5,12 @@ const authMiddleware = require("../../middlewares/authMiddleware");
 router.get("/", authMiddleware, orderController.getOrders);
 router.post("/", authMiddleware, orderController.createOrder);
 router.put("/:id/approve", authMiddleware, orderController.approveOrder);
+router.put("/:id/reject", authMiddleware, orderController.rejectOrder);
 router.put("/:id/payment", authMiddleware, orderController.completePayment);
 router.get("/:id", authMiddleware, orderController.getOrderById);
 router.delete("/:id", authMiddleware, orderController.deleteOrder);
-router.post("/:id/pay",authMiddleware,orderController.payOrder);
-router.put(
-  "/:id/complete",
-  authMiddleware,
-  orderController.completeOrder
-);
+router.post("/:id/pay", authMiddleware, orderController.payOrder);
+router.put("/:id/complete", authMiddleware, orderController.completeOrder);
+router.put("/send/:id", authMiddleware, orderController.sendOrder);
 
 module.exports = router;

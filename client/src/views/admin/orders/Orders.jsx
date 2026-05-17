@@ -10,7 +10,7 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       const res = await axios.get("/orders", {
-        params: { search, status }
+        params: { search, status },
       });
       setOrders(res.data.data);
     } catch (err) {
@@ -27,57 +27,64 @@ export default function Orders() {
     }
   };
   const pay = async (id) => {
-
     try {
+      const res = await axios.post(`/orders/${id}/pay`);
 
-      const res = await axios.post(
-        `/orders/${id}/pay`
-      );
-
-      alert(
-        "Pembayaran berhasil dikirim ke WhatsApp customer"
-      );
+      alert("Pembayaran berhasil dikirim ke WhatsApp customer");
 
       fetchOrders();
-
     } catch (err) {
-
       console.error(err);
 
-      alert(
-        err.response?.data?.message ||
-        "Gagal mengirim pembayaran"
-      );
+      alert(err.response?.data?.message || "Gagal mengirim pembayaran");
+    }
+  };
+
+  const reject = async (id) => {
+    try {
+      await axios.put(`/orders/${id}/reject`);
+
+      alert("Pesanan ditolak");
+
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+
+      alert(err.response?.data?.message || "Gagal menolak order");
+    }
+  };
+
+  const sendOrder = async (id) => {
+    try {
+      await axios.put(`/orders/send/${id}`);
+
+      alert("Pesanan sedang dikirim");
+
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+
+      alert(err.response?.data?.message || "Gagal mengirim pesanan");
     }
   };
 
   const completeOrder = async (id) => {
+    try {
+      await axios.put(`/orders/${id}/complete`);
 
-  try {
+      alert("Order selesai");
 
-    await axios.put(
-      `/orders/${id}/complete`
-    );
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
 
-    alert("Order selesai");
-
-    fetchOrders();
-
-  } catch (err) {
-
-    console.error(err);
-
-    alert(
-      err.response?.data?.message ||
-      "Gagal menyelesaikan order"
-    );
-  }
-};
+      alert(err.response?.data?.message || "Gagal menyelesaikan order");
+    }
+  };
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString("id-ID");
   };
-
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -106,19 +113,19 @@ export default function Orders() {
 
   return (
     <div className="p-6">
-      <div className="flex gap-2 mb-4">
+      <div className="mb-4 flex gap-2">
         <input
           type="text"
           placeholder="Cari order / customer..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border p-2 rounded w-full"
+          className="w-full rounded border p-2"
         />
 
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="border p-2 rounded"
+          className="rounded border p-2"
         >
           <option value="">Semua</option>
           <option value="pending">Pending</option>
@@ -132,11 +139,10 @@ export default function Orders() {
         <option value="approved">Approved</option>
         <option value="paid">Paid</option>
       </select>
-      <h2 className="text-xl font-bold mb-4">Order Management</h2>
+      <h2 className="mb-4 text-xl font-bold">Order Management</h2>
 
-      <div className="bg-white rounded-xl shadow p-4">
-        <table className="w-full text-sm text-left">
-
+      <div className="rounded-xl bg-white p-4 shadow">
+        <table className="w-full text-left text-sm">
           <thead className="border-b">
             <tr>
               <th className="py-2">ID</th>
@@ -152,7 +158,6 @@ export default function Orders() {
           <tbody>
             {orders.map((order) => (
               <React.Fragment key={order.id}>
-
                 {/* ROW UTAMA */}
                 <tr className="border-b hover:bg-gray-50">
                   <td className="py-2">{order.id.slice(0, 8)}...</td>
@@ -162,7 +167,7 @@ export default function Orders() {
                       <div className="font-semibold">
                         {order.customer?.name || "-"}
                       </div>
-                      <div className="text-gray-500 text-sm">
+                      <div className="text-sm text-gray-500">
                         {order.customer?.phoneNumber || "-"}
                       </div>
                     </div>
@@ -171,108 +176,152 @@ export default function Orders() {
 
                   <td>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${order.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : order.status === "approved"
+                      className={`rounded px-2 py-1 text-xs font-semibold ${
+                        order.status === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : order.status === "approved"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-green-100 text-green-700"
-                        }`}
+                      }`}
                     >
                       {order.status}
                     </span>
                   </td>
 
                   <td className="space-x-2">
-                    {["pending", "cancelled"].includes(order.status) && (
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded text-xs"
-                      >
-                        Hapus
-                      </button>
-                    )}
+                    {/* ======================
+                    PENDING
+                    ====================== */}
 
                     {order.status === "pending" && (
-                      <button
-                        onClick={() => approve(order.id)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
-                      >
-                        Approve
-                      </button>
+                      <>
+                        <button
+                          onClick={() => approve(order.id)}
+                          className="rounded bg-blue-500 px-3 py-1 text-xs text-white"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() => reject(order.id)}
+                          className="rounded bg-red-500 px-3 py-1 text-xs text-white"
+                        >
+                          Tidak Approve
+                        </button>
+                      </>
                     )}
+
+                    {/* ======================
+                    APPROVED
+                    ====================== */}
 
                     {order.status === "approved" && (
                       <button
                         onClick={() => pay(order.id)}
-                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                        className="rounded bg-green-500 px-3 py-1 text-xs text-white"
                       >
                         Bayar
                       </button>
                     )}
 
-                   {order.status === "paid" &&
- order.fulfillmentStatus ===
-  "ready_pickup" && (
+                    {/* ======================
+                    PICKUP
+                    ====================== */}
 
-                       <button
-  onClick={() =>
-    completeOrder(order.id)
-  }
-  className="bg-green-500 text-white px-3 py-1 rounded text-xs"
->
-  Sudah Diambil
-</button>
+                    {order.status === "paid" &&
+                      order.deliveryMethod === "pickup" &&
+                      order.fulfillmentStatus === "ready_pickup" && (
+                        <button
+                          onClick={() => completeOrder(order.id)}
+                          className="rounded bg-green-500 px-3 py-1 text-xs text-white"
+                        >
+                          Sudah Diambil
+                        </button>
                       )}
 
-                   {order.status === "paid" &&
- order.fulfillmentStatus ===
-  "on_delivery" && (
+                    {/* ====================== 
+                    DELIVERY STEP 1 
+                    ====================== */}
 
-                     <button
-  onClick={() =>
-    completeOrder(order.id)
-  }
-  className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
->
-  Sudah Sampai
-</button>
+                    {order.status === "paid" &&
+                      order.deliveryMethod === "delivery" &&
+                      order.fulfillmentStatus === "delivery" && (
+                        <button
+                          onClick={() => sendOrder(order.id)}
+                          className="rounded bg-orange-500 px-3 py-1 text-xs text-white"
+                        >
+                          Kirim Pesanan
+                        </button>
                       )}
 
-                    {order.fulfillmentStatus ===
-                      "completed" && (
-                        <span className="text-green-600 font-semibold text-xs">
-                          ✔ Selesai
-                        </span>
+                    {/* ======================
+                    DELIVERY STEP 2
+                    ====================== */}
+
+                    {order.status === "paid" &&
+                      order.deliveryMethod === "delivery" &&
+                      order.fulfillmentStatus === "shipping" && (
+                        <button
+                          onClick={() => completeOrder(order.id)}
+                          className="rounded bg-blue-500 px-3 py-1 text-xs text-white"
+                        >
+                          Sudah Sampai
+                        </button>
                       )}
+
+                    {order.fulfillmentStatus === "completed" && (
+                      <span
+                        className="text-xsfont-semiboldtext-green-600"
+                      >
+                        ✔ Selesai
+                      </span>
+                    )}
                   </td>
+  
                   <td>
                     <span className="text-xs font-semibold">
-
-                      {order.fulfillmentStatus ===
-                        "waiting_choice" &&
+                      {order.fulfillmentStatus === "waiting_choice" &&
                         "Menunggu Pilihan"}
 
-                      {order.fulfillmentStatus ===
-                        "waiting_address" &&
+                      {order.fulfillmentStatus === "waiting_address" &&
                         "Menunggu Alamat"}
 
-                      {order.fulfillmentStatus ===
-                        "ready_pickup" &&
+                      {order.fulfillmentStatus === "delivery" &&
+                        "Menunggu Dikirim"}
+
+                      {order.fulfillmentStatus === "ready_pickup" &&
                         "Siap Diambil"}
 
-                      {order.fulfillmentStatus ===
-                        "on_delivery" &&
+                      {order.fulfillmentStatus === "shipping" &&
                         "Sedang Dikirim"}
 
-                      {order.fulfillmentStatus ===
-                        "completed" &&
-                        "Selesai"}
-
+                      {order.fulfillmentStatus === "completed" && "Selesai"}
                     </span>
 
                     {order.deliveryMethod && (
-                      <div className="text-xs text-gray-500">
-                        {order.deliveryMethod}
+                      <div>
+                        <div
+                          className="
+text-xs
+text-gray-500
+"
+                        >
+                          {order.deliveryMethod}
+                        </div>
+
+                        {order.deliveryMethod === "delivery" &&
+                          order.deliveryAddress && (
+                            <div
+                              className="
+mt-1
+text-xs
+text-blue-600
+"
+                            >
+                              📍
+                              {order.deliveryAddress}
+                            </div>
+                          )}
                       </div>
                     )}
                   </td>
@@ -283,11 +332,7 @@ export default function Orders() {
                   <td colSpan="7" className="p-2">
                     {order.items?.length > 0 ? (
                       order.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="text-xs border-b py-1"
-                        >
-
+                        <div key={item.id} className="border-b py-1 text-xs">
                           <div className="font-semibold">
                             {item.variant?.product?.nama || "-"}
                           </div>
@@ -303,29 +348,24 @@ export default function Orders() {
                           </div>
 
                           <div className="text-gray-600">
-                            Harga:
-                            Rp {item.unitPrice}
+                            Harga: Rp {item.unitPrice}
                           </div>
 
-                          <div className="text-gray-700 font-semibold">
-                            Subtotal:
-                            Rp {item.subtotal}
+                          <div className="font-semibold text-gray-700">
+                            Subtotal: Rp {item.subtotal}
                           </div>
-
                         </div>
                       ))
                     ) : (
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-xs text-gray-400">
                         Tidak ada item
                       </span>
                     )}
                   </td>
                 </tr>
-
               </React.Fragment>
             ))}
           </tbody>
-
         </table>
       </div>
     </div>

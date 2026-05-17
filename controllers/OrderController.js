@@ -8,7 +8,7 @@ exports.createOrder = async (req, res) => {
     const payload = {
       ...req.body,
       userId: req.user.id,
-      businessId: req.user.businessId
+      businessId: req.user.businessId,
     };
 
     const data = await orderService.createOrder(payload);
@@ -21,24 +21,17 @@ exports.createOrder = async (req, res) => {
 
 // APPROVE
 exports.approveOrder = async (req, res) => {
-
   try {
-
-    const data =
-      await orderService.approveOrder(
-        req.params.id
-      );
+    const data = await orderService.approveOrder(req.params.id);
 
     res.json({
       success: true,
-      data
+      data,
     });
-
   } catch (err) {
-
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -52,16 +45,14 @@ exports.completePayment = async (req, res) => {
   }
 };
 
-
 exports.getOrders = async (req, res) => {
   try {
     const data = await orderService.getAllOrders(
       req.user.businessId,
-      req.query 
+      req.query,
     );
 
     res.json({ success: true, data });
-
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -73,12 +64,12 @@ exports.createPayment = async (req, res) => {
 
     res.json({
       success: true,
-      paymentUrl: url
+      paymentUrl: url,
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -89,7 +80,7 @@ exports.getOrderById = async (req, res) => {
 
     res.json({
       success: true,
-      data: order
+      data: order,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -101,54 +92,70 @@ exports.deleteOrder = async (req, res) => {
     await orderService.deleteOrder(req.params.id);
 
     res.json({ success: true });
-
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
 };
 exports.payOrder = async (req, res) => {
-
   try {
-
-    const data =
-      await paymentService.createPayment(
-        req.params.id
-      );
+    const data = await paymentService.createPayment(req.params.id);
 
     res.json({
       success: true,
-      data
+      data,
     });
-
   } catch (err) {
-
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
 
-exports.completeOrder =
-  async (req, res) => {
+exports.completeOrder = async (req, res) => {
+  try {
+    const data = await orderService.completeOrder(req.params.id);
 
-    try {
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
-      const data =
-        await orderService.completeOrder(
-          req.params.id
-        );
+exports.sendOrder = async (req, res) => {
+  try {
+    const data = await orderService.sendOrder(req.params.id);
 
-      res.json({
-        success: true,
-        data
-      });
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
-    } catch (err) {
+exports.rejectOrder = async (req, res) => {
+  try {
+    const data = await orderService.rejectOrder(req.params.id);
 
-      res.status(400).json({
-        success: false,
-        message: err.message
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};

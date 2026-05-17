@@ -1,0 +1,1358 @@
+wabots-pos-mvc\client\src\views\admin\orders\Orders.jsx :
+
+import React, { useEffect, useState } from "react";
+import axios from "../../../utils/axiosInstance";
+import { useLocation } from "react-router-dom";
+
+export default function Orders() {
+  const [orders, setOrders] = useState([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("/orders", {
+        params: { search, status }
+      });
+      setOrders(res.data.data);
+    } catch (err) {
+      console.error("ORDERS ERROR:", err.response?.data || err.message);
+    }
+  };
+  const approve = async (id) => {
+    try {
+      await axios.put(`/orders/${id}/approve`);
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert(JSON.stringify(err?.response?.data || err.message));
+    }
+  };
+  const pay = async (id) => {
+
+    try {
+
+      const res = await axios.post(
+        `/orders/${id}/pay`
+      );
+
+      alert(
+        "Pembayaran berhasil dikirim ke WhatsApp customer"
+      );
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal mengirim pembayaran"
+      );
+    }
+  };
+
+  /*
+==================================================
+FUNGSI KIRIM PESANAN DELIVERY
+==================================================
+
+Digunakan ketika admin menekan tombol:
+"Kirim Pesanan"
+
+Flow:
+
+waiting_delivery
+↓
+on_delivery
+
+Lalu sistem otomatis mengirim WA:
+
+"Pesanan Anda sedang dikirim"
+
+==================================================
+*/
+
+  const sendOrder = async (id) => {
+
+    try {
+
+      await axios.put(
+        `/orders/send/${id}`
+      );
+
+      alert(
+        "Pesanan sedang dikirim"
+      );
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal mengirim pesanan"
+      );
+
+    }
+
+  };
+
+  const completeOrder = async (id) => {
+
+    try {
+
+      await axios.put(
+        `/orders/${id}/complete`
+      );
+
+      alert("Order selesai");
+
+      fetchOrders();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+        "Gagal menyelesaikan order"
+      );
+    }
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString("id-ID");
+  };
+
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchOrders();
+    }, 400);
+
+    return () => clearTimeout(delay);
+  }, [search, status]);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Yakin hapus order?")) return;
+
+    try {
+      await axios.delete(`/orders/${id}`);
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || "Gagal hapus");
+    }
+  };
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearch(params.get("search") || "");
+  }, [location.search]);
+
+  
+  return (
+    <div className="p-6">
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Cari order / customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="">Semua</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+      <select onChange={(e) => setStatus(e.target.value)}>
+        <option value="">Semua</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="paid">Paid</option>
+      </select>
+      <h2 className="text-xl font-bold mb-4">Order Management</h2>
+
+      <div className="bg-white rounded-xl shadow p-4">
+        <table className="w-full text-sm text-left">
+
+          <thead className="border-b">
+            <tr>
+              <th className="py-2">ID</th>
+              <th>Waktu</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Aksi</th>
+              <th>Fulfillment</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {orders.map((order) => (
+              <React.Fragment key={order.id}>
+
+                {/* ROW UTAMA */}
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-2">{order.id.slice(0, 8)}...</td>
+                  <td>{formatDate(order.createdAt)}</td>
+                  <td>
+                    <div>
+                      <div className="font-semibold">
+                        {order.customer?.name || "-"}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {order.customer?.phoneNumber || "-"}
+                      </div>
+                    </div>
+                  </td>
+                  <td>Rp {order.totalPrice}</td>
+
+                  <td>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${order.status === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : order.status === "approved"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-green-100 text-green-700"
+                        }`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+
+                  <td className="space-x-2">
+
+{/* ======================
+ORDER BELUM DIBAYAR
+====================== */}
+
+{
+order.status==="approved" && (
+
+<button
+onClick={()=>pay(order.id)}
+className="
+bg-green-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+>
+Bayar
+</button>
+
+)
+}
+
+
+{/* ======================
+PICKUP
+====================== */}
+
+{
+order.status==="paid" &&
+order.deliveryMethod==="pickup" &&
+order.fulfillmentStatus==="ready_pickup" && (
+
+<button
+
+onClick={()=>
+completeOrder(order.id)
+}
+
+className="
+bg-green-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+
+>
+
+Sudah Diambil
+
+</button>
+
+)
+}
+
+
+{/* ======================
+DELIVERY STEP 1
+ADMIN KIRIM PESANAN
+====================== */}
+
+{
+order.status==="paid" &&
+order.deliveryMethod==="delivery" &&
+order.fulfillmentStatus==="delivery" && (
+
+<button
+
+onClick={()=>
+sendOrder(order.id)
+}
+
+className="
+bg-orange-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+
+>
+
+Kirim Pesanan
+
+</button>
+
+)
+}
+
+
+{/* ======================
+DELIVERY STEP 2
+PESANAN SUDAH SAMPAI
+====================== */}
+
+{
+order.status==="paid" &&
+order.deliveryMethod==="delivery" &&
+order.fulfillmentStatus==="shipping" && (
+
+<button
+
+onClick={()=>
+completeOrder(order.id)
+}
+
+className="
+bg-blue-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+
+>
+
+Sudah Sampai
+
+</button>
+
+)
+}
+
+</td>
+
+                  {/* <td className="space-x-2">
+                    {["pending", "cancelled"].includes(order.status) && (
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Hapus
+                      </button>
+                    )}
+
+                    {order.status === "pending" && (
+                      <button
+                        onClick={() => approve(order.id)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Approve
+                      </button>
+                    )}
+
+                    {order.status === "approved" && (
+                      <button
+                        onClick={() => pay(order.id)}
+                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Bayar
+                      </button>
+                    )}
+
+                    {order.status === "paid" &&
+                      order.fulfillmentStatus ===
+                      "ready_pickup" && (
+
+                        <button
+                          onClick={() =>
+                            completeOrder(order.id)
+                          }
+                          className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                        >
+                          Sudah Diambil
+                        </button>
+                      )}
+
+                    {
+                      order.status === "paid" &&
+                      order.deliveryMethod === "delivery" &&
+                      String(
+                        order.fulfillmentStatus
+                      ).trim() === "delivery" && (
+
+                        <button
+                          onClick={() =>
+                            sendOrder(order.id)
+                          }
+                          className="
+bg-orange-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+                        >
+
+                          Kirim Pesanan
+
+                        </button>
+
+                      )
+                    }
+
+                    {
+                      order.status === "paid" &&
+                      order.deliveryMethod === "delivery" &&
+                      String(
+                        order.fulfillmentStatus
+                      ).trim() === "shipping" && (
+
+                        <button
+                          onClick={() =>
+                            completeOrder(
+                              order.id
+                            )
+                          }
+                          className="
+bg-blue-500
+text-white
+px-3
+py-1
+rounded
+text-xs
+"
+                        >
+
+                          Sudah Sampai
+
+                        </button>
+
+                      )
+                    }
+
+                    {order.fulfillmentStatus ===
+                      "completed" && (
+                        <span className="text-green-600 font-semibold text-xs">
+                          ✔ Selesai
+                        </span>
+                      )}
+                  </td> */}
+                  <td>
+                    <span className="text-xs font-semibold">
+
+                      {order.fulfillmentStatus ===
+                        "waiting_choice" &&
+                        "Menunggu Pilihan"}
+
+                      {order.fulfillmentStatus ===
+                        "waiting_address" &&
+                        "Menunggu Alamat"}
+
+
+                      {order.fulfillmentStatus ===
+
+                        "delivery"
+
+                        &&
+
+                        "Menunggu Dikirim"}
+
+                      {order.fulfillmentStatus ===
+                        "ready_pickup" &&
+                        "Siap Diambil"}
+
+                      {order.fulfillmentStatus ===
+                        "shipping" &&
+                        "Sedang Dikirim"}
+
+                      {order.fulfillmentStatus ===
+                        "completed" &&
+                        "Selesai"}
+
+                    </span>
+
+                    {order.deliveryMethod && (
+
+                      <div>
+
+                        <div
+                          className="
+text-xs
+text-gray-500
+"
+                        >
+
+                          {order.deliveryMethod}
+
+                        </div>
+
+                        {order.deliveryMethod === "delivery"
+                          &&
+                          order.deliveryAddress && (
+
+                            <div
+                              className="
+text-xs
+text-blue-600
+mt-1
+"
+                            >
+
+                              📍
+                              {order.deliveryAddress}
+
+                            </div>
+
+                          )}
+
+                      </div>
+
+                    )}
+                  </td>
+                </tr>
+
+                {/* DETAIL */}
+                <tr className="bg-gray-50">
+                  <td colSpan="7" className="p-2">
+                    {order.items?.length > 0 ? (
+                      order.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="text-xs border-b py-1"
+                        >
+
+                          <div className="font-semibold">
+                            {item.variant?.product?.nama || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Variant:
+                            {item.variant?.nama_variant || "-"}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Qty:
+                            {item.quantity}
+                          </div>
+
+                          <div className="text-gray-600">
+                            Harga:
+                            Rp {item.unitPrice}
+                          </div>
+
+                          <div className="text-gray-700 font-semibold">
+                            Subtotal:
+                            Rp {item.subtotal}
+                          </div>
+
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-xs">
+                        Tidak ada item
+                      </span>
+                    )}
+                  </td>
+                </tr>
+
+              </React.Fragment>
+            ))}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+  );
+}
+
+=======================================================================
+wabots-pos-mvc\controllers\OrderController.js :
+
+const orderService = require("../services/orderService");
+const paymentService = require("../services/paymentService");
+const whatsappService = require("../services/whatsappService");
+
+// CREATE
+exports.createOrder = async (req, res) => {
+  try {
+    const payload = {
+      ...req.body,
+      userId: req.user.id,
+      businessId: req.user.businessId
+    };
+
+    const data = await orderService.createOrder(payload);
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// APPROVE
+exports.approveOrder = async (req, res) => {
+
+  try {
+
+    const data =
+      await orderService.approveOrder(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
+  } catch (err) {
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+// PAYMENT SUCCESS (SIMULASI)
+exports.completePayment = async (req, res) => {
+  try {
+    const data = await orderService.completePayment(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+exports.getOrders = async (req, res) => {
+  try {
+    const data = await orderService.getAllOrders(
+      req.user.businessId,
+      req.query
+    );
+
+    res.json({ success: true, data });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.createPayment = async (req, res) => {
+  try {
+    const url = await paymentService.createPayment(req.params.id);
+
+    res.json({
+      success: true,
+      paymentUrl: url
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    await orderService.deleteOrder(req.params.id);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+exports.payOrder = async (req, res) => {
+
+  try {
+
+    const data =
+      await paymentService.createPayment(
+        req.params.id
+      );
+
+    res.json({
+      success: true,
+      data
+    });
+
+  } catch (err) {
+
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+exports.completeOrder =
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await orderService.completeOrder(
+          req.params.id
+        );
+
+      res.json({
+        success: true,
+        data
+      });
+
+    } catch (err) {
+
+      res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+  };
+
+exports.sendOrder =
+  async (req, res) => {
+
+    try {
+
+      const data =
+        await orderService.sendOrder(
+          req.params.id
+        );
+
+      res.json({
+
+        success: true,
+        data
+
+      });
+
+    } catch (err) {
+
+      res.status(400).json({
+
+        success: false,
+        message: err.message
+
+      });
+
+    }
+
+  };
+
+  ======================================================================
+  wabots-pos-mvc\models\Order.js :
+
+  const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Order = sequelize.define('Order', {
+  id: {
+    type: DataTypes.UUID,
+    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4
+  },
+  businessId: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+  customerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
+    defaultValue: "pending"
+  },
+  totalPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false
+  },
+  deliveryMethod: {
+    type: DataTypes.ENUM(
+      "pickup",
+      "delivery"
+    ),
+    allowNull: true
+  },
+
+  deliveryAddress: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+
+  fulfillmentStatus: {
+    type: DataTypes.ENUM(
+
+      "waiting_choice",
+      "waiting_address",
+
+      "delivery",
+      "shipping",
+
+      "ready_pickup",
+
+      "completed"
+
+    ),
+    defaultValue: "waiting_choice"
+  }
+}, {
+  tableName: 'orders',
+  freezeTableName: true
+});
+
+module.exports = Order;
+
+========================================================================
+wabots-pos-mvc\routes\api\orderRoutes.js :
+
+const router = require("express").Router();
+const orderController = require("../../controllers/OrderController");
+const authMiddleware = require("../../middlewares/authMiddleware");
+
+router.get("/", authMiddleware, orderController.getOrders);
+router.post("/", authMiddleware, orderController.createOrder);
+router.put("/:id/approve", authMiddleware, orderController.approveOrder);
+router.put("/:id/payment", authMiddleware, orderController.completePayment);
+router.get("/:id", authMiddleware, orderController.getOrderById);
+router.delete("/:id", authMiddleware, orderController.deleteOrder);
+router.post("/:id/pay", authMiddleware, orderController.payOrder);
+router.put(
+  "/:id/complete",
+  authMiddleware,
+  orderController.completeOrder
+);
+router.put(
+  "/send/:id",
+  authMiddleware,
+  orderController.sendOrder
+);
+
+module.exports = router;
+
+========================================================================
+wabots-pos-mvc\services\orderService.js :
+
+const sequelize = require("../config/database");
+const {
+  Order,
+  OrderItem,
+  ProductVariant,
+  Product,
+  Customer,
+  Business
+} = require("../models");
+const { Op } = require("sequelize");
+
+exports.getAllOrders = async (businessId, query) => {
+  const { search = "", status = "" } = query;
+
+  const where = { businessId };
+
+  // SEARCH
+  if (search) {
+    where[Op.or] = [
+      { id: { [Op.like]: `%${search}%` } },
+      { "$customer.name$": { [Op.like]: `%${search}%` } },
+      { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } }
+    ];
+  }
+
+  // FILTER STATUS
+  if (status) {
+    where.status = status;
+  }
+
+  return await Order.findAll({
+
+    where,
+
+    attributes: [
+
+      "id",
+      "businessId",
+      "customerId",
+      "status",
+      "totalPrice",
+
+      /*
+      =========================
+      PAKSA FIELD INI IKUT
+      =========================
+      */
+
+      "deliveryMethod",
+      "deliveryAddress",
+      "fulfillmentStatus",
+
+      "createdAt",
+      "updatedAt"
+
+    ],
+
+    include: [
+
+      {
+        model: Customer,
+        as: "customer",
+        attributes: [
+          "id",
+          "name",
+          "phoneNumber"
+        ]
+      },
+
+      {
+        model: OrderItem,
+        as: "items",
+        include: [
+          {
+            model: ProductVariant,
+            as: "variant",
+
+            include: [
+              {
+                model: Product,
+                as: "product"
+              }
+            ]
+          }
+        ]
+      }
+
+    ],
+
+    order: [
+      ["createdAt", "DESC"]
+    ]
+
+  });
+};
+
+const validateVariant = (variant, qty) => {
+  if (!variant) throw new Error("Variant tidak ditemukan");
+  if (variant.stok < qty) throw new Error("Stok tidak cukup");
+};
+
+exports.createOrder = async (payload) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const {
+      customerId,
+      items,
+      businessId,
+      deliveryMethod,
+      deliveryAddress,
+      fulfillmentStatus
+    } = payload;
+
+    if (!customerId || !items?.length) {
+      throw new Error("Data order tidak valid");
+    }
+
+    let totalPrice = 0;
+
+    const order = await Order.create({
+
+      customerId,
+
+      businessId,
+
+      totalPrice: 0,
+
+      status: "pending",
+
+      deliveryMethod,
+
+      deliveryAddress,
+
+      fulfillmentStatus:
+        fulfillmentStatus ||
+        null
+
+    }, { transaction: t });
+
+    for (const item of items) {
+      const variant = await ProductVariant.findByPk(item.variantId, { transaction: t });
+
+      validateVariant(variant, item.quantity);
+
+      const subtotal = variant.harga * item.quantity;
+      totalPrice += subtotal;
+
+      await OrderItem.create({
+        orderId: order.id,
+        variantId: variant.id,
+        quantity: item.quantity,
+        unitPrice: variant.harga,
+        subtotal
+      }, { transaction: t });
+    }
+
+    await order.update({ totalPrice }, { transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.approveOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (order.status !== "pending") {
+    throw new Error("Order hanya bisa di-approve dari status pending");
+  }
+
+  order.status = "approved";
+  await order.save();
+
+  return order;
+};
+
+exports.completePayment = async (orderId) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          as: "items"
+        }
+      ],
+      transaction: t,
+      lock: t.LOCK.UPDATE
+    });
+
+    if (!order) throw new Error("Order tidak ditemukan");
+    if (order.status === "paid") return order;
+    if (order.status !== "approved") throw new Error("Order belum di-approve");
+
+    for (const item of order.items) {
+      const variant = await ProductVariant.findByPk(item.variantId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      validateVariant(variant, item.quantity);
+
+      await variant.update({
+        stok: variant.stok - item.quantity
+      }, { transaction: t });
+    }
+
+    order.status = "paid";
+    await order.save({ transaction: t });
+
+    await t.commit();
+    return order;
+
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+exports.deleteOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) throw new Error("Order tidak ditemukan");
+
+  if (!["pending", "cancelled"].includes(order.status)) {
+    throw new Error("Order tidak bisa dihapus");
+  }
+
+  await order.destroy();
+};
+
+const {
+  clearSession
+} = require("./whatsappSessionService");
+
+const {
+  ChatSession
+} = require("../models");
+
+const whatsappService =
+  require("./whatsappService");
+
+exports.completeOrder =
+  async (orderId) => {
+
+    const order =
+      await Order.findByPk(
+        orderId,
+        {
+          include: [
+            {
+              model: Customer,
+              as: "customer"
+            },
+            {
+              model: Business,
+              as: "business"
+            }
+          ]
+        }
+      );
+
+    if (!order) {
+
+      throw new Error(
+        "Order tidak ditemukan"
+      );
+    }
+
+    if (order.status !== "paid") {
+
+      throw new Error(
+        "Order belum dibayar"
+      );
+    }
+
+    // =========================
+    // COMPLETE ORDER
+    // =========================
+await order.update({
+
+fulfillmentStatus:
+"completed"
+
+});
+
+    await order.save();
+
+    // =========================
+    // WHATSAPP NOTIFICATION
+    // =========================
+    const phone =
+      order.customer?.phoneNumber;
+
+    if (phone) {
+
+      let message = "";
+
+      // =====================
+      // PICKUP
+      // =====================
+      if (
+
+        order.deliveryMethod ===
+        "pickup"
+
+      ) {
+
+        message =
+
+          `Pesanan Anda telah selesai ✅
+
+Pesanan telah diambil di toko.
+
+Terima kasih telah berbelanja di ${order.business.name} 🙌`;
+
+      }
+
+      else {
+
+        message =
+
+          `Pesanan Anda telah selesai ✅
+
+Pesanan berhasil dikirim dan diterima.
+
+Terima kasih telah berbelanja di ${order.business.name} 🙌`;
+
+      }
+
+      await whatsappService.sendWhatsAppMessage(
+        phone,
+        message
+      );
+
+      // =========================
+      // RESET SESSION MEMORY
+      // =========================
+      clearSession(phone);
+
+      // =========================
+      // NONAKTIFKAN CHAT SESSION
+      // =========================
+      await ChatSession.update(
+        {
+          isActive: false
+        },
+        {
+          where: {
+            customerId:
+              order.customerId,
+
+            businessId:
+              order.businessId
+          }
+        }
+      );
+    }
+
+    return order;
+  };
+
+
+/*
+===================================================
+ADMIN KIRIM PESANAN
+===================================================
+
+delivery
+↓
+shipping
+
+===================================================
+*/
+
+exports.sendOrder = async (orderId) => {
+
+  const order =
+    await Order.findByPk(
+      orderId,
+      {
+        include: [
+          {
+            model: Customer,
+            as: "customer"
+          },
+          {
+            model: Business,
+            as: "business"
+          }
+        ]
+      }
+    );
+
+  if (!order) {
+
+    throw new Error(
+      "Order tidak ditemukan"
+    );
+
+  }
+
+  /*
+  ====================================
+  VALIDASI
+  ====================================
+  */
+
+  if (
+    order.deliveryMethod !== "delivery"
+  ) {
+
+    throw new Error(
+      "Order bukan delivery"
+    );
+
+  }
+
+  if (
+    order.fulfillmentStatus !== "delivery"
+  ) {
+
+    throw new Error(
+      "Status order tidak valid"
+    );
+
+  }
+
+  /*
+  ====================================
+  UBAH STATUS
+  ====================================
+  */
+
+  await order.update({
+
+    fulfillmentStatus: "shipping"
+
+  });
+
+
+  /*
+  ====================================
+  KIRIM WA
+  ====================================
+  */
+
+  await whatsappService.sendWhatsAppMessage(
+
+    order.customer.phoneNumber,
+
+    `Pesanan Anda sedang dikirim 🚚
+
+Toko:
+${order.business.name}
+
+Alamat tujuan:
+${order.deliveryAddress}
+
+Kurir sedang menuju lokasi Anda 😊`
+
+  );
+
+  return order;
+
+};

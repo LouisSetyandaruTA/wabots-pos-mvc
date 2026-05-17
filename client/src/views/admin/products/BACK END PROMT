@@ -569,7 +569,7 @@ exports.createOrder = async (req, res) => {
     const payload = {
       ...req.body,
       userId: req.user.id,
-      businessId: req.user.businessId
+      businessId: req.user.businessId,
     };
 
     const data = await orderService.createOrder(payload);
@@ -582,24 +582,17 @@ exports.createOrder = async (req, res) => {
 
 // APPROVE
 exports.approveOrder = async (req, res) => {
-
   try {
-
-    const data =
-      await orderService.approveOrder(
-        req.params.id
-      );
+    const data = await orderService.approveOrder(req.params.id);
 
     res.json({
       success: true,
-      data
+      data,
     });
-
   } catch (err) {
-
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -613,16 +606,14 @@ exports.completePayment = async (req, res) => {
   }
 };
 
-
 exports.getOrders = async (req, res) => {
   try {
     const data = await orderService.getAllOrders(
       req.user.businessId,
-      req.query 
+      req.query,
     );
 
     res.json({ success: true, data });
-
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -634,12 +625,12 @@ exports.createPayment = async (req, res) => {
 
     res.json({
       success: true,
-      paymentUrl: url
+      paymentUrl: url,
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -650,7 +641,7 @@ exports.getOrderById = async (req, res) => {
 
     res.json({
       success: true,
-      data: order
+      data: order,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -662,57 +653,74 @@ exports.deleteOrder = async (req, res) => {
     await orderService.deleteOrder(req.params.id);
 
     res.json({ success: true });
-
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
 };
 exports.payOrder = async (req, res) => {
-
   try {
-
-    const data =
-      await paymentService.createPayment(
-        req.params.id
-      );
+    const data = await paymentService.createPayment(req.params.id);
 
     res.json({
       success: true,
-      data
+      data,
     });
-
   } catch (err) {
-
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
 
-exports.completeOrder =
-  async (req, res) => {
+exports.completeOrder = async (req, res) => {
+  try {
+    const data = await orderService.completeOrder(req.params.id);
 
-    try {
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
-      const data =
-        await orderService.completeOrder(
-          req.params.id
-        );
+exports.sendOrder = async (req, res) => {
+  try {
+    const data = await orderService.sendOrder(req.params.id);
 
-      res.json({
-        success: true,
-        data
-      });
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
-    } catch (err) {
+exports.rejectOrder = async (req, res) => {
+  try {
+    const data = await orderService.rejectOrder(req.params.id);
 
-      res.status(400).json({
-        success: false,
-        message: err.message
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 
 =============================================================
 wabots-pos-mvc\controllers\PaymentController.js :
@@ -722,46 +730,34 @@ const { Customer, Order, OrderItem } = require("../models");
 const orderService = require("../services/orderService");
 const paymentService = require("../services/paymentService");
 const whatsappService = require("../services/whatsappService");
+const {
+  setSession,
+  getSession,
+  clearSession,
+} = require("../services/whatsappSessionService");
 
 exports.createPayment = async (req, res) => {
-
   try {
-
-    console.log(
-      "CREATE PAYMENT ORDER:",
-      req.params.orderId
-    );
+    console.log("CREATE PAYMENT ORDER:", req.params.orderId);
 
     // CREATE MIDTRANS
-    const transaction =
-      await paymentService.createPayment(
-        req.params.orderId
-      );
+    const transaction = await paymentService.createPayment(req.params.orderId);
 
     // AMBIL ORDER
-    const order =
-      await Order.findByPk(
-        req.params.orderId,
+    const order = await Order.findByPk(req.params.orderId, {
+      include: [
         {
-          include: [
-            {
-              model: Customer,
-              as: "customer"
-            }
-          ]
-        }
-      );
+          model: Customer,
+          as: "customer",
+        },
+      ],
+    });
 
     // FORMAT PAYMENT TEXT
     let paymentText = "";
 
-    if (
-      transaction.va_numbers &&
-      transaction.va_numbers.length > 0
-    ) {
-
-      const va =
-        transaction.va_numbers[0];
+    if (transaction.va_numbers && transaction.va_numbers.length > 0) {
+      const va = transaction.va_numbers[0];
 
       paymentText = `
 Pesanan Anda telah disetujui ✅
@@ -780,9 +776,7 @@ Rp ${order.totalPrice}
 Link Pembayaran:
 ${transaction.redirect_url}
 `;
-
     } else {
-
       paymentText = `
 Pesanan Anda telah disetujui ✅
 
@@ -797,25 +791,17 @@ ${transaction.redirect_url}
     // KIRIM WHATSAPP
     await whatsappService.sendWhatsAppMessage(
       order.customer.phoneNumber,
-      paymentText
+      paymentText,
     );
 
-    console.log(
-      "MIDTRANS RESPONSE:",
-      transaction
-    );
+    console.log("MIDTRANS RESPONSE:", transaction);
 
     res.json(transaction);
-
   } catch (err) {
-
-    console.error(
-      "CREATE PAYMENT ERROR:",
-      err
-    );
+    console.error("CREATE PAYMENT ERROR:", err);
 
     res.status(500).json({
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -826,20 +812,21 @@ exports.midtransWebhook = async (req, res) => {
 
     console.log("🔥 WEBHOOK:", data.transaction_status);
 
- const order = await Order.findByPk(data.order_id, {
-  include: [
-    {
-      model: Customer,
-      as: "customer"
-    },
-    {
-      model: OrderItem,
-      as: "items"
-    }
-  ]
-});
+    const order = await Order.findByPk(data.order_id, {
+      include: [
+        {
+          model: Customer,
+          as: "customer",
+        },
+        {
+          model: OrderItem,
+          as: "items",
+        },
+      ],
+    });
 
-    if (!order) return res.status(404).json({ message: "Order tidak ditemukan" });
+    if (!order)
+      return res.status(404).json({ message: "Order tidak ditemukan" });
 
     if (order.status === "paid") {
       console.log("⛔ SUDAH PAID, SKIP");
@@ -848,55 +835,46 @@ exports.midtransWebhook = async (req, res) => {
 
     // HANDLE SUCCESS
     if (["settlement", "capture"].includes(data.transaction_status)) {
-
       await orderService.completePayment(order.id);
-      if (!order.customer.phoneNumber) {
-
-  await order.update({
-    deliveryMethod: "pickup",
-    fulfillmentStatus: "ready_pickup"
-  });
-
-}
+      if (order.customer.phoneNumber) {
+        await order.update({
+          deliveryMethod: null,
+          fulfillmentStatus: "waiting_choice",
+        });
+      }
 
       await paymentService.savePayment(order, data);
-       console.log(
-    "KIRIM WA PAYMENT SUCCESS KE:",
-    order.customer.phoneNumber
-  );
+      console.log("KIRIM WA PAYMENT SUCCESS KE:", order.customer.phoneNumber);
 
- await whatsappService.sendWhatsAppMessage(
-  order.customer.phoneNumber,
-`Pembayaran berhasil diterima ✅
+      await whatsappService.sendWhatsAppMessage(
+        order.customer.phoneNumber,
+        `Pembayaran berhasil diterima ✅
 
 Pesanan Anda sedang diproses.
 
 Pilih metode penerimaan pesanan:
 
 1. Ambil di toko
-2. Dikirim`
-);
+2. Dikirim`,
+      );
 
       console.log("✅ SET PAID");
 
-      const {
-  setSession,
-  getSession
-} = require("../services/whatsappSessionService");
+      const customerSession = getSession(order.customer.phoneNumber);
 
-const customerSession =
-  getSession(
-    order.customer.phoneNumber
-  );
+      if (customerSession) {
+        setSession(
+          order.customer.phoneNumber,
 
-setSession(
-  order.customer.phoneNumber,
-  {
-    ...customerSession,
-    step: "waiting_delivery_method",
-    lastOrderId: order.id
-  }
-);
+          {
+            ...customerSession,
+
+            step: "waiting_delivery_method",
+
+            lastOrderId: order.id,
+          },
+        );
+      }
     }
 
     //  HANDLE PENDING)
@@ -907,12 +885,22 @@ setSession(
 
     // 🔥 HANDLE CANCEL
     else if (["cancel", "expire"].includes(data.transaction_status)) {
-      // order.status = "cancelled";
-      await order.save();
+      await order.update({
+        status: "cancelled",
+      });
+
+      await whatsappService.sendWhatsAppMessage(
+        order.customer.phoneNumber,
+
+        `Pembayaran dibatalkan ❌
+
+Silakan lakukan pemesanan ulang.`,
+      );
+
+      clearSession(order.customer.phoneNumber);
     }
 
     res.json({ success: true });
-
   } catch (err) {
     console.error("WEBHOOK ERROR:", err);
     res.status(200).json({ success: true });
@@ -1067,120 +1055,124 @@ module.exports = (req, res, next) => {
 wabots-pos-mvc\models\associations.js :
 
 module.exports = (db) => {
-    const {
-        User,
-        Order,
-        OrderItem,
-        Customer,
-        Product,
-        ProductVariant,
-        Category,
-        Business,
-        Payment,
-        ChatSession,
-        ChatMessage
-    } = db;
+  const {
+    User,
+    Order,
+    OrderItem,
+    Customer,
+    Product,
+    ProductVariant,
+    Category,
+    Business,
+    Payment,
+    ChatSession,
+    ChatMessage,
+  } = db;
 
-    // ======================
-    // BUSINESS RELATIONS
-    // ======================
-    Business.hasMany(User, { foreignKey: "businessId" });
-    User.belongsTo(Business, { foreignKey: "businessId" });
+  // ======================
+  // BUSINESS RELATIONS
+  // ======================
+  Business.hasMany(User, { foreignKey: "businessId" });
+  User.belongsTo(Business, { foreignKey: "businessId" });
 
-    Business.hasMany(Product, { foreignKey: "businessId" });
-    Product.belongsTo(Business, { foreignKey: "businessId" });
+  Business.hasMany(Product, { foreignKey: "businessId" });
+  Product.belongsTo(Business, { foreignKey: "businessId" });
 
-    Business.hasMany(Category, { foreignKey: "businessId" });
-    Category.belongsTo(Business, { foreignKey: "businessId" });
+  Business.hasMany(Category, { foreignKey: "businessId" });
+  Category.belongsTo(Business, { foreignKey: "businessId" });
 
-    Business.hasMany(Customer, { foreignKey: "businessId" });
-    Customer.belongsTo(Business, { foreignKey: "businessId" });
+  Business.hasMany(Customer, { foreignKey: "businessId" });
+  Customer.belongsTo(Business, { foreignKey: "businessId" });
 
-    Business.hasMany(Order, { foreignKey: "businessId" });
-    Order.belongsTo(Business, { foreignKey: "businessId" });
+  Business.hasMany(Order, { foreignKey: "businessId" });
+  Order.belongsTo(Business, {
+    foreignKey: "businessId",
+    as: "business",
+  });
 
-    // ======================
-    // PRODUCT & CATEGORY
-    // ======================
-    Category.hasMany(Product, { foreignKey: "categoryId" });
-    Product.belongsTo(Category, { foreignKey: "categoryId", as: "Category" });
+  // ======================
+  // PRODUCT & CATEGORY
+  // ======================
+  Category.hasMany(Product, { foreignKey: "categoryId" });
+  Product.belongsTo(Category, { foreignKey: "categoryId", as: "Category" });
 
-    Product.hasMany(ProductVariant, {
-        foreignKey: "productId",
-        as: "variants"
-    });
-    ProductVariant.belongsTo(Product, {
-        foreignKey: "productId",
-        as: "product"
-    });
+  Product.hasMany(ProductVariant, {
+    foreignKey: "productId",
+    as: "variants",
+  });
+  ProductVariant.belongsTo(Product, {
+    foreignKey: "productId",
+    as: "product",
+  });
 
-    // ======================
-    // ORDER SYSTEM
-    // ======================
-    Customer.hasMany(Order, { foreignKey: "customerId" });
-    Order.belongsTo(Customer, {
-        foreignKey: "customerId",
-        as: "customer"
-    });
-    Order.hasMany(OrderItem, {
-        foreignKey: "orderId",
-        as: "items"
-    });
+  // ======================
+  // ORDER SYSTEM
+  // ======================
+  Customer.hasMany(Order, { foreignKey: "customerId" });
+  Order.belongsTo(Customer, {
+    foreignKey: "customerId",
+    as: "customer",
+  });
+  Order.hasMany(OrderItem, {
+    foreignKey: "orderId",
+    as: "items",
+  });
 
-    OrderItem.belongsTo(Order, {
-        foreignKey: "orderId",
-        as: "order"
-    });
+  OrderItem.belongsTo(Order, {
+    foreignKey: "orderId",
+    as: "order",
+  });
 
-    OrderItem.belongsTo(ProductVariant, {
-        foreignKey: "variantId",
-        as: "variant"
-    });
+  OrderItem.belongsTo(ProductVariant, {
+    foreignKey: "variantId",
+    as: "variant",
+  });
 
-    ProductVariant.hasMany(OrderItem, {
-        foreignKey: "variantId"
-    });
+  ProductVariant.hasMany(OrderItem, {
+    foreignKey: "variantId",
+  });
 
-    Order.hasOne(Payment, { foreignKey: "orderId" });
-    Payment.belongsTo(Order, { foreignKey: "orderId" });
+  Order.hasOne(Payment, { foreignKey: "orderId" });
+  Payment.belongsTo(Order, { foreignKey: "orderId" });
 
-    Business.hasMany(Payment, { foreignKey: "businessId" });
-    Payment.belongsTo(Business, { foreignKey: "businessId" });
+  Business.hasMany(Payment, { foreignKey: "businessId" });
+  Payment.belongsTo(Business, { foreignKey: "businessId" });
 
-    // =========================
-    // CHAT SESSION
-    // =========================
-    Customer.hasMany(ChatSession, {
-        foreignKey: "customerId",
-        as: "chatSessions"
-    });
+  // =========================
+  // CHAT SESSION
+  // =========================
+  Customer.hasMany(ChatSession, {
+    foreignKey: "customerId",
+    as: "chatSessions",
+  });
 
-    ChatSession.belongsTo(Customer, {
-        foreignKey: "customerId",
-        as: "customer"
-    });
-    Business.hasMany(ChatSession, {
-        foreignKey: "businessId"
-    });
+  ChatSession.belongsTo(Customer, {
+    foreignKey: "customerId",
+    as: "customer",
+  });
+  Business.hasMany(ChatSession, {
+    foreignKey: "businessId",
+  });
 
-    ChatSession.belongsTo(Business, {
-        foreignKey: "businessId",
-        as: "business"
-    });
+  ChatSession.belongsTo(Business, {
+    foreignKey: "businessId",
+    as: "business",
+  });
 
-    // =========================
-    // CHAT MESSAGE
-    // =========================
-    ChatSession.hasMany(ChatMessage, {
-        foreignKey: "sessionId",
-        as: "messages"
-    });
+  // =========================
+  // CHAT MESSAGE
+  // =========================
+  ChatSession.hasMany(ChatMessage, {
+    foreignKey: "sessionId",
+    as: "messages",
+  });
 
-    ChatMessage.belongsTo(ChatSession, {
-        foreignKey: "sessionId",
-        as: "session"
-    });
+  ChatMessage.belongsTo(ChatSession, {
+    foreignKey: "sessionId",
+    as: "session",
+  });
 };
+
 
 ==============================================================
 wabots-pos-mvc\models\Business.js :
@@ -1417,60 +1409,66 @@ module.exports = db;
 ==============================================================
 wabots-pos-mvc\models\Order.js :
 
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
-const Order = sequelize.define('Order', {
-  id: {
-    type: DataTypes.UUID,
-    primaryKey: true,
-    defaultValue: DataTypes.UUIDV4
-  },
-  businessId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  },
-  customerId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-  status: {
-    type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
-    defaultValue: "pending"
-  },
-  totalPrice: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
-  deliveryMethod: {
-    type: DataTypes.ENUM(
-      "pickup",
-      "delivery"
-    ),
-    allowNull: true
-  },
+const Order = sequelize.define(
+  "Order",
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    businessId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    customerId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM("pending", "approved", "paid", "cancelled"),
+      defaultValue: "pending",
+    },
+    totalPrice: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    deliveryMethod: {
+      type: DataTypes.ENUM("pickup", "delivery"),
+      allowNull: true,
+    },
 
-  deliveryAddress: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
+    deliveryAddress: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
 
-  fulfillmentStatus: {
-    type: DataTypes.ENUM(
-      "waiting_choice",
-      "waiting_address",
-      "ready_pickup",
-      "on_delivery",
-      "completed"
-    ),
-    defaultValue: "waiting_choice"
-  }
-}, {
-  tableName: 'orders',
-  freezeTableName: true
-});
+    fulfillmentStatus: {
+      type: DataTypes.ENUM(
+        "waiting_choice",
+        "waiting_address",
+
+        "delivery",
+        "shipping",
+
+        "ready_pickup",
+
+        "completed",
+      ),
+      defaultValue: "waiting_choice",
+    },
+  },
+  {
+    tableName: "orders",
+    freezeTableName: true,
+  },
+);
 
 module.exports = Order;
+
 
 ==============================================================
 wabots-pos-mvc\models\OrderItem.js :
@@ -1854,15 +1852,13 @@ const authMiddleware = require("../../middlewares/authMiddleware");
 router.get("/", authMiddleware, orderController.getOrders);
 router.post("/", authMiddleware, orderController.createOrder);
 router.put("/:id/approve", authMiddleware, orderController.approveOrder);
+router.put("/:id/reject", authMiddleware, orderController.rejectOrder);
 router.put("/:id/payment", authMiddleware, orderController.completePayment);
 router.get("/:id", authMiddleware, orderController.getOrderById);
 router.delete("/:id", authMiddleware, orderController.deleteOrder);
-router.post("/:id/pay",authMiddleware,orderController.payOrder);
-router.put(
-  "/:id/complete",
-  authMiddleware,
-  orderController.completeOrder
-);
+router.post("/:id/pay", authMiddleware, orderController.payOrder);
+router.put("/:id/complete", authMiddleware, orderController.completeOrder);
+router.put("/send/:id", authMiddleware, orderController.sendOrder);
 
 module.exports = router;
 
@@ -2273,97 +2269,112 @@ const { Order, OrderItem, ProductVariant, Product } = require("../models");
 const sequelize = require("../config/database");
 
 exports.getDashboardData = async (businessId) => {
-
   const totalRevenue = await Order.sum("totalPrice", {
     where: {
-     fulfillmentStatus: "completed",
-      businessId
-    }
+      businessId,
+      status: "paid",
+      fulfillmentStatus: "completed",
+    },
   });
 
   const totalOrders = await Order.count({
-    where: { businessId }
+    where: {
+      businessId,
+      status: ["pending", "approved", "paid"],
+    },
   });
 
   const pendingOrders = await Order.count({
     where: {
+      businessId,
       status: "pending",
-      businessId
-    }
+    },
   });
 
   const paidOrders = await Order.count({
-  where: {
-    businessId,
-    status: "paid"
-  }
-});
-  
+    where: {
+      businessId,
+
+      status: "paid",
+
+      fulfillmentStatus: [
+        "waiting_choice",
+        "waiting_address",
+        "delivery",
+        "ready_pickup",
+        "shipping",
+      ],
+    },
+  });
+
   const readyPickupOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "ready_pickup"
-  }
-});
+    where: {
+      businessId,
+      status: "paid",
+      fulfillmentStatus: "ready_pickup",
+    },
+  });
 
-const shippingOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "shipping"
-  }
-});
+  const shippingOrders = await Order.count({
+    where: {
+      businessId,
+      status: "paid",
+      fulfillmentStatus: ["delivery", "shipping"],
+    },
+  });
 
-const completedOrders = await Order.count({
-  where: {
-    businessId,
-    fulfillmentStatus: "completed"
-  }
-});
+  const completedOrders = await Order.count({
+    where: {
+      businessId,
+
+      fulfillmentStatus: "completed",
+    },
+  });
 
   const topProductsRaw = await OrderItem.findAll({
     attributes: [
       "variantId",
-      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"]
+      [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"],
     ],
     include: [
       {
         model: Order,
         as: "order",
         attributes: [],
-        where: { businessId }
-      }
+        where: { businessId },
+      },
     ],
     group: ["variantId"],
     order: [[sequelize.literal("totalSold"), "DESC"]],
     limit: 5,
-    raw: true
+    raw: true,
   });
 
-  const variantIds = topProductsRaw.map(p => p.variantId);
+  const variantIds = topProductsRaw.map((p) => p.variantId);
 
- const variants = await ProductVariant.findAll({
-  where: {
-    id: variantIds,
-    status: "active"
-  },
+  const variants = await ProductVariant.findAll({
+    where: {
+      id: variantIds,
+      status: "active",
+    },
     include: [
       {
         model: Product,
         as: "product",
-        attributes: ["nama"]
-      }
+        attributes: ["nama"],
+      },
     ],
     raw: true,
-    nest: true
+    nest: true,
   });
 
-  const topProducts = topProductsRaw.map(p => {
-    const variant = variants.find(v => v.id === p.variantId);
+  const topProducts = topProductsRaw.map((p) => {
+    const variant = variants.find((v) => v.id === p.variantId);
 
     return {
       variantId: p.variantId,
       totalSold: Number(p.totalSold || 0),
-      variant: variant || null
+      variant: variant || null,
     };
   });
 
@@ -2373,32 +2384,37 @@ const completedOrders = await Order.count({
       [
         sequelize.fn(
           "DATE",
-          sequelize.fn("CONVERT_TZ", sequelize.col("createdAt"), "+00:00", "+07:00")
+          sequelize.fn(
+            "CONVERT_TZ",
+            sequelize.col("createdAt"),
+            "+00:00",
+            "+07:00",
+          ),
         ),
-        "date"
+        "date",
       ],
-      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"]
+      [sequelize.fn("SUM", sequelize.col("totalPrice")), "total"],
     ],
     where: {
-  fulfillmentStatus: "completed",
-      businessId
+      fulfillmentStatus: "completed",
+      businessId,
     },
     group: ["date"],
     order: [["date", "ASC"]],
-    raw: true
+    raw: true,
   });
 
-return {
-  totalRevenue: totalRevenue || 0,
-  totalOrders,
-  pendingOrders,
-  paidOrders,
-  readyPickupOrders,
-  shippingOrders,
-  completedOrders,
-  salesPerDay,
-  topProducts
-};
+  return {
+    totalRevenue: totalRevenue || 0,
+    totalOrders,
+    pendingOrders,
+    paidOrders,
+    readyPickupOrders,
+    shippingOrders,
+    completedOrders,
+    salesPerDay,
+    topProducts,
+  };
 };
 
 =======================================================================
@@ -2470,7 +2486,7 @@ const {
   ProductVariant,
   Product,
   Customer,
-  Business
+  Business,
 } = require("../models");
 const { Op } = require("sequelize");
 
@@ -2484,7 +2500,7 @@ exports.getAllOrders = async (businessId, query) => {
     where[Op.or] = [
       { id: { [Op.like]: `%${search}%` } },
       { "$customer.name$": { [Op.like]: `%${search}%` } },
-      { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } }
+      { "$customer.phoneNumber$": { [Op.like]: `%${search}%` } },
     ];
   }
 
@@ -2495,12 +2511,35 @@ exports.getAllOrders = async (businessId, query) => {
 
   return await Order.findAll({
     where,
+
+    attributes: [
+      "id",
+      "businessId",
+      "customerId",
+      "status",
+      "totalPrice",
+
+      /*
+      =========================
+      PAKSA FIELD INI IKUT
+      =========================
+      */
+
+      "deliveryMethod",
+      "deliveryAddress",
+      "fulfillmentStatus",
+
+      "createdAt",
+      "updatedAt",
+    ],
+
     include: [
       {
         model: Customer,
         as: "customer",
-        attributes: ["id", "name", "phoneNumber"]
+        attributes: ["id", "name", "phoneNumber"],
       },
+
       {
         model: OrderItem,
         as: "items",
@@ -2512,14 +2551,15 @@ exports.getAllOrders = async (businessId, query) => {
             include: [
               {
                 model: Product,
-                as: "product"
-              }
-            ]
-          }
-        ]
-      }
+                as: "product",
+              },
+            ],
+          },
+        ],
+      },
     ],
-    order: [["createdAt", "DESC"]]
+
+    order: [["createdAt", "DESC"]],
   });
 };
 
@@ -2538,7 +2578,7 @@ exports.createOrder = async (payload) => {
       businessId,
       deliveryMethod,
       deliveryAddress,
-      fulfillmentStatus
+      fulfillmentStatus,
     } = payload;
 
     if (!customerId || !items?.length) {
@@ -2547,48 +2587,51 @@ exports.createOrder = async (payload) => {
 
     let totalPrice = 0;
 
-    const order = await Order.create({
+    const order = await Order.create(
+      {
+        customerId,
 
-      customerId,
+        businessId,
 
-      businessId,
+        totalPrice: 0,
 
-      totalPrice: 0,
+        status: "pending",
 
-      status: "pending",
+        deliveryMethod,
 
-      deliveryMethod,
+        deliveryAddress,
 
-      deliveryAddress,
-
-      fulfillmentStatus:
-        fulfillmentStatus ||
-        "waiting_choice"
-
-    }, { transaction: t });
+        fulfillmentStatus: fulfillmentStatus || null,
+      },
+      { transaction: t },
+    );
 
     for (const item of items) {
-      const variant = await ProductVariant.findByPk(item.variantId, { transaction: t });
+      const variant = await ProductVariant.findByPk(item.variantId, {
+        transaction: t,
+      });
 
       validateVariant(variant, item.quantity);
 
       const subtotal = variant.harga * item.quantity;
       totalPrice += subtotal;
 
-      await OrderItem.create({
-        orderId: order.id,
-        variantId: variant.id,
-        quantity: item.quantity,
-        unitPrice: variant.harga,
-        subtotal
-      }, { transaction: t });
+      await OrderItem.create(
+        {
+          orderId: order.id,
+          variantId: variant.id,
+          quantity: item.quantity,
+          unitPrice: variant.harga,
+          subtotal,
+        },
+        { transaction: t },
+      );
     }
 
     await order.update({ totalPrice }, { transaction: t });
 
     await t.commit();
     return order;
-
   } catch (err) {
     await t.rollback();
     throw err;
@@ -2618,11 +2661,11 @@ exports.completePayment = async (orderId) => {
       include: [
         {
           model: OrderItem,
-          as: "items"
-        }
+          as: "items",
+        },
       ],
       transaction: t,
-      lock: t.LOCK.UPDATE
+      lock: t.LOCK.UPDATE,
     });
 
     if (!order) throw new Error("Order tidak ditemukan");
@@ -2632,14 +2675,17 @@ exports.completePayment = async (orderId) => {
     for (const item of order.items) {
       const variant = await ProductVariant.findByPk(item.variantId, {
         transaction: t,
-        lock: t.LOCK.UPDATE
+        lock: t.LOCK.UPDATE,
       });
 
       validateVariant(variant, item.quantity);
 
-      await variant.update({
-        stok: variant.stok - item.quantity
-      }, { transaction: t });
+      await variant.update(
+        {
+          stok: variant.stok - item.quantity,
+        },
+        { transaction: t },
+      );
     }
 
     order.status = "paid";
@@ -2647,7 +2693,6 @@ exports.completePayment = async (orderId) => {
 
     await t.commit();
     return order;
-
   } catch (err) {
     await t.rollback();
     throw err;
@@ -2666,97 +2711,69 @@ exports.deleteOrder = async (orderId) => {
   await order.destroy();
 };
 
-const {
-  clearSession
-} = require("./whatsappSessionService");
+const { clearSession } = require("./whatsappSessionService");
 
-const {
-  ChatSession
-} = require("../models");
+const { ChatSession } = require("../models");
 
-const whatsappService =
-  require("./whatsappService");
+const whatsappService = require("./whatsappService");
 
-exports.completeOrder =
-async (orderId) => {
-
-  const order =
-    await Order.findByPk(orderId, {
-
-      include: [
-        {
-          model: Customer,
-          as: "customer"
-        }
-      ]
-    });
+exports.completeOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId, {
+    include: [
+      {
+        model: Customer,
+        as: "customer",
+      },
+      {
+        model: Business,
+        as: "business",
+      },
+    ],
+  });
 
   if (!order) {
-
-    throw new Error(
-      "Order tidak ditemukan"
-    );
+    throw new Error("Order tidak ditemukan");
   }
 
   if (order.status !== "paid") {
-
-    throw new Error(
-      "Order belum dibayar"
-    );
+    throw new Error("Order belum dibayar");
   }
 
   // =========================
   // COMPLETE ORDER
   // =========================
-  order.fulfillmentStatus =
-    "completed";
+  await order.update({
+    fulfillmentStatus: "completed",
+  });
 
   await order.save();
 
   // =========================
   // WHATSAPP NOTIFICATION
   // =========================
-  const phone =
-    order.customer?.phoneNumber;
+  const phone = order.customer?.phoneNumber;
 
   if (phone) {
-
     let message = "";
 
     // =====================
     // PICKUP
     // =====================
-    if (
-      order.deliveryMethod ===
-      "pickup"
-    ) {
+    if (order.deliveryMethod === "pickup") {
+      message = `Pesanan Anda telah selesai ✅
 
-      message =
-`Pesanan Anda telah selesai ✅
+Pesanan telah diambil di toko.
 
-Pesanan sudah diambil di toko.
-
-Terima kasih telah berbelanja di ManSips 🙌`;
-
-    }
-
-    // =====================
-    // DELIVERY
-    // =====================
-    else {
-
-      message =
-`Pesanan Anda telah selesai ✅
+Terima kasih telah berbelanja di ${order.business.name} 🙌`;
+    } else {
+      message = `Pesanan Anda telah selesai ✅
 
 Pesanan berhasil dikirim dan diterima.
 
-Terima kasih telah berbelanja di ManSips 🙌`;
+Terima kasih telah berbelanja di ${order.business.name} 🙌`;
     }
 
-    await whatsappService.sendWhatsAppMessage(
-      phone,
-      message
-    );
+    await whatsappService.sendWhatsAppMessage(phone, message);
 
     // =========================
     // RESET SESSION MEMORY
@@ -2768,163 +2785,312 @@ Terima kasih telah berbelanja di ManSips 🙌`;
     // =========================
     await ChatSession.update(
       {
-        isActive: false
+        isActive: false,
       },
       {
         where: {
-          customerId:
-            order.customerId,
+          customerId: order.customerId,
 
-          businessId:
-            order.businessId
-        }
-      }
+          businessId: order.businessId,
+        },
+      },
     );
   }
 
   return order;
 };
 
-======================================================================
-wabots-pos-mvc\services\paymentService.js :
+/*
+===================================================
+ADMIN KIRIM PESANAN
+===================================================
 
-const midtransClient = require("midtrans-client");
-const { Order, Payment, Customer, OrderItem, ProductVariant } = require("../models");
-const orderService = require("./orderService");
-const whatsappService =require("./whatsappService");
+delivery
+↓
+shipping
 
-const snap = new midtransClient.Snap({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY,
-  clientKey: process.env.MIDTRANS_CLIENT_KEY
-});
+===================================================
+*/
 
-exports.createPayment = async (orderId) => {
-
+exports.sendOrder = async (orderId) => {
   const order = await Order.findByPk(orderId, {
     include: [
       {
         model: Customer,
-        as: "customer"
+        as: "customer",
       },
       {
-        model: OrderItem,
-        as: "items",
-        include: [
-          {
-            model: ProductVariant,
-            as: "variant"
-          }
-        ]
-      }
-    ]
+        model: Business,
+        as: "business",
+      },
+    ],
   });
 
   if (!order) {
     throw new Error("Order tidak ditemukan");
   }
 
-  const transaction = await snap.createTransaction({
+  /*
+  ====================================
+  VALIDASI
+  ====================================
+  */
 
-    transaction_details: {
-      order_id: order.id,
-      gross_amount: Number(order.totalPrice)
-    },
+  if (order.deliveryMethod !== "delivery") {
+    throw new Error("Order bukan delivery");
+  }
 
-    customer_details: {
-      first_name: order.customer?.name || "Customer",
-      phone: order.customer?.phoneNumber || ""
-    },
+  if (order.fulfillmentStatus !== "delivery") {
+    throw new Error("Status order tidak valid");
+  }
 
-    item_details: order.items.map(item => ({
-      id: item.variantId,
-      price: item.unitPrice,
-      quantity: item.quantity,
-      name: item.variant?.nama_variant || "Item"
-    })),
-
-    enabled_payments: [
-      "bca_va",
-      "bni_va",
-      "permata_va"
-    ],
-
-    bank_transfer: {
-      bank: "bca"
-    }
-
-  });
+  /*
+  ====================================
+  UBAH STATUS
+  ====================================
+  */
 
   await order.update({
-  paymentToken: transaction.token,
-  paymentUrl: transaction.redirect_url
-});
+    fulfillmentStatus: "shipping",
+  });
 
-// =========================
-// AMBIL VA NUMBER
-// =========================
-let paymentText = "";
-
-if (
-  transaction.va_numbers &&
-  transaction.va_numbers.length > 0
-) {
-
-  const va =
-    transaction.va_numbers[0];
-
-  paymentText =
-`Pembayaran Pesanan
-
-Order ID:
-${order.id}
-
-Total:
-Rp ${order.totalPrice}
-
-Metode:
-${va.bank.toUpperCase()} Virtual Account
-
-Nomor VA:
-${va.va_number}
-
-Silakan lakukan pembayaran sebelum transaksi expired.`;
-
-} else {
-
-  paymentText =
-`Pembayaran Pesanan
-
-Order ID:
-${order.id}
-
-Total:
-Rp ${order.totalPrice}
-
-Link Pembayaran:
-${transaction.redirect_url}`;
-}
-
-// =========================
-// KIRIM KE WHATSAPP
-// =========================
-try {
+  /*
+  ====================================
+  KIRIM WA
+  ====================================
+  */
 
   await whatsappService.sendWhatsAppMessage(
     order.customer.phoneNumber,
-    paymentText
+
+    `Pesanan Anda sedang dikirim 🚚
+
+Toko:
+${order.business.name}
+
+Alamat tujuan:
+${order.deliveryAddress}
+
+Kurir sedang menuju lokasi Anda 😊`,
   );
 
-} catch (err) {
+  return order;
+};
 
-  console.error(
-    "GAGAL KIRIM WA:",
-    err.message
+exports.rejectOrder = async (orderId) => {
+  const order = await Order.findByPk(orderId, {
+    include: [
+      {
+        model: Customer,
+        as: "customer",
+      },
+      {
+        model: Business,
+        as: "business",
+      },
+    ],
+  });
+
+  if (!order) {
+    throw new Error("Order tidak ditemukan");
+  }
+
+  if (order.status !== "pending") {
+    throw new Error("Hanya order pending yang dapat ditolak");
+  }
+
+  /*
+  =====================
+  UBAH STATUS
+  =====================
+  */
+
+  await order.update({
+    status: "cancelled",
+  });
+
+  /*
+  =====================
+  KIRIM WHATSAPP
+  =====================
+  */
+
+  await whatsappService.sendWhatsAppMessage(
+    order.customer.phoneNumber,
+
+    `Pesanan Anda tidak dapat diproses ❌
+
+Toko:
+${order.business.name}
+
+Alasan:
+Pesanan tidak valid atau produk sedang tidak tersedia.
+
+Silakan lakukan pemesanan ulang atau hubungi admin 😊`,
   );
 
-}
+  return order;
+};
 
-return transaction;
+
+======================================================================
+wabots-pos-mvc\services\paymentService.js :
+
+const midtransClient = require("midtrans-client");
+const {
+  Order,
+  Payment,
+  Customer,
+  OrderItem,
+  ProductVariant,
+  Product,
+} = require("../models");
+const orderService = require("./orderService");
+const whatsappService = require("./whatsappService");
+
+const snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY,
+});
+
+exports.createPayment = async (orderId) => {
+  try {
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: Customer,
+          as: "customer",
+        },
+        {
+          model: OrderItem,
+          as: "items",
+          include: [
+            {
+              model: ProductVariant,
+              as: "variant",
+
+              include: [
+                {
+                  model: Product,
+                  as: "product",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!order) {
+      throw new Error("Order tidak ditemukan");
+    }
+
+    // ======================================
+    // CEK STATUS
+    // ======================================
+
+    if (order.status !== "approved") {
+      throw new Error("Order belum diapprove");
+    }
+
+    const itemDetails = order.items.map((item) => ({
+      id: item.variantId,
+
+      price: item.unitPrice,
+
+      quantity: item.quantity,
+
+      name: `${item.variant?.product?.nama || "Produk"}
+ - 
+${item.variant?.nama_variant || "Default"}`,
+    }));
+
+    // ======================================
+    // BUAT TRANSAKSI MIDTRANS
+    // ======================================
+    const transaction = await snap.createTransaction({
+      transaction_details: {
+        order_id: order.id,
+        gross_amount: Number(order.totalPrice),
+      },
+
+      customer_details: {
+        first_name: order.customer?.name || "Customer",
+
+        phone: order.customer?.phoneNumber || "",
+      },
+
+      item_details: itemDetails,
+
+      enabled_payments: ["bca_va", "bni_va", "permata_va"],
+
+      bank_transfer: {
+        bank: "bca",
+      },
+    });
+
+    // ======================================
+    // SIMPAN TOKEN
+    // ======================================
+
+    await order.update({
+      paymentToken: transaction.token,
+
+      paymentUrl: transaction.redirect_url,
+    });
+
+    // ======================================
+    // FORMAT PESAN WA
+    // ======================================
+
+    const orderSummary = itemDetails
+      .map(
+        (item) =>
+          `${item.quantity}x ${item.name}
+
+Rp ${Number(item.price).toLocaleString("id-ID")}`,
+      )
+
+      .join("\n");
+
+    let paymentText = `Pesanan Anda telah disetujui ✅
+
+Detail Pesanan:
+
+${orderSummary}
+
+--------------------
+
+Total:
+Rp ${Number(order.totalPrice).toLocaleString("id-ID")}
+
+Silakan pilih metode pembayaran Anda melalui link berikut 😊
+
+${transaction.redirect_url}`;
+
+    // ======================================
+    // KIRIM WA
+    // ======================================
+
+    console.log("KIRIM WA:", order.customer.phoneNumber);
+
+    await whatsappService.sendWhatsAppMessage(
+      order.customer.phoneNumber,
+
+      paymentText,
+    );
+
+    console.log("WA PAYMENT TERKIRIM");
+
+    return transaction;
+  } catch (err) {
+    console.log("PAYMENT ERROR:");
+
+    console.log(err);
+
+    throw err;
+  }
 };
 
 exports.savePayment = async (order, midtransData) => {
@@ -2941,7 +3107,7 @@ exports.savePayment = async (order, midtransData) => {
     method: midtransData.payment_type,
     status: midtransData.transaction_status,
 
-    midtransResponse: midtransData
+    midtransResponse: midtransData,
   });
 };
 
@@ -3486,1127 +3652,1263 @@ module.exports = { getSummaryReport };
 ======================================================================
 wabots-pos-mvc\services\whatsappMessageService.js :
 
-const {
-    isSpamMessage
-} = require("./whatsappSpamService");
+const { isSpamMessage } = require("./whatsappSpamService");
 
 const {
-    getSession,
-    setSession
+  getSession,
+  setSession,
+  clearSession,
+  isSessionExpired,
 } = require("./whatsappSessionService");
 
-const {
-    processCustomerMessage
-} = require("./aiService");
+const { processCustomerMessage } = require("./aiService");
+
+const { Business, Customer, ChatSession, Order } = require("../models");
 
 const {
-    Business,
-    Customer,
-    ChatSession
-} = require("../models");
-
-const {
-    cleanCustomerName,
-    isEmptyMessage,
-    isMediaMessage,
-    isValidCustomerName
+  cleanCustomerName,
+  isEmptyMessage,
+  isMediaMessage,
+  isValidCustomerName,
 } = require("../utils/chatbotUtils");
 
-const {
-    getOrCreateChatSession,
-    saveMessage
-} = require("./chatService");
+const { getOrCreateChatSession, saveMessage } = require("./chatService");
+
+const containsWords = (message, words) => {
+  return words.some((word) =>
+    message.toLowerCase().includes(word.toLowerCase()),
+  );
+};
 
 const getCleanPhoneNumber = async (msg) => {
+  try {
+    const contact = await msg.getContact();
 
-    try {
+    // =========================
+    // NOMOR ASLI WA
+    // =========================
+    let phone = contact.id.user || "";
 
-        const contact =
-            await msg.getContact();
+    // HAPUS SELAIN ANGKA
+    phone = phone.replace(/\D/g, "");
 
-        // =========================
-        // NOMOR ASLI WA
-        // =========================
-        let phone =
-            contact.id.user || "";
-
-        // HAPUS SELAIN ANGKA
-        phone =
-            phone.replace(/\D/g, "");
-
-        // NORMALISASI
-        if (
-            phone.startsWith("0")
-        ) {
-
-            phone =
-                "62" + phone.slice(1);
-        }
-
-        return phone;
-
-    } catch (err) {
-
-        console.log(
-            "GET PHONE ERROR:",
-            err.message
-        );
-
-        return "";
+    // NORMALISASI
+    if (phone.startsWith("0")) {
+      phone = "62" + phone.slice(1);
     }
+
+    return phone;
+  } catch (err) {
+    console.log("GET PHONE ERROR:", err.message);
+
+    return "";
+  }
 };
 const getWhatsAppProfileName = async (msg) => {
+  try {
+    const contact = await msg.getContact();
 
-    try {
-
-        const contact = await msg.getContact();
-
-        return (
-            contact.pushname ||
-            contact.name ||
-            msg.notifyName ||
-            null
-        );
-
-    } catch (err) {
-
-        return null;
-    }
+    return contact.pushname || contact.name || msg.notifyName || null;
+  } catch (err) {
+    return null;
+  }
 };
 
-
 exports.handleIncomingMessage = async (msg) => {
-    try {
+  try {
+    // =========================
+    // FILTER
+    // =========================
+    if (msg.from.includes("@g.us")) return;
+    if (msg.from === "status@broadcast") return;
+    if (msg.fromMe) return;
 
-        // =========================
-        // FILTER
-        // =========================
-        if (msg.from.includes("@g.us")) return;
-        if (msg.from === "status@broadcast") return;
-        if (msg.fromMe) return;
+    const phone = await getCleanPhoneNumber(msg);
+    if (isSpamMessage(phone)) {
+      return await msg.reply(
+        "Terlalu banyak pesan dikirim.\nSilakan tunggu beberapa saat.",
+      );
+    }
 
+    const text = msg.body || "";
+    const lowerText = text.toLowerCase();
 
-        const phone = await getCleanPhoneNumber(msg);
-        if (isSpamMessage(phone)) {
+    // =========================
+    // DETEKSI BUSINESS DARI WA.ME
+    // =========================
 
-            return await msg.reply(
-                "Terlalu banyak pesan dikirim.\nSilakan tunggu beberapa saat."
-            );
-        }
+    const businesses = await Business.findAll();
 
-        const text = msg.body || "";
-        const lowerText = text.toLowerCase();
+    let autoBusiness = null;
 
-        if (isMediaMessage(msg)) {
+    for (const business of businesses) {
+      const businessKeyword = business.name
+        .toLowerCase()
+        .replace(/cv\.?/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 
-            return await msg.reply(
-                "Saat ini bot hanya mendukung pesan teks."
-            );
-        }
+      if (lowerText.includes(businessKeyword)) {
+        autoBusiness = business;
 
-        if (isEmptyMessage(text)) {
+        break;
+      }
+    }
 
-            return await msg.reply(
-                "Pesan tidak boleh kosong."
-            );
-        }
+    // =========================
+    // AMBIL SESSION
+    // =========================
 
+    let session = getSession(phone);
 
-        if (text.toLowerCase() === "/reset") {
+    if (
+      session?.businessId &&
+      autoBusiness &&
+      session.businessId !== autoBusiness.id
+    ) {
+      clearSession(phone);
 
-            const { clearSession } = require("./whatsappSessionService");
+      session = null;
 
-            clearSession(phone);
+      return await msg.reply(
+        `Percakapan sebelumnya dengan ${session?.businessName} telah selesai.
 
-            return await msg.reply(
-                "Session berhasil direset. Silakan kirim pesan kembali."
-            );
-        }
-        if (lowerText === "/help") {
+Anda dialihkan ke ${autoBusiness.name}. Silakan kirim pesan kembali 😊`,
+      );
+    }
 
-            return await msg.reply(
-                `Daftar Command:
+    if (isMediaMessage(msg)) {
+      return await msg.reply("Saat ini bot hanya mendukung pesan teks.");
+    }
+
+    if (isEmptyMessage(text)) {
+      return await msg.reply("Pesan tidak boleh kosong.");
+    }
+
+    if (text.toLowerCase() === "/reset") {
+      const { clearSession } = require("./whatsappSessionService");
+
+      clearSession(phone);
+
+      return await msg.reply(
+        "Session berhasil direset. Silakan kirim pesan kembali.",
+      );
+    }
+    if (lowerText === "/help") {
+      return await msg.reply(
+        `Daftar Command:
 
 /menu  → pilih bisnis ulang
 /reset → reset session
-/help  → bantuan chatbot`
+/help  → bantuan chatbot`,
+      );
+    }
+    if (lowerText === "/menu") {
+      const { clearSession } = require("./whatsappSessionService");
+
+      clearSession(phone);
+
+      const businesses = await Business.findAll();
+
+      let menu = "Silakan pilih bisnis:\n\n";
+
+      businesses.forEach((b, index) => {
+        menu += `${index + 1}. ${b.name}\n`;
+      });
+
+      setSession(phone, {
+        step: "choose_business",
+      });
+
+      return await msg.reply(menu);
+    }
+
+    // =========================
+    // CEK SESSION
+    // =========================
+
+    console.log("SESSION:", session);
+
+    if (isSessionExpired(session)) {
+      return await msg.reply(
+        `Session sebelumnya berakhir otomatis karena tidak ada aktivitas selama 30 menit.
+
+Silakan mulai percakapan kembali 😊`,
+      );
+    }
+    // =========================
+    // JIKA BELUM PILIH BUSINESS
+    // =========================
+    if (!session?.businessId) {
+      // =========================
+      // JIKA BELUM ADA STEP
+      // =========================
+      if (!session?.step) {
+        if (autoBusiness) {
+          const existingCustomer = await Customer.findOne({
+            where: {
+              phoneNumber: phone,
+              businessId: autoBusiness.id,
+            },
+          });
+
+          if (existingCustomer) {
+            const newSession = {
+              businessId: autoBusiness.id,
+
+              businessName: autoBusiness.name,
+
+              customerId: existingCustomer.id,
+
+              customerName: existingCustomer.name,
+
+              step: "chatting",
+            };
+
+            setSession(phone, newSession);
+
+            // update session variable
+            session = newSession;
+
+            return await msg.reply(
+              `Selamat datang kembali ${existingCustomer.name}
+
+Anda terhubung ke ${autoBusiness.name}`,
             );
+          }
+
+          const profileNameRaw = await getWhatsAppProfileName(msg);
+
+          const profileName = cleanCustomerName(profileNameRaw || "");
+
+          const newSession = {
+            businessId: autoBusiness.id,
+
+            businessName: autoBusiness.name,
+
+            profileName,
+            step: "confirm_profile_name",
+          };
+
+          setSession(phone, newSession);
+
+          session = newSession;
+
+          return await msg.reply(
+            `Anda terhubung ke ${autoBusiness.name}
+
+Apakah nama Anda benar:
+
+${profileName}
+
+1. Ya
+2. Ganti Nama`,
+          );
         }
-        if (lowerText === "/menu") {
 
-            const { clearSession } = require("./whatsappSessionService");
+        // FLOW LAMA
+        const businesses = await Business.findAll();
 
-            clearSession(phone);
+        let menu = "Selamat datang.\n\n";
 
-            const businesses = await Business.findAll();
+        menu += "Silakan pilih bisnis:\n\n";
 
-            let menu = "Silakan pilih bisnis:\n\n";
+        businesses.forEach((b, index) => {
+          menu += `${index + 1}. ${b.name}\n`;
+        });
 
-            businesses.forEach((b, index) => {
-                menu += `${index + 1}. ${b.name}\n`;
-            });
+        setSession(phone, {
+          step: "choose_business",
+        });
 
-            setSession(phone, {
-                step: "choose_business"
-            });
+        return await msg.reply(menu);
+      }
 
-            return await msg.reply(menu);
+      // =========================
+      // HANDLE PILIHAN BUSINESS
+      // =========================
+      if (session.step === "choose_business") {
+        const businesses = await Business.findAll();
+
+        let selectedBusiness = null;
+
+        // =========================
+        // PILIH BERDASARKAN ANGKA
+        // =========================
+        const selectedIndex = parseInt(text) - 1;
+
+        if (!isNaN(selectedIndex) && businesses[selectedIndex]) {
+          selectedBusiness = businesses[selectedIndex];
         }
 
         // =========================
-        // CEK SESSION
+        // PILIH BERDASARKAN NAMA
         // =========================
-        const session = getSession(phone);
-        console.log("SESSION:", session);
+        if (!selectedBusiness && text.length >= 3) {
+          selectedBusiness = businesses.find((b) =>
+            b.name.toLowerCase().includes(text.toLowerCase()),
+          );
+        }
 
         // =========================
-        // JIKA BELUM PILIH BUSINESS
+        // JIKA TIDAK DITEMUKAN
         // =========================
-        if (!session?.businessId) {
+        if (!selectedBusiness) {
+          let menu = "Pilihan bisnis tidak valid.\n\n";
+          menu += "Silakan pilih bisnis berikut:\n\n";
 
-            // =========================
-            // JIKA BELUM ADA STEP
-            // =========================
-            if (!session?.step) {
+          businesses.forEach((b, index) => {
+            menu += `${index + 1}. ${b.name}\n`;
+          });
 
-                const businesses = await Business.findAll();
+          return await msg.reply(menu);
+        }
+        const existingCustomer = await Customer.findOne({
+          where: {
+            phoneNumber: phone,
+            businessId: selectedBusiness.id,
+          },
+        });
 
-                let menu = "Selamat datang.\n\n";
-                menu += "Silakan pilih bisnis:\n\n";
+        if (existingCustomer) {
+          const newSession = {
+            businessId: selectedBusiness.id,
+            businessName: selectedBusiness.name,
+            customerId: existingCustomer.id,
+            customerName: existingCustomer.name,
+            step: "chatting",
+          };
 
-                businesses.forEach((b, index) => {
-                    menu += `${index + 1}. ${b.name}\n`;
-                });
+          setSession(phone, newSession);
 
-                setSession(phone, {
-                    step: "choose_business"
-                });
+          session = newSession;
 
-                return await msg.reply(menu);
-            }
+          return await msg.reply(
+            `Selamat datang kembali ${existingCustomer.name}.\n\nAnda terhubung ke ${selectedBusiness.name}.`,
+          );
+        }
 
-            // =========================
-            // HANDLE PILIHAN BUSINESS
-            // =========================
-            if (session.step === "choose_business") {
+        const profileNameRaw = await getWhatsAppProfileName(msg);
 
-                const businesses = await Business.findAll();
+        const profileName = cleanCustomerName(profileNameRaw || "");
 
-                let selectedBusiness = null;
+        const isProfileNameValid = isValidCustomerName(profileName);
 
-                // =========================
-                // PILIH BERDASARKAN ANGKA
-                // =========================
-                const selectedIndex = parseInt(text) - 1;
+        // =========================
+        // JIKA NAMA PROFILE VALID
+        // =========================
+        if (isProfileNameValid) {
+          const newSession = {
+            businessId: selectedBusiness.id,
+            businessName: selectedBusiness.name,
+            profileName,
+            step: "confirm_profile_name",
+          };
 
-                if (!isNaN(selectedIndex) && businesses[selectedIndex]) {
+          setSession(phone, newSession);
 
-                    selectedBusiness = businesses[selectedIndex];
-                }
+          session = newSession;
 
-                // =========================
-                // PILIH BERDASARKAN NAMA
-                // =========================
-               if (!selectedBusiness && text.length >= 3) {
-
-                    selectedBusiness = businesses.find((b) =>
-                        b.name.toLowerCase().includes(text.toLowerCase())
-                    );
-                }
-
-                // =========================
-                // JIKA TIDAK DITEMUKAN
-                // =========================
-                if (!selectedBusiness) {
-
-                    let menu = "Pilihan bisnis tidak valid.\n\n";
-                    menu += "Silakan pilih bisnis berikut:\n\n";
-
-                    businesses.forEach((b, index) => {
-                        menu += `${index + 1}. ${b.name}\n`;
-                    });
-
-                    return await msg.reply(menu);
-                }
-                const existingCustomer = await Customer.findOne({
-                    where: {
-                        phoneNumber: phone,
-                        businessId: selectedBusiness.id
-                    }
-                });
-
-                if (existingCustomer) {
-
-                    setSession(phone, {
-                        businessId: selectedBusiness.id,
-                        businessName: selectedBusiness.name,
-                        customerId: existingCustomer.id,
-                        customerName: existingCustomer.name,
-                        step: "chatting"
-                    });
-
-                    return await msg.reply(
-                        `Selamat datang kembali ${existingCustomer.name}.\n\nAnda terhubung ke ${selectedBusiness.name}.`
-                    );
-                }
-
-                const profileNameRaw = await getWhatsAppProfileName(msg);
-
-                const profileName = cleanCustomerName(profileNameRaw || "");
-
-                const isProfileNameValid =
-                    isValidCustomerName(profileName);
-
-                // =========================
-                // JIKA NAMA PROFILE VALID
-                // =========================
-                if (isProfileNameValid) {
-
-                    setSession(phone, {
-                        businessId: selectedBusiness.id,
-                        businessName: selectedBusiness.name,
-                        profileName,
-                        step: "confirm_profile_name"
-                    });
-
-                    return await msg.reply(
-                        `Anda terhubung ke ${selectedBusiness.name}.
+          return await msg.reply(
+            `Anda terhubung ke ${selectedBusiness.name}.
 
 Apakah nama Anda benar:
 ${profileName} ?
 
 1. Ya
-2. Ganti Nama`
-                    );
-                }
-
-                // =========================
-                // FALLBACK MANUAL INPUT
-                // =========================
-                setSession(phone, {
-                    businessId: selectedBusiness.id,
-                    businessName: selectedBusiness.name,
-                    step: "waiting_name"
-                });
-
-                return await msg.reply(
-                    `Anda terhubung ke ${selectedBusiness.name}.\n\nSiapa nama Anda?`
-                );
-            }
-
+2. Ganti Nama`,
+          );
         }
-        if (session?.step === "confirm_profile_name") {
 
-    // =========================
-    // USER SETUJU
-    // =========================
-    const confirmWords = [
-    "1",
-    "ya",
-    "iya",
-    "y",
-    "yes",
-    "benar",
-    "betul",
-    "ok",
-    "oke"
-];
+        // =========================
+        // FALLBACK MANUAL INPUT
+        // =========================
+        setSession(phone, {
+          businessId: selectedBusiness.id,
+          businessName: selectedBusiness.name,
+          step: "waiting_name",
+        });
 
-if (confirmWords.includes(lowerText))  {
+        return await msg.reply(
+          `Anda terhubung ke ${selectedBusiness.name}.\n\nSiapa nama Anda?`,
+        );
+      }
+    }
+    if (session?.step === "confirm_profile_name") {
+      // =========================
+      // USER SETUJU
+      // =========================
+      const confirmWords = [
+        "1",
+        "ya",
+        "iya",
+        "betul",
+        "benar",
+        "oke",
+        "ok",
+        "yes",
+        "sip",
+        "sesuai",
+        "benar itu",
+        "nama benar",
+      ];
 
+      const changeNameWords = [
+        "2",
+        "ganti",
+        "ubah",
+        "salah",
+        "bukan",
+        "ganti nama",
+        "ubah nama",
+        "nama salah",
+      ];
+
+      const isConfirm = containsWords(lowerText, confirmWords);
+
+      const isChange = containsWords(lowerText, changeNameWords);
+
+      if (isConfirm) {
         let customer = await Customer.findOne({
-            where: {
-                phoneNumber: phone,
-                businessId: session.businessId
-            }
+          where: {
+            phoneNumber: phone,
+            businessId: session.businessId,
+          },
         });
 
         if (!customer) {
+          customer = await Customer.create({
+            name: session.profileName,
+            phoneNumber: phone,
+            businessId: session.businessId,
+          });
 
-            customer = await Customer.create({
-                name: session.profileName,
-                phoneNumber: phone,
-                businessId: session.businessId
-            });
-
-            console.log("NEW CUSTOMER CREATED");
+          console.log("NEW CUSTOMER CREATED");
         }
 
-        setSession(phone, {
-            ...session,
-            customerId: customer.id,
-            customerName: customer.name,
-            step: "chatting"
-        });
+        const newSession = {
+          ...session,
+          customerId: customer.id,
+          customerName: customer.name,
+          step: "chatting",
+        };
+
+        setSession(phone, newSession);
+
+        session = newSession;
 
         return await msg.reply(
-`Halo ${customer.name},
+          `Halo ${customer.name},
 Anda berhasil terhubung ke ${session.businessName}.
 
-Silakan kirim pesanan Anda.`
+Silakan kirim pesanan Anda.`,
         );
-    }
+      }
 
-    // =========================
-    // USER MAU GANTI NAMA
-    // =========================
-    const changeNameWords = [
-    "2",
-    "ganti",
-    "ubah",
-    "ubah nama",
-    "ganti nama",
-    "salah"
-];
+      // =========================
+      // USER MAU GANTI NAMA
+      // =========================
 
-if (changeNameWords.includes(lowerText)) {
-
+      if (isChange) {
         setSession(phone, {
-            ...session,
-            step: "waiting_name"
+          ...session,
+          step: "waiting_name",
+        });
+
+        return await msg.reply("Silakan masukkan nama Anda.");
+      }
+
+      // =========================
+      // INPUT TIDAK VALID
+      // =========================
+      return await msg.reply(
+        `Pilihan tidak valid.
+
+1. Ya
+2. Ganti Nama`,
+      );
+    }
+    if (session?.step === "waiting_name") {
+      const customerName = cleanCustomerName(text);
+      if (!isValidCustomerName(customerName)) {
+        const retryCount = (session.retryCount || 0) + 1;
+
+        // =========================
+        // MAX RETRY
+        // =========================
+        if (retryCount >= 3) {
+          const { clearSession } = require("./whatsappSessionService");
+
+          clearSession(phone);
+
+          return await msg.reply(
+            `Terlalu banyak percobaan gagal.
+
+Session direset otomatis.
+Silakan mulai kembali.`,
+          );
+        }
+
+        // =========================
+        // UPDATE RETRY
+        // =========================
+        setSession(phone, {
+          ...session,
+          retryCount,
         });
 
         return await msg.reply(
-            "Silakan masukkan nama Anda."
-        );
-    }
-
-    // =========================
-    // INPUT TIDAK VALID
-    // =========================
-    return await msg.reply(
-`Pilihan tidak valid.
-
-1. Ya
-2. Ganti Nama`
-    );
-}
-      if (session?.step === "waiting_name") {
-
-            const customerName = cleanCustomerName(text);
-            if (!isValidCustomerName(customerName)) {
-
-                const retryCount = (session.retryCount || 0) + 1;
-
-                // =========================
-                // MAX RETRY
-                // =========================
-                if (retryCount >= 3) {
-
-                    const { clearSession } = require("./whatsappSessionService");
-
-                    clearSession(phone);
-
-                    return await msg.reply(
-                        `Terlalu banyak percobaan gagal.
-
-Session direset otomatis.
-Silakan mulai kembali.`
-                    );
-                }
-
-                // =========================
-                // UPDATE RETRY
-                // =========================
-                setSession(phone, {
-                    ...session,
-                    retryCount
-                });
-
-                return await msg.reply(
-                    `Nama tidak valid.
+          `Nama tidak valid.
 
 Gunakan nama asli.
 Contoh:
 - Budi
 - Arman Hermasyah
 
-Percobaan: ${retryCount}/3`
-                );
-            }
-
-            let customer = await Customer.findOne({
-                where: {
-                    phoneNumber: phone,
-                    businessId: session.businessId
-                }
-            });
-
-            if (!customer) {
-
-                customer = await Customer.create({
-                    name: customerName,
-                    phoneNumber: phone,
-                    businessId: session.businessId
-                });
-
-                console.log("NEW CUSTOMER CREATED");
-            }
-            else {
-
-                console.log("CUSTOMER EXIST");
-            }
-
-            setSession(phone, {
-                ...session,
-                retryCount: 0,
-                customerId: customer.id,
-                customerName: customer.name,
-                step: "chatting"
-            });
-
-            return await msg.reply(
-                `Halo ${customer.name}, Anda berhasil terhubung ke ${session.businessName}.\n\nSilakan kirim pesanan Anda.`
-            );
-        }
-
-        // =========================
-// WAITING DELIVERY METHOD
-// =========================
-if (
-    session?.step ===
-    "waiting_delivery_method"
-) {
-
-    const {
-        Order
-    } = require("../models");
-
-    // =====================
-    // PICKUP
-    // =====================
-    if (
-        lowerText.includes("ambil") ||
-        lowerText === "1"
-    ) {
-
-        await Order.update(
-            {
-                deliveryMethod:
-                    "pickup",
-
-                fulfillmentStatus:
-                    "ready_pickup"
-            },
-            {
-                where: {
-                    id: session.lastOrderId
-                }
-            }
+Percobaan: ${retryCount}/3`,
         );
+      }
 
-        setSession(phone, {
+      let customer = await Customer.findOne({
+        where: {
+          phoneNumber: phone,
+          businessId: session.businessId,
+        },
+      });
+
+      if (!customer) {
+        customer = await Customer.create({
+          name: customerName,
+          phoneNumber: phone,
+          businessId: session.businessId,
+        });
+
+        console.log("NEW CUSTOMER CREATED");
+      } else {
+        console.log("CUSTOMER EXIST");
+      }
+
+      setSession(phone, {
+        ...session,
+        retryCount: 0,
+        customerId: customer.id,
+        customerName: customer.name,
+        step: "chatting",
+      });
+
+      return await msg.reply(
+        `Halo ${customer.name}, Anda berhasil terhubung ke ${session.businessName}.\n\nSilakan kirim pesanan Anda.`,
+      );
+    }
+    if (session?.step === "confirm_finish") {
+      const noWords = [
+        "2",
+        "tidak",
+        "ga",
+        "gak",
+        "nggak",
+        "cukup",
+        "selesai",
+        "udah",
+        "sudah",
+        "tidak ada",
+        "tidak lagi",
+        "engga",
+        "enggak",
+        "makasih cukup",
+        "cukup saja",
+      ];
+
+      const yesWords = [
+        "1",
+        "ya",
+        "iya",
+        "masih",
+        "masih ada",
+        "mau tanya",
+        "ingin tanya",
+        "mau bertanya",
+      ];
+
+      const isNo = containsWords(lowerText, noWords);
+
+      const isYes = containsWords(lowerText, yesWords);
+
+      if (isNo) {
+        clearSession(phone);
+
+        return await msg.reply(
+          `Terima kasih telah menghubungi ${session.businessName} 🙌
+
+Session selesai.`,
+        );
+      }
+
+      setSession(phone, {
+        ...session,
+        step: "chatting",
+      });
+
+      return await msg.reply(
+        `Baik 😊
+
+Silakan lanjutkan pertanyaan Anda.`,
+      );
+    }
+
+    // =========================
+    // WAITING DELIVERY METHOD
+    // =========================
+    if (session?.step === "waiting_delivery_method") {
+      const order = await Order.findByPk(session.lastOrderId, {
+        include: [
+          {
+            model: Business,
+            as: "business",
+          },
+        ],
+      });
+
+      if (!order) {
+        return await msg.reply("Order tidak ditemukan");
+      }
+
+      const business = await Business.findByPk(order.businessId);
+
+      const pickupWords = [
+        "1",
+        "pickup",
+        "ambil",
+        "ambil di toko",
+        "ambil toko",
+        "ke toko",
+        "saya ambil",
+        "ambil sendiri",
+      ];
+
+      const deliveryWords = [
+        "2",
+        "kirim",
+        "delivery",
+        "dikirim",
+        "antar",
+        "diantar",
+        "kirim ke rumah",
+        "antar ke rumah",
+        "di rumah",
+        "kurir",
+      ];
+
+      // PICKUP
+
+      if (pickupWords.some((word) => lowerText.includes(word))) {
+        await order.update({
+          deliveryMethod: "pickup",
+
+          fulfillmentStatus: "ready_pickup",
+        });
+
+        setSession(
+          phone,
+
+          {
             ...session,
+
             step: "chatting",
-            lastOrderId: null
-        });
+          },
+        );
 
         return await msg.reply(
-`Pesanan Anda akan diambil di toko ✅
+          `Pesanan akan diambil di toko ✅
 
-Alamat toko:
-Jl Raya Ketintang No 12 Surabaya
+Nama Toko:
+${business.name}
 
-Pesanan akan segera disiapkan.`
+Alamat:
+${business.address}
+
+Pesanan akan segera disiapkan.`,
         );
-    }
+      }
 
-    // =====================
-    // DELIVERY
-    // =====================
-    if (
-        lowerText.includes("kirim") ||
-        lowerText === "2"
-    ) {
+      // DELIVERY
 
-        const {
-            Order
-        } = require("../models");
+      if (deliveryWords.some((word) => lowerText.includes(word))) {
+        /*
+  =================================
+  CUSTOMER PILIH DELIVERY
+  =================================
+  */
 
-        await Order.update(
-            {
-                fulfillmentStatus:
-                    "waiting_address"
-            },
-            {
-                where: {
-                    id: session.lastOrderId
-                }
-            }
-        );
+        await order.update({
+          deliveryMethod: "delivery",
+
+          // masih menunggu alamat customer
+          fulfillmentStatus: "delivery",
+        });
 
         setSession(phone, {
-            ...session,
-            step:
-                "waiting_delivery_address"
+          ...session,
+
+          step: "waiting_delivery_address",
         });
 
         return await msg.reply(
-`Silakan kirim alamat lengkap pengiriman Anda.`
+          `Silakan kirim alamat lengkap pengiriman Anda 😊`,
         );
-    }
+      }
 
-    return await msg.reply(
-`Pilih metode penerimaan:
+      return await msg.reply(
+        `Pilihan tidak dikenali.
+
+Silakan pilih:
 
 1. Ambil di toko
-2. Dikirim`
-    );
-}
+2. Dikirim`,
+      );
+    }
+    /*
+   ==================================================
+   CUSTOMER MENGIRIM ALAMAT
+   ==================================================
+   
+   */
 
-// =========================
-// WAITING DELIVERY ADDRESS
-// =========================
-if (
-    session?.step ===
-    "waiting_delivery_address"
-) {
+    if (session?.step === "waiting_delivery_address") {
+      const order = await Order.findByPk(session.lastOrderId);
 
-    const { Order } =
-        require("../models");
+      if (!order) {
+        return await msg.reply("Order tidak ditemukan");
+      }
 
-    await Order.update(
-        {
-            deliveryMethod:
-                "delivery",
+      /*
+            =========================
+            UPDATE ORDER
+            =========================
+            */
 
-            deliveryAddress: text,
+      await order.update({
+        deliveryMethod: "delivery",
 
-            fulfillmentStatus:
-                "on_delivery"
-        },
-        {
-            where: {
-                id: session.lastOrderId
-            }
-        }
-    );
+        deliveryAddress: text,
 
-    setSession(phone, {
+        // tetap delivery
+        fulfillmentStatus: "delivery",
+      });
+
+      console.log("DELIVERY BERHASIL:");
+
+      console.log({
+        id: order.id,
+        deliveryMethod: order.deliveryMethod,
+        deliveryAddress: text,
+        fulfillmentStatus: "delivery",
+      });
+
+      /*
+            =========================
+            RESET SESSION
+            =========================
+            */
+
+      setSession(phone, {
         ...session,
-        step: "chatting"
-    });
+        step: "chatting",
+      });
 
-    return await msg.reply(
-`Alamat berhasil disimpan.
+      return await msg.reply(
+        `Alamat berhasil disimpan ✅
 
-Pesanan akan segera dikirim.`
-    );
-}
+Pesanan sedang diproses.`,
+      );
+    }
 
-        // =========================
-// WAITING ORDER CONFIRMATION
-// =========================
-if (
-    session?.step ===
-    "waiting_order_confirmation"
-) {
+    // =========================
+    // WAITING ORDER CONFIRMATION
+    // =========================
+    if (session?.step === "waiting_order_confirmation") {
+      const chatSession = await getOrCreateChatSession({
+        customerId: session.customerId,
 
-    const chatSession =
-        await getOrCreateChatSession({
+        businessId: session.businessId,
+      });
 
-            customerId:
-                session.customerId,
-
-            businessId:
-                session.businessId
-        });
-
-    await saveMessage({
-
+      await saveMessage({
         sessionId: chatSession.id,
 
         sender: "CUSTOMER",
 
-        message: text
-    });
+        message: text,
+      });
 
-    const yesWords = [
+      // ==========================================
+      // DOKUMENTASI
+      // Fungsi:
+      // Menambah toleransi jawaban customer
+      // supaya customer tidak dipaksa
+      // menjawab persis "ya"
+      // ==========================================
+
+      const yesWords = [
         "ya",
         "iya",
-        "yes",
+        "iya betul",
+        "betul",
         "benar",
+        "yes",
         "ok",
-        "oke"
-    ];
+        "oke",
+        "sip",
+        "setuju",
+        "sesuai",
+        "y",
+      ];
 
-    const cancelWords = [
+      const cancelWords = [
         "batal",
-        "cancel"
-    ];
+        "cancel",
+        "tidak",
+        "engga",
+        "enggak",
+        "ga",
+        "gak",
+        "tidak jadi",
+        "salah",
+      ];
 
-    // =========================
-    // CONFIRM
-    // =========================
-  if (
-    yesWords.includes(lowerText)
-) {
+      const isConfirm = containsWords(lowerText, yesWords);
 
-    const {
-        Order,
-        OrderItem,
-        Product,
-        ProductVariant
-    } = require("../models");
+      const isCancel = containsWords(lowerText, cancelWords);
 
-    // =========================
-    // AMBIL ITEM DARI SESSION
-    // =========================
-    const pendingItems =
-        session.pendingOrder || [];
-
-    if (!pendingItems.length) {
-
-        return await msg.reply(
-            "Pesanan kosong."
-        );
-    }
-
-    let totalPrice = 0;
-
-    const orderItems = [];
-
-    // =========================
-    // VALIDASI PRODUK
-    // =========================
-    for (const item of pendingItems) {
-
-        const product =
-            await Product.findOne({
-                where: {
-                    nama: item.product_name,
-                    businessId:
-                        session.businessId,
-                    status: "active"
-                },
-                include: [
-                    {
-                        model: ProductVariant,
-                        as: "variants"
-                    }
-                ]
-            });
-
-        if (!product) continue;
-
-        let variant = null;
+      // =========================
+      // CONFIRM
+      // =========================
+      if (isConfirm) {
+        const {
+          Order,
+          OrderItem,
+          Product,
+          ProductVariant,
+        } = require("../models");
 
         // =========================
-        // CARI VARIANT
+        // AMBIL ITEM DARI SESSION
         // =========================
-        if (item.variant) {
+        const pendingItems = session.pendingOrder || [];
 
-            variant =
-                product.variants.find(
-                    v =>
-                    v.nama_variant
-                    .toLowerCase()
-                    ===
-                    item.variant
-                    .toLowerCase()
-                );
+        if (!pendingItems.length) {
+          return await msg.reply("Pesanan kosong.");
         }
 
-        // =========================
-        // DEFAULT VARIANT
-        // =========================
-        if (!variant) {
+        let totalPrice = 0;
 
-            variant =
-                product.variants[0];
-        }
-
-        if (!variant) continue;
+        const orderItems = [];
 
         // =========================
-        // CEK STOK
+        // VALIDASI PRODUK
         // =========================
-        if (
-            variant.stok <
-            item.qty
-        ) {
+        for (const item of pendingItems) {
+          const product = await Product.findOne({
+            where: {
+              nama: item.product_name,
+              businessId: session.businessId,
+              status: "active",
+            },
+            include: [
+              {
+                model: ProductVariant,
+                as: "variants",
+              },
+            ],
+          });
 
-            return await msg.reply(
-`${product.nama} stok tidak cukup.`
+          if (!product) continue;
+
+          let variant = null;
+
+          // =========================
+          // CARI VARIANT
+          // =========================
+          if (item.variant) {
+            variant = product.variants.find(
+              (v) =>
+                v.nama_variant.toLowerCase() === item.variant.toLowerCase(),
             );
-        }
+          }
 
-        const subtotal =
-            variant.harga *
-            item.qty;
+          // =========================
+          // DEFAULT VARIANT
+          // =========================
+          if (!variant) {
+            variant = product.variants[0];
+          }
 
-        totalPrice += subtotal;
+          if (!variant) continue;
 
-        console.log("MATCHED VARIANT:");
-console.log(variant);
+          // =========================
+          // CEK STOK
+          // =========================
+          if (variant.stok < item.qty) {
+            return await msg.reply(`${product.nama} stok tidak cukup.`);
+          }
 
-        orderItems.push({
+          const subtotal = variant.harga * item.qty;
+
+          totalPrice += subtotal;
+
+          console.log("MATCHED VARIANT:");
+          console.log(variant);
+
+          orderItems.push({
             variantId: variant.id,
             quantity: item.qty,
             unitPrice: variant.harga,
-            subtotal
-        });
-    }
+            subtotal,
+          });
+        }
 
-    // =========================
-    // BUAT ORDER
-    // =========================
-    const order =
-        await Order.create({
+        // =========================
+        // BUAT ORDER
+        // =========================
+        const order = await Order.create({
+          businessId: session.businessId,
 
-            businessId:
-                session.businessId,
+          customerId: session.customerId,
 
-            customerId:
-                session.customerId,
+          totalPrice,
 
-            totalPrice,
-
-            status: "pending"
+          status: "pending",
         });
 
-  // =========================
-// BUAT ORDER ITEMS
-// =========================
-for (const item of orderItems) {
+        // =========================
+        // BUAT ORDER ITEMS
+        // =========================
+        for (const item of orderItems) {
+          await OrderItem.create({
+            orderId: order.id,
 
-    await OrderItem.create({
+            variantId: item.variantId,
 
-        orderId: order.id,
+            quantity: item.quantity,
 
-        variantId:
-            item.variantId,
+            unitPrice: item.unitPrice,
 
-        quantity:
-            item.quantity,
+            subtotal: item.subtotal,
+          });
+        }
 
-        unitPrice:
-            item.unitPrice,
+        // =========================
+        // RESET SESSION
+        // =========================
+        setSession(phone, {
+          ...session,
+          pendingOrder: null,
+          lastOrderId: order.id,
+          step: "chatting",
+        });
 
-        subtotal:
-            item.subtotal
-    });
-}
-
-    // =========================
-    // RESET SESSION
-    // =========================
-   setSession(phone, {
-    ...session,
-    pendingOrder: null,
-    lastOrderId: order.id,
-    step: "chatting"
-});
-
-const successMessage =
-`Pesanan berhasil dibuat.
+        const successMessage = `Pesanan berhasil dibuat.
 
 Total:
 Rp ${totalPrice}
 
 Pesanan sedang menunggu approval admin.`;
 
-await saveMessage({
+        await saveMessage({
+          sessionId: chatSession.id,
 
-    sessionId: chatSession.id,
+          sender: "BOT",
 
-    sender: "BOT",
-
-    message: successMessage
-});
-
-return await msg.reply(
-    successMessage
-);
-}
-
-    // =========================
-    // CANCEL
-    // =========================
-    if (
-        cancelWords.includes(lowerText)
-    ) {
-
-        setSession(phone, {
-            ...session,
-            pendingOrder: null,
-            step: "chatting"
+          message: successMessage,
         });
 
-        return await msg.reply(
-            "Pesanan dibatalkan."
-        );
+        return await msg.reply(successMessage);
+      }
+
+      // =========================
+      // CANCEL
+      // =========================
+      if (isCancel) {
+        setSession(phone, {
+          ...session,
+          pendingOrder: null,
+          step: "chatting",
+        });
+
+        return await msg.reply("Pesanan dibatalkan.");
+      }
+
+      return await msg.reply(
+        `Mohon konfirmasi pesanan 😊
+
+Contoh:
+
+• iya
+• benar
+• setuju
+• batal
+• tidak`,
+      );
     }
 
-    return await msg.reply(
-`Ketik:
-- ya
-- batal`
-    );
-}
+    // =========================
+    // CUSTOMER SUDAH PILIH BUSINESS
+    // =========================
 
-        // =========================
-        // CUSTOMER SUDAH PILIH BUSINESS
-        // =========================
-        console.log("================================");
-        console.log("BUSINESS:", session.businessName);
-        console.log("PHONE:", phone);
-        console.log("MESSAGE:", text);
-        console.log("================================");
+    console.log("================================");
+    console.log("BUSINESS:", session.businessName);
+    console.log("PHONE:", phone);
+    console.log("MESSAGE:", text);
+    console.log("================================");
 
-        // =========================
-        // SEMENTARA AUTO REPLY
-        // =========================
+    // =========================
+    // CEK CUSTOMER ID
+    // =========================
 
-// =========================
-// GET CHAT SESSION
-// =========================
-const chatSession =
-    await getOrCreateChatSession({
+    if (!session.customerId) {
+      console.log("SESSION CUSTOMER TIDAK ADA");
 
-        customerId:
-            session.customerId,
+      return await msg.reply(
+        `Terjadi kesalahan session.
 
-        businessId:
-            session.businessId
+Ketik:
+/reset`,
+      );
+    }
+
+    // =========================
+    // GET CHAT SESSION
+    // =========================
+
+    const chatSession = await getOrCreateChatSession({
+      customerId: session.customerId,
+
+      businessId: session.businessId,
+    });
+    // =========================
+    // SAVE CUSTOMER MESSAGE
+    // =========================
+    await saveMessage({
+      sessionId: chatSession.id,
+
+      sender: "CUSTOMER",
+
+      message: text,
     });
 
-// =========================
-// SAVE CUSTOMER MESSAGE
-// =========================
-await saveMessage({
+    // =========================
+    // JIKA MODE HUMAN
+    // =========================
+    if (chatSession.mode === "HUMAN") {
+      return;
+    }
+    // =========================
+    // AMBIL BUSINESS
+    // =========================
+    const business = await Business.findByPk(session.businessId);
 
-    sessionId:
-        chatSession.id,
+    // =========================
+    // PROCESS AI
+    // =========================
+    const aiResult = await processCustomerMessage({
+      business,
+      message: text,
+      session,
+    });
 
-    sender: "CUSTOMER",
+    console.log("AI RESULT:");
+    console.log(aiResult);
 
-    message: text
-});
+    const finishWords = [
+      "terima kasih",
+      "makasih",
+      "thanks",
+      "cukup",
+      "selesai",
+      "sudah",
+      "udah",
+    ];
 
-// =========================
-// JIKA MODE HUMAN
-// =========================
-if (chatSession.mode === "HUMAN") {
+    if (finishWords.some((word) => lowerText.includes(word))) {
+      setSession(phone, {
+        ...session,
+        step: "confirm_finish",
+      });
 
-    return;
-}
+      return await msg.reply(
+        `Sama-sama 😊
+
+Apakah masih ada yang ingin ditanyakan?
+
+1. Ya
+2. Tidak`,
+      );
+    }
+
+    // =========================
+    // REQUEST HUMAN ADMIN
+    // =========================
+    const adminKeywords = [
+      "admin",
+      "cs",
+      "customer service",
+      "orang asli",
+      "manusia",
+      "bantuan admin",
+      "bicara admin",
+      "chat admin",
+      "admin langsung",
+      "mau admin",
+      "mau cs",
+      "operator",
+      "staff",
+      "pegawai",
+    ];
+
+    const needHuman = adminKeywords.some((keyword) =>
+      lowerText.includes(keyword),
+    );
+
+    if (needHuman) {
       // =========================
-// AMBIL BUSINESS
-// =========================
-const business = await Business.findByPk(
-    session.businessId
-);
-
-// =========================
-// PROCESS AI
-// =========================
-const aiResult =
-    await processCustomerMessage({
-        business,
-        message: text,
-        session
-    });
-
-console.log("AI RESULT:");
-console.log(aiResult);
-
-// =========================
-// REQUEST HUMAN ADMIN
-// =========================
-const adminKeywords = [
-
-    "admin",
-    "cs",
-    "customer service",
-    "orang asli",
-    "manusia",
-    "bantuan admin",
-    "bicara admin",
-    "chat admin",
-    "admin langsung",
-    "mau admin",
-    "mau cs",
-    "operator",
-    "staff",
-    "pegawai"
-];
-
-const needHuman =
-    adminKeywords.some(keyword =>
-        lowerText.includes(keyword)
-    );
-
-if (needHuman) {
-
-    // =========================
-    // UPDATE SESSION
-    // =========================
-    await ChatSession.update(
+      // UPDATE SESSION
+      // =========================
+      await ChatSession.update(
         {
-            needAdmin: true
+          needAdmin: true,
         },
         {
-            where: {
-                id: chatSession.id
-            }
-        }
-    );
+          where: {
+            id: chatSession.id,
+          },
+        },
+      );
 
-    const adminMessage =
-`Baik, saya akan menghubungkan Anda dengan admin.
+      const adminMessage = `Baik, saya akan menghubungkan Anda dengan admin.
 
 Mohon tunggu beberapa saat.`;
 
-    await saveMessage({
-
+      await saveMessage({
         sessionId: chatSession.id,
 
         sender: "BOT",
 
-        message: adminMessage
-    });
+        message: adminMessage,
+      });
 
-    return await msg.reply(
-        adminMessage
-    );
-}
-
-// =========================
-// FAQ
-// =========================
-if (aiResult.intent === "faq") {
-
-    await saveMessage({
-
-    sessionId: chatSession.id,
-
-    sender: "BOT",
-
-    message: aiResult.reply
-});
-
-return await msg.reply(
-    aiResult.reply
-);
-}
-
-// =========================
-// GREETING
-// =========================
-if (aiResult.intent === "greeting") {
-
-    await saveMessage({
-
-    sessionId: chatSession.id,
-
-    sender: "BOT",
-
-    message: aiResult.reply
-});
-
-    return await msg.reply(
-        aiResult.reply
-    );
-}
-
-// =========================
-// ORDER
-// =========================
-if (aiResult.intent === "order") {
-
-    if (!aiResult.items?.length) {
-await saveMessage({
-
-    sessionId: chatSession.id,
-
-    sender: "BOT",
-
-    message: "Saya tidak menemukan item pesanan."
-});
-        return await msg.reply(
-            "Saya tidak menemukan item pesanan."
-        );
+      return await msg.reply(adminMessage);
     }
 
-    let summary = "Pesanan Anda:\n\n";
+    // =========================
+    // FAQ
+    // =========================
+    if (aiResult.intent === "faq") {
+      await saveMessage({
+        sessionId: chatSession.id,
 
-    aiResult.items.forEach((item) => {
+        sender: "BOT",
 
-        summary +=
-`${item.qty}x ${item.product_name}
+        message: aiResult.reply,
+      });
+
+      return await msg.reply(aiResult.reply);
+    }
+
+    // =========================
+    // GREETING
+    // =========================
+    if (aiResult.intent === "greeting") {
+      await saveMessage({
+        sessionId: chatSession.id,
+
+        sender: "BOT",
+
+        message: aiResult.reply,
+      });
+
+      return await msg.reply(aiResult.reply);
+    }
+
+    // =========================
+    // ORDER
+    // =========================
+    if (aiResult.intent === "order") {
+      if (!aiResult.items?.length) {
+        await saveMessage({
+          sessionId: chatSession.id,
+
+          sender: "BOT",
+
+          message: "Saya tidak menemukan item pesanan.",
+        });
+        return await msg.reply("Saya tidak menemukan item pesanan.");
+      }
+
+      let summary = "Pesanan Anda:\n\n";
+
+      aiResult.items.forEach((item) => {
+        summary += `${item.qty}x ${item.product_name}
 Variant: ${item.variant || "-"}
 \n`;
-    });
+      });
 
-    summary +=
-`\nApakah pesanan sudah benar?
+      summary += `\nApakah pesanan sudah benar?
 
 Ketik:
 - ya
 - batal`;
 
-    setSession(phone, {
+      setSession(phone, {
         ...session,
         pendingOrder: aiResult.items,
-        step: "waiting_order_confirmation"
-    });
-await saveMessage({
+        step: "waiting_order_confirmation",
+      });
+      await saveMessage({
+        sessionId: chatSession.id,
 
-    sessionId: chatSession.id,
+        sender: "BOT",
 
-    sender: "BOT",
+        message: summary,
+      });
 
-    message: summary
-});
-
-    return await msg.reply(summary);
-}
-
-// =========================
-// CANCEL
-// =========================
-if (
-    aiResult.intent === "cancel_order"
-) {
-
-    setSession(phone, {
-        ...session,
-        pendingOrder: null
-    });
-    await saveMessage({
-
-    sessionId: chatSession.id,
-
-    sender: "BOT",
-
-    message:  "Pesanan berhasil dibatalkan."
-});
-
-    return await msg.reply(
-        "Pesanan berhasil dibatalkan."
-    );
-}
-
-// =========================
-// UNKNOWN
-// =========================
-await saveMessage({
-
-    sessionId: chatSession.id,
-
-    sender: "BOT",
-
-    message: aiResult.reply
-});
-return await msg.reply(
-    aiResult.reply ||
-    "Maaf saya tidak memahami pesan Anda."
-);
-
-    } catch (err) {
-        console.error("WHATSAPP MESSAGE SERVICE ERROR:", err);
+      return await msg.reply(summary);
     }
+
+    // =========================
+    // CANCEL
+    // =========================
+    if (aiResult.intent === "cancel_order") {
+      setSession(phone, {
+        ...session,
+        pendingOrder: null,
+      });
+      await saveMessage({
+        sessionId: chatSession.id,
+
+        sender: "BOT",
+
+        message: "Pesanan berhasil dibatalkan.",
+      });
+
+      return await msg.reply("Pesanan berhasil dibatalkan.");
+    }
+
+    // =========================
+    // UNKNOWN
+    // =========================
+    await saveMessage({
+      sessionId: chatSession.id,
+
+      sender: "BOT",
+
+      message: aiResult.reply,
+    });
+    return await msg.reply(
+      aiResult.reply || "Maaf saya tidak memahami pesan Anda.",
+    );
+  } catch (err) {
+    console.error("WHATSAPP MESSAGE SERVICE ERROR:", err);
+  }
 };
 
 ==========================================================================
@@ -4618,75 +4920,60 @@ exports.setWhatsAppClient = (client) => {
   clientInstance = client;
 };
 
-exports.sendWhatsAppMessage = async (
-  phone,
-  message
-) => {
-
+exports.sendWhatsAppMessage = async (phone, message) => {
   try {
-
     if (!clientInstance) {
-
-      console.log(
-        "CLIENT BELUM READY"
-      );
+      console.log("CLIENT BELUM READY");
 
       return;
     }
 
     // NORMALISASI
-    let cleanPhone = phone
-      .replace(/\D/g, "");
+    let cleanPhone = phone.replace(/\D/g, "");
 
     // 08 → 628
     if (cleanPhone.startsWith("0")) {
-
-      cleanPhone =
-        "62" + cleanPhone.slice(1);
+      cleanPhone = "62" + cleanPhone.slice(1);
     }
-    if (
-      cleanPhone.length < 10
-    ) {
-
-      console.log(
-        "NOMOR INVALID:",
-        cleanPhone
-      );
+    if (cleanPhone.length < 10) {
+      console.log("NOMOR INVALID:", cleanPhone);
 
       return;
     }
 
-    const chatId =
-      `${cleanPhone}@c.us`;
+    const chatId = `${cleanPhone}@c.us`;
 
-    console.log(
-      "KIRIM WA KE:",
-      chatId
-    );
+    console.log("KIRIM WA KE:", chatId);
 
-    console.log(
-      "ISI PESAN:",
-      message
-    );
+    console.log("ISI PESAN:", message);
+
+    // ====================================
+    // DOKUMENTASI
+    // Menampilkan log pengiriman WA
+    // ====================================
+
+    console.log("TARGET:", chatId);
+
+    console.log("PESAN:");
+
+    console.log(message);
 
     await clientInstance.sendMessage(
       chatId,
-      message
+
+      message,
     );
 
-    console.log(
-      "WA BERHASIL TERKIRIM"
-    );
+    console.log("WA BERHASIL TERKIRIM");
 
+    console.log("WA BERHASIL TERKIRIM");
   } catch (err) {
-
-    console.error(
-      "SEND WA ERROR:"
-    );
+    console.error("SEND WA ERROR:");
 
     console.error(err);
   }
 };
+
 ==========================================================================
 wabots-pos-mvc\services\whatsappSessionService.js :
 
@@ -4695,35 +4982,39 @@ const sessions = {};
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 
 exports.getSession = (phone) => {
+  const session = sessions[phone];
 
-    const session = sessions[phone];
+  if (!session) return null;
 
-    if (!session) return null;
+  const now = Date.now();
 
-    const now = Date.now();
+  if (now - session.lastActivity > SESSION_TIMEOUT) {
+    delete sessions[phone];
 
-    if (now - session.lastActivity > SESSION_TIMEOUT) {
+    return {
+      expired: true,
+    };
+  }
 
-        delete sessions[phone];
-
-        return null;
-    }
-
-    return session;
+  return session;
 };
 
 exports.setSession = (phone, data) => {
-
-    sessions[phone] = {
-        ...sessions[phone],
-        ...data,
-        lastActivity: Date.now()
-    };
+  sessions[phone] = {
+    ...sessions[phone],
+    ...data,
+    lastActivity: Date.now(),
+  };
 };
 
 exports.clearSession = (phone) => {
-    delete sessions[phone];
+  delete sessions[phone];
 };
+
+exports.isSessionExpired = (session) => {
+  return session?.expired === true;
+};
+
 
 ==========================================================================
 wabots-pos-mvc\services\whatsappSpamService.js :
