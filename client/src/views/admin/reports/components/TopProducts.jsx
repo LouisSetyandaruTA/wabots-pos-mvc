@@ -15,7 +15,7 @@ export default function TopProducts({ data }) {
                 <tbody>
                     {data?.map((item, i) => (
                         <tr key={i}>
-                            <td>{item.productName || item["variant.Product.nama"]}</td>
+                            <td>{item.productName}</td>
                             <td>{item.totalSold}</td>
                             <td>{formatRupiah(item.revenue)}</td>
                         </tr>

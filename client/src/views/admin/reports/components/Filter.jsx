@@ -7,11 +7,18 @@ export default function Filter({ onFilterChange }) {
     groupBy: "day"
   });
 
-  const handleChange = (key, value) => {
-    const updated = { ...localFilter, [key]: value };
-    setLocalFilter(updated);
-    onFilterChange(updated);
-  };
+ const handleChange=(key,value)=>{
+   const updated={
+      ...localFilter,
+      [key]:value
+   }
+
+   setLocalFilter(updated)
+}
+
+const applyFilter=()=>{
+   onFilterChange(localFilter)
+}
 
   return (
     <div className="flex gap-4 mb-6">
@@ -35,6 +42,13 @@ export default function Filter({ onFilterChange }) {
         <option value="week">Weekly</option>
         <option value="month">Monthly</option>
       </select>
+
+      <button
+onClick={applyFilter}
+className="bg-blue-500 text-white px-4 py-2 rounded"
+>
+Apply
+</button>
     </div>
   );
 }

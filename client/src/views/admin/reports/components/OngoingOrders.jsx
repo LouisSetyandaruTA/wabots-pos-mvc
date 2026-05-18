@@ -16,7 +16,7 @@ export default function OngoingOrders({ data }) {
         </thead>
 
         <tbody>
-          {data.map((o) => (
+        {data?.map((o)=>(
             <tr key={o.id}>
               <td>{o.customer?.name}</td>
               <td>{o.fulfillmentStatus}</td>

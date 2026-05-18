@@ -44,7 +44,7 @@ export default function TransactionTable({ data }) {
                 <td>{trx.customer?.phoneNumber}</td>
 
                 <td>
-                  {trx.items.map((item, i) => (
+                  {trx.items?.map((item,i)=>(
                     <div key={i}>
                       {item.variant?.Product?.nama} ({item.quantity})
                     </div>

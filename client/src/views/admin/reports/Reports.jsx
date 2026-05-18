@@ -50,23 +50,31 @@ export default function Reports() {
     fetchData(defaultFilter);
   }, []);
 
+
   if (error) {
-    return <div className="p-6 text-red-500">{error}</div>;
-  }
+  return (
+    <div className="p-6 text-red-500">
+      {error}
+    </div>
+  );
+}
 
-  if (!data) return <div>Loading...</div>;
-
-  const safeData = data || {
-    summary: {
-      totalRevenue: 0,
-      totalOrders: 0,
-      avgOrderValue: 0,
-    },
-    trends: [],
-    topProducts: [],
-    transactions: [],
-    ongoingOrders: [],
-  };
+const safeData = data || {
+  summary: {
+    totalRevenue:0,
+    totalOrders:0,
+    avgOrderValue:0,
+    pendingOrders:0,
+    paidOrders:0,
+    readyPickupOrders:0,
+    shippingOrders:0,
+    completedOrders:0
+  },
+  trends:[],
+  topProducts:[],
+  transactions:[],
+  ongoingOrders:[]
+};
 
   const isEmpty =
     safeData.summary.totalOrders === 0 &&
