@@ -16,10 +16,14 @@ const handleLogin = async () => {
 
     localStorage.setItem("token", res.data.token);
 
-    window.dispatchEvent(new Event("userChanged"));
+localStorage.setItem(
+   "user",
+   JSON.stringify(res.data.user)
+);
 
-    navigate("/admin/dashboard");
+window.dispatchEvent(new Event("userChanged"));
 
+navigate("/admin/dashboard");
     console.log("LOGIN SUCCESS:", res.data);
 
   } catch (err) {
