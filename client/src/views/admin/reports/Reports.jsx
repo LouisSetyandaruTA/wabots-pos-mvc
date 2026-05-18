@@ -8,7 +8,6 @@ import Filter from "./components/Filter";
 import TransactionTable from "./components/TransactionTable";
 import { exportReportPDF } from "../../../utils/exportReportPDF";
 import OngoingOrders from "./components/OngoingOrders";
-import { exportReportExcel } from "../../../utils/exportReportExcel";
 
 export default function Reports() {
   const reportRef = useRef();

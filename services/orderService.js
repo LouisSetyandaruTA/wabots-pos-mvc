@@ -294,26 +294,21 @@ Terima kasih telah berbelanja di ${order.business.name} 🙌`;
 
     await whatsappService.sendWhatsAppMessage(phone, message);
 
-    // =========================
-    // RESET SESSION MEMORY
-    // =========================
-    clearSession(phone);
+    const { getSession, setSession } = require("./whatsappSessionService");
 
-    // =========================
-    // NONAKTIFKAN CHAT SESSION
-    // =========================
-    await ChatSession.update(
-      {
-        isActive: false,
-      },
-      {
-        where: {
-          customerId: order.customerId,
+    const session = getSession(phone);
 
-          businessId: order.businessId,
-        },
-      },
-    );
+    if (session) {
+      setSession(phone, {
+        ...session,
+        orderFinished: true,
+        orderFinishedAt: Date.now(),
+        step: "chatting",
+      });
+    }
+
+    // JANGAN HAPUS SESSION DI SINI
+    console.log("Order selesai. Session tetap aktif 5 menit");
   }
 
   return order;

@@ -1,68 +1,57 @@
-const {
-    Product,
-    ProductVariant,
-    Category
-} = require("../models");
+const { Product, ProductVariant, Category } = require("../models");
 
-const {
-    askDeepSeek
-} = require("./openrouterService");
+const { askDeepSeek } = require("./openrouterService");
 
-exports.processCustomerMessage = async ({
-    business,
-    message,
-    session
-}) => {
+exports.matchVariantSelection = null;
 
-    // =========================
-    // AMBIL PRODUCT
-    // =========================
-    const products = await Product.findAll({
-        where: {
-            businessId: business.id,
-            status: "active"
-        },
-        include: [
-            {
-                model: ProductVariant,
-                as: "variants"
-            },
-            {
-                model: Category,
-                as: "Category"
-            }
-        ]
-    });
+exports.processCustomerMessage = async ({ business, message, session }) => {
+  // =========================
+  // AMBIL PRODUCT
+  // =========================
+  const products = await Product.findAll({
+    where: {
+      businessId: business.id,
+      status: "active",
+    },
+    include: [
+      {
+        model: ProductVariant,
+        as: "variants",
+      },
+      {
+        model: Category,
+        as: "Category",
+      },
+    ],
+  });
 
-    // =========================
-    // FORMAT PRODUCT LIST
-    // =========================
-    let productText = "";
+  // =========================
+  // FORMAT PRODUCT LIST
+  // =========================
+  let productText = "";
 
-    products.forEach((p) => {
-
-        productText += `
+  products.forEach((p) => {
+    productText += `
 Product: ${p.nama}
 Kategori: ${p.Category?.name || "-"}
 Keterangan: ${p.keterangan || "-"}
 `;
 
-        (p.variants || []).forEach((v) => {
-
-            productText += `
+    (p.variants || []).forEach((v) => {
+      productText += `
 - Variant: ${v.nama_variant}
   Harga: ${v.harga}
   Stok: ${v.stok}
 `;
-        });
-
-        productText += "\n";
     });
 
-    // =========================
-    // AI PROMPT
-    // =========================
-    const prompt = `
+    productText += "\n";
+  });
+
+  // =========================
+  // AI PROMPT
+  // =========================
+  const prompt = `
 Anda adalah AI customer service WhatsApp.
 
 Tugas Anda:
@@ -138,36 +127,123 @@ FORMAT JSON WAJIB
 CUSTOMER MESSAGE
 ================================
 
+SESSION:
+
+${JSON.stringify(session)}
+
+CUSTOMER MESSAGE:
+
 ${message}
 `;
 
-    const aiRaw = await askDeepSeek(prompt);
+  const aiRaw = await askDeepSeek(prompt);
 
-    if (!aiRaw) {
+  if (!aiRaw) {
+    return {
+      intent: "unknown",
+      reply: "Maaf sistem sedang error.",
+    };
+  }
 
-        return {
-            intent: "unknown",
-            reply: "Maaf sistem sedang error."
-        };
-    }
+  try {
+    const clean = aiRaw
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-    try {
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error("AI PARSE ERROR:", err);
 
-        const clean =
-            aiRaw
-                .replace(/```json/g, "")
-                .replace(/```/g, "")
-                .trim();
+    return {
+      intent: "unknown",
+      reply: "Maaf saya tidak memahami pesan Anda.",
+    };
+  }
+};
 
-        return JSON.parse(clean);
+exports.matchVariantSelection = async ({ message, productName, variants }) => {
+  let variantText = "";
 
-    } catch (err) {
+  variants.forEach((v) => {
+    variantText += `
+Variant: ${v.nama_variant}
+`;
+  });
 
-        console.error("AI PARSE ERROR:", err);
+  const prompt = `
 
-        return {
-            intent: "unknown",
-            reply: "Maaf saya tidak memahami pesan Anda."
-        };
-    }
+Anda bertugas memahami pilihan variant customer.
+
+Produk:
+${productName}
+
+Variant tersedia:
+
+${variantText}
+
+Pesan customer:
+
+${message}
+
+Tugas:
+
+- pahami bahasa natural
+- pahami sinonim
+- pahami jumlah
+
+Contoh:
+
+"yang besar 2"
+
+{
+"items":[
+{
+"variant":"Large",
+"qty":2
+}
+]
+}
+
+"yang kecil 3"
+
+{
+"items":[
+{
+"variant":"Small",
+"qty":3
+}
+]
+}
+
+"yang merah 2 dan biru 3"
+
+{
+"items":[
+{
+"variant":"Merah",
+"qty":2
+},
+{
+"variant":"Biru",
+"qty":3
+}
+]
+}
+
+JSON saja.
+`;
+
+  const aiRaw = await askDeepSeek(prompt);
+
+  try {
+    const clean = aiRaw
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return JSON.parse(clean);
+  } catch {
+    return null;
+  }
 };

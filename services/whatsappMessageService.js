@@ -9,7 +9,16 @@ const {
 
 const { processCustomerMessage } = require("./aiService");
 
-const { Business, Customer, ChatSession, Order } = require("../models");
+const {
+  Business,
+  Customer,
+  ChatSession,
+  Order,
+  Product,
+  ProductVariant,
+  ChatMessage,
+  OrderItem,
+} = require("../models");
 
 const {
   cleanCustomerName,
@@ -80,6 +89,154 @@ exports.handleIncomingMessage = async (msg) => {
     const lowerText = text.toLowerCase();
 
     // =========================
+    // AMBIL SESSION DULU
+    // =========================
+
+    let session = getSession(phone);
+
+    if (session?.expired) {
+      clearSession(phone);
+
+      return await msg.reply(
+        `Session berakhir karena tidak ada aktivitas.
+
+Silakan mulai percakapan baru 😊`,
+      );
+    }
+
+    // ====================================
+    // HANDLE PILIH VARIANT + JUMLAH
+    // ====================================
+
+    console.log("SESSION STEP:", session?.step);
+
+    console.log("USER MESSAGE:", lowerText);
+
+    // =====================================
+    // HANDLE PILIH VARIANT
+    // =====================================
+
+    if (session && session.step === "waiting_variant") {
+      try {
+        console.log("SESSION DATA:", session.pendingVariantProduct);
+
+        if (
+          !session.pendingVariantProduct ||
+          !session.pendingVariantProduct.productId
+        ) {
+          console.log("PRODUCT SESSION HILANG");
+
+          setSession(phone, {
+            ...session,
+            step: "chatting",
+          });
+
+          return await msg.reply(
+            "Session pesanan hilang. Silakan pesan kembali 😊",
+          );
+        }
+
+        const productId = session.pendingVariantProduct.productId;
+
+        const variants = await ProductVariant.findAll({
+          where: {
+            productId,
+          },
+        });
+
+        console.log(
+          "VARIANTS:",
+          variants.map((v) => v.nama_variant),
+        );
+
+        const { matchVariantSelection } = require("./aiService");
+
+        const aiVariant = await matchVariantSelection({
+          message: text,
+
+          productName: session.pendingVariantProduct.productName,
+
+          variants,
+        });
+
+        console.log("AI VARIANT:", aiVariant);
+
+        if (!aiVariant || !aiVariant.items?.length) {
+          return await msg.reply(`Maaf saya belum memahami pilihan Anda 😊`);
+        }
+
+        const selectedItems = [];
+
+        for (const aiItem of aiVariant.items) {
+          const variant = variants.find(
+            (v) =>
+              v.nama_variant.toLowerCase() === aiItem.variant.toLowerCase(),
+          );
+
+          if (!variant) continue;
+
+          selectedItems.push({
+            product_name: session.pendingVariantProduct.productName,
+
+            productId: session.pendingVariantProduct.productId,
+
+            variant: variant.nama_variant,
+
+            variantId: variant.id,
+
+            qty: aiItem.qty || 1,
+          });
+        }
+
+        if (!selectedItems.length) {
+          return await msg.reply("Variant tidak ditemukan");
+        }
+
+        if (!selectedItems.length) {
+          return await msg.reply(
+            `Maaf saya belum memahami pilihan Anda 😊
+
+Silakan pilih:
+
+${variants.map((v, i) => `${i + 1}. ${v.nama_variant}`).join("\n")}`,
+          );
+        }
+
+        setSession(phone, {
+          ...session,
+          pendingOrder: selectedItems,
+          step: "waiting_order_confirmation",
+        });
+
+        console.log("VARIANT DIPILIH:", selectedItems);
+
+        let summary = "Pesanan Anda:\n\n";
+
+        selectedItems.forEach((item) => {
+          summary += `${item.qty}x ${item.product_name}
+
+Variant: ${item.variant}
+
+`;
+        });
+
+        summary += `
+Apakah pesanan sudah benar?
+
+• ya
+• batal`;
+
+        return await msg.reply(summary);
+      } catch (err) {
+        console.log("WAITING VARIANT ERROR:", err);
+
+        return await msg.reply(
+          "Maaf terjadi kesalahan saat memproses pesanan.",
+        );
+      }
+    }
+
+    // =========================
     // DETEKSI BUSINESS DARI WA.ME
     // =========================
 
@@ -105,21 +262,29 @@ exports.handleIncomingMessage = async (msg) => {
     // AMBIL SESSION
     // =========================
 
-    let session = getSession(phone);
-
     if (
       session?.businessId &&
       autoBusiness &&
       session.businessId !== autoBusiness.id
     ) {
+      const oldBusiness = session.businessName;
+
       clearSession(phone);
 
-      session = null;
+      const newSession = {
+        businessId: autoBusiness.id,
+        businessName: autoBusiness.name,
+        customerId: session.customerId,
+        customerName: session.customerName,
+        step: "chatting",
+      };
+
+      setSession(phone, newSession);
 
       return await msg.reply(
-        `Percakapan sebelumnya dengan ${session?.businessName} telah selesai.
+        `Percakapan dengan ${oldBusiness} selesai.
 
-Anda dialihkan ke ${autoBusiness.name}. Silakan kirim pesan kembali 😊`,
+Anda sekarang terhubung ke ${autoBusiness.name} 😊`,
       );
     }
 
@@ -581,12 +746,23 @@ Percobaan: ${retryCount}/3`,
       const isYes = containsWords(lowerText, yesWords);
 
       if (isNo) {
-        clearSession(phone);
+        setSession(phone, {
+          ...session,
+          orderFinished: true,
+          orderFinishedAt: Date.now(),
+          step: "chatting",
+        });
 
         return await msg.reply(
           `Terima kasih telah menghubungi ${session.businessName} 🙌
 
-Session selesai.`,
+Sesi percakapan ini akan segera berakhir.
+
+Jika Anda ingin memesan atau bertanya lagi di lain waktu, cukup kirim:
+
+halo ${session.businessName}
+
+Semoga harinya menyenangkan 😊`,
         );
       }
 
@@ -883,8 +1059,26 @@ Pesanan sedang diproses.`,
           }
 
           // =========================
-          // DEFAULT VARIANT
+          // VARIANT WAJIB JIKA PRODUK
+          // MEMILIKI >1 VARIANT
           // =========================
+
+          if (!variant && product.variants.length > 1) {
+            let variantText = `${product.nama} memiliki beberapa pilihan:\n\n`;
+
+            product.variants.forEach((v, index) => {
+              variantText += `${index + 1}. ${v.nama_variant}
+Rp ${v.harga}\n`;
+            });
+
+            variantText += "\nSilakan pilih varian 😊";
+
+            return await msg.reply(variantText);
+          }
+
+          // hanya otomatis jika memang
+          // produknya cuma 1 variant
+
           if (!variant) {
             variant = product.variants[0];
           }
@@ -953,7 +1147,20 @@ Pesanan sedang diproses.`,
           step: "chatting",
         });
 
-        const successMessage = `Pesanan berhasil dibuat.
+        let detailPesanan = "";
+
+        for (const item of pendingItems) {
+          detailPesanan += `${item.qty}x ${item.product_name}
+Variant: ${item.variant}
+
+`;
+        }
+
+        const successMessage = `Pesanan berhasil dibuat ✅
+
+Detail Pesanan:
+
+${detailPesanan}
 
 Total:
 Rp ${totalPrice}
@@ -1054,6 +1261,61 @@ Ketik:
     const business = await Business.findByPk(session.businessId);
 
     // =========================
+    // DETEKSI STATUS PESANAN
+    // =========================
+
+    const statusWords = [
+      "pesanan saya",
+      "status pesanan",
+      "sudah dikirim",
+      "sudah sampai",
+      "sudah siap",
+      "pesanan saya dimana",
+      "order saya",
+      "cek pesanan",
+    ];
+
+    const isStatusQuestion = statusWords.some((word) =>
+      lowerText.includes(word),
+    );
+
+    if (isStatusQuestion) {
+      const lastOrder = await Order.findOne({
+        where: {
+          customerId: session.customerId,
+        },
+
+        order: [["createdAt", "DESC"]],
+      });
+
+      if (lastOrder) {
+        let statusText = "Diproses";
+
+        if (lastOrder.fulfillmentStatus === "delivery") {
+          statusText = "Sedang dikirim 🚚";
+        }
+
+        if (lastOrder.fulfillmentStatus === "ready_pickup") {
+          statusText = "Siap diambil 🏪";
+        }
+
+        if (lastOrder.fulfillmentStatus === "completed") {
+          statusText = "Pesanan selesai ✅";
+        }
+
+        return await msg.reply(
+          `Status pesanan Anda:
+
+Status:
+${statusText}
+
+Metode:
+${lastOrder.deliveryMethod || "-"}`,
+        );
+      }
+    }
+
+    // =========================
     // PROCESS AI
     // =========================
     const aiResult = await processCustomerMessage({
@@ -1070,12 +1332,19 @@ Ketik:
       "makasih",
       "thanks",
       "cukup",
-      "selesai",
-      "sudah",
-      "udah",
+      "cukup saja",
+      "tidak ada lagi",
+      "sudah cukup",
+      "selesai saja",
+      "itu saja",
+      "tidak ada pertanyaan lagi",
     ];
 
-    if (finishWords.some((word) => lowerText.includes(word))) {
+    const isFinishConversation = finishWords.some((word) =>
+      lowerText.includes(word),
+    );
+
+    if (isFinishConversation) {
       setSession(phone, {
         ...session,
         step: "confirm_finish",
@@ -1182,38 +1451,105 @@ Mohon tunggu beberapa saat.`;
       if (!aiResult.items?.length) {
         await saveMessage({
           sessionId: chatSession.id,
-
           sender: "BOT",
-
           message: "Saya tidak menemukan item pesanan.",
         });
+
         return await msg.reply("Saya tidak menemukan item pesanan.");
       }
 
-      let summary = "Pesanan Anda:\n\n";
+      const { Product, ProductVariant } = require("../models");
+
+      // =========================
+      // VALIDASI VARIANT
+      // =========================
+
+      for (const item of aiResult.items) {
+        const product = await Product.findOne({
+          where: {
+            nama: item.product_name,
+            businessId: session.businessId,
+          },
+
+          include: [
+            {
+              model: ProductVariant,
+              as: "variants",
+            },
+          ],
+        });
+
+        if (!product) continue;
+
+        const variants = product.variants || [];
+
+        // jika lebih dari satu variant
+        // dan customer belum pilih
+
+        if (variants.length > 1 && !item.variant) {
+          let variantText = `${product.nama} memiliki beberapa pilihan:
+
+`;
+
+          variants.forEach((v, index) => {
+            variantText += `${index + 1}. ${v.nama_variant}
+Rp ${v.harga}
+
+`;
+          });
+
+          variantText += "Silakan pilih variant terlebih dahulu 😊";
+
+          // =========================
+          // SIMPAN SESSION MENUNGGU VARIANT
+          // =========================
+
+          setSession(phone, {
+            ...session,
+
+            step: "waiting_variant",
+
+            pendingVariantProduct: {
+              productId: product.id,
+              productName: product.nama,
+              qty: item.qty || 1,
+            },
+          });
+
+          return await msg.reply(variantText);
+        }
+      }
+
+      // =========================
+      // BUAT RINGKASAN
+      // =========================
+
+      let summary = `Pesanan Anda:
+
+`;
 
       aiResult.items.forEach((item) => {
         summary += `${item.qty}x ${item.product_name}
-Variant: ${item.variant || "-"}
-\n`;
+Variant: ${item.variant}
+
+`;
       });
 
-      summary += `\nApakah pesanan sudah benar?
+      summary += `Apakah pesanan sudah benar?
 
 Ketik:
-- ya
-- batal`;
+• ya
+• batal`;
 
       setSession(phone, {
         ...session,
         pendingOrder: aiResult.items,
         step: "waiting_order_confirmation",
       });
+
       await saveMessage({
         sessionId: chatSession.id,
-
         sender: "BOT",
-
         message: summary,
       });
 
