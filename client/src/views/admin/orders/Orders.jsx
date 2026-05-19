@@ -219,7 +219,11 @@ export default function Orders() {
                         </button>
 
                         <button
-                          onClick={() => reject(order.id)}
+                          onClick={() => {
+                            if (window.confirm("Batalkan pesanan ini?")) {
+                              reject(order.id);
+                            }
+                          }}
                           className="rounded bg-red-500 px-3 py-1 text-xs text-white"
                         >
                           Batalkan

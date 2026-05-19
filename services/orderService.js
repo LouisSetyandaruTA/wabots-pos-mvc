@@ -421,8 +421,8 @@ exports.rejectOrder = async (orderId) => {
     throw new Error("Order tidak ditemukan");
   }
 
-  if (order.status !== "pending") {
-    throw new Error("Hanya order pending yang dapat ditolak");
+  if (order.status === "paid") {
+    throw new Error("Order sudah dibayar");
   }
 
   /*
@@ -433,8 +433,20 @@ exports.rejectOrder = async (orderId) => {
 
   await order.update({
     status: "cancelled",
-    fulfillmentStatus: "cancelled",
+    fulfillmentStatus: "completed",
   });
+
+  if (order.customer) {
+    await whatsappService.sendMessage(
+      order.customer.phoneNumber,
+
+      `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
+
+Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
+
+Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
+    );
+  }
 
   /*
   =====================

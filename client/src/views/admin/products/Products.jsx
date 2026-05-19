@@ -352,53 +352,41 @@ export default function Products() {
   // UI
   // =========================
   return (
-    <div className="p-6 space-y-5">
-
+    <div className="space-y-5 p-6">
       {/* ========================= */}
       {/* CREATE PRODUCT */}
       {/* ========================= */}
       <Card extra="p-5">
-
-        <h2 className="font-bold text-lg mb-4">
-          Tambah Product
-        </h2>
+        <h2 className="mb-4 text-lg font-bold">Tambah Product</h2>
 
         <div className="grid grid-cols-3 gap-3">
-
           <input
             placeholder="Nama Product"
             value={productForm.nama}
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                nama: e.target.value
+                nama: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <div className="flex gap-2">
-
             <select
               value={productForm.categoryId}
               onChange={(e) =>
                 setProductForm({
                   ...productForm,
-                  categoryId:
-                    e.target.value
+                  categoryId: e.target.value,
                 })
               }
-              className="border p-2 rounded w-full"
+              className="w-full rounded border p-2"
             >
-              <option value="">
-                Pilih Kategori
-              </option>
+              <option value="">Pilih Kategori</option>
 
-              {categories.map(c => (
-                <option
-                  key={c.id}
-                  value={c.id}
-                >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
@@ -407,23 +395,16 @@ export default function Products() {
             <input
               placeholder="Tambah"
               value={customCategory}
-              onChange={(e) =>
-                setCustomCategory(
-                  e.target.value
-                )
-              }
-              className="border p-2 rounded"
+              onChange={(e) => setCustomCategory(e.target.value)}
+              className="rounded border p-2"
             />
 
             <button
-              onClick={
-                handleCreateCategory
-              }
-              className="bg-green-500 text-white px-3 rounded"
+              onClick={handleCreateCategory}
+              className="rounded bg-green-500 px-3 text-white"
             >
               +
             </button>
-
           </div>
 
           <select
@@ -431,26 +412,18 @@ export default function Products() {
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                satuan:
-                  e.target.value
+                satuan: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           >
-            <option value="">
-              Pilih Satuan
-            </option>
+            <option value="">Pilih Satuan</option>
 
-            {satuanOptions.map(
-              (s, i) => (
-                <option
-                  key={i}
-                  value={s}
-                >
-                  {s}
-                </option>
-              )
-            )}
+            {satuanOptions.map((s, i) => (
+              <option key={i} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
 
           <input
@@ -459,11 +432,10 @@ export default function Products() {
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                harga:
-                  e.target.value
+                harga: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <input
@@ -472,11 +444,10 @@ export default function Products() {
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                stok:
-                  e.target.value
+                stok: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <input
@@ -485,70 +456,54 @@ export default function Products() {
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                berat:
-                  e.target.value
+                berat: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <textarea
             placeholder="Keterangan Product"
-            value={
-              productForm.keterangan
-            }
+            value={productForm.keterangan}
             onChange={(e) =>
               setProductForm({
                 ...productForm,
-                keterangan:
-                  e.target.value
+                keterangan: e.target.value,
               })
             }
-            className="border p-2 rounded col-span-3"
+            className="col-span-3 rounded border p-2"
           />
-
         </div>
 
         <button
           onClick={createProduct}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+          className="mt-4 rounded bg-blue-500 px-4 py-2 text-white"
         >
           Tambah Product
         </button>
-
       </Card>
 
       {/* ========================= */}
       {/* CREATE VARIANT */}
       {/* ========================= */}
       <Card extra="p-5">
-
-        <h2 className="font-bold mb-3">
-          Tambah Variant
-        </h2>
+        <h2 className="mb-3 font-bold">Tambah Variant</h2>
 
         <div className="grid grid-cols-5 gap-2">
-
           <select
             value={variantForm.productId}
             onChange={(e) =>
               setVariantForm({
                 ...variantForm,
-                productId:
-                  e.target.value
+                productId: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           >
-            <option value="">
-              Pilih Product
-            </option>
+            <option value="">Pilih Product</option>
 
-            {products.map(p => (
-              <option
-                key={p.id}
-                value={p.id}
-              >
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
                 {p.nama}
               </option>
             ))}
@@ -559,11 +514,10 @@ export default function Products() {
             onChange={(e) =>
               setVariantForm({
                 ...variantForm,
-                nama_variant:
-                  e.target.value
+                nama_variant: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <input
@@ -572,11 +526,10 @@ export default function Products() {
             onChange={(e) =>
               setVariantForm({
                 ...variantForm,
-                harga:
-                  e.target.value
+                harga: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <input
@@ -585,11 +538,10 @@ export default function Products() {
             onChange={(e) =>
               setVariantForm({
                 ...variantForm,
-                stok:
-                  e.target.value
+                stok: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
 
           <input
@@ -598,22 +550,19 @@ export default function Products() {
             onChange={(e) =>
               setVariantForm({
                 ...variantForm,
-                berat:
-                  e.target.value
+                berat: e.target.value,
               })
             }
-            className="border p-2 rounded"
+            className="rounded border p-2"
           />
-
         </div>
 
         <button
           onClick={createVariant}
-          className="mt-3 bg-green-500 text-white px-4 py-2 rounded"
+          className="mt-3 rounded bg-green-500 px-4 py-2 text-white"
         >
           Tambah Variant
         </button>
-
       </Card>
 
       {/* ========================= */}
@@ -622,94 +571,53 @@ export default function Products() {
       <input
         placeholder="Search product / variant..."
         value={search}
-        onChange={(e) =>
-          setSearch(
-            e.target.value
-          )
-        }
-        className="border p-2 rounded w-full"
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full rounded border p-2"
       />
 
       {/* ========================= */}
       {/* PRODUCTS */}
       {/* ========================= */}
       <Card extra="p-5">
+        <h2 className="mb-4 text-lg font-bold">Daftar Product</h2>
 
-        <h2 className="font-bold text-lg mb-4">
-          Daftar Product
-        </h2>
-
-        {filteredProducts.map(product => (
-
-          <div
-            key={product.id}
-            className="border rounded-xl p-4 mb-4"
-          >
-
+        {filteredProducts.map((product) => (
+          <div key={product.id} className="mb-4 rounded-xl border p-4">
             <div className="flex justify-between">
-
               <div>
+                <h2 className="text-lg font-bold">{product.nama}</h2>
 
-                <h2 className="font-bold text-lg">
-                  {product.nama}
-                </h2>
+                <p>Kategori: {product.Category?.name}</p>
 
-                <p>
-                  Kategori:
-                  {" "}
-                  {product.Category?.name}
-                </p>
+                <p>Satuan: {product.satuan}</p>
 
-                <p>
-                  Satuan:
-                  {" "}
-                  {product.satuan}
-                </p>
-
-                <p>
-                  Keterangan:
-                  {" "}
-                  {
-                    product.keterangan ||
-                    "-"
-                  }
-                </p>
+                <p>Keterangan: {product.keterangan || "-"}</p>
 
                 <p>
                   Total Stok:
-                  {" "}
-                  {
-                    (product.variants || [])
-                      .reduce(
-                        (sum, v) =>
-                          sum + v.stok,
-                        0
-                      )
-                  }
-                </p>
+                  {(product.variants || [])
 
+                    .filter((v) => v.status === "active")
+
+                    .reduce(
+                      (sum, v) => sum + Number(v.stok),
+
+                      0
+                    )}
+                </p>
               </div>
 
               <div className="flex gap-2">
-
                 <button
-                  onClick={() =>
-                    handleEditProduct(
-                      product
-                    )
-                  }
-                  className="bg-blue-500 text-white px-3 py-1 rounded h-fit"
+                  onClick={() => handleEditProduct(product)}
+                  className="h-fit rounded bg-blue-500 px-3 py-1 text-white"
                 >
                   Edit
                 </button>
 
                 <button
-                  onClick={() =>
-                    deleteProduct(
-                      product.id
-                    )
-                  }
-                  className="bg-red-500 text-white px-3 py-1 rounded h-fit"
+                  onClick={() => deleteProduct(product.id)}
+                  className="h-fit rounded bg-red-500 px-3 py-1 text-white"
                 >
                   Nonaktifkan
                 </button>
@@ -717,309 +625,212 @@ export default function Products() {
                 <button
                   onClick={() =>
                     setOpenedProduct(
-                      openedProduct ===
-                        product.id
-                        ? null
-                        : product.id
+                      openedProduct === product.id ? null : product.id
                     )
                   }
-                  className="bg-gray-200 px-3 py-1 rounded h-fit"
+                  className="h-fit rounded bg-gray-200 px-3 py-1"
                 >
-                  {
-                    openedProduct ===
-                    product.id
-                      ? "Tutup"
-                      : "Detail"
-                  }
+                  {openedProduct === product.id ? "Tutup" : "Detail"}
                 </button>
-
               </div>
-
             </div>
 
             {/* VARIANTS */}
-            {openedProduct ===
-              product.id && (
-
+            {openedProduct === product.id && (
               <div className="mt-4 border-t pt-4">
-
                 {(product.variants || [])
-                  .map(v => (
 
-                    <div
-                      key={v.id}
-                      className="border rounded p-3 mb-3"
-                    >
+                  .filter((v) => v.status === "active")
 
-                      <h3 className="font-bold">
-                        #{v.nama_variant}
-                      </h3>
+                  .map((v) => (
+                    <div key={v.id} className="mb-3 rounded border p-3">
+                      <h3 className="font-bold">#{v.nama_variant}</h3>
 
-                      <p>
-                        Berat:
-                        {" "}
-                        {v.berat} gr
-                      </p>
+                      <p>Berat: {v.berat} gr</p>
 
-                      <p>
-                        Harga:
-                        {" "}
-                        Rp {v.harga}
-                      </p>
+                      <p>Harga: Rp {v.harga}</p>
 
-                      <p>
-                        Stok:
-                        {" "}
-                        {v.stok}
-                      </p>
+                      <p>Stok: {v.stok}</p>
 
-                      <div className="flex gap-2 mt-2">
-
+                      <div className="mt-2 flex gap-2">
                         <button
-                          onClick={() =>
-                            setEditVariant(v)
-                          }
-                          className="bg-yellow-400 px-3 py-1 rounded"
+                          onClick={() => setEditVariant(v)}
+                          className="rounded bg-yellow-400 px-3 py-1"
                         >
                           Edit Variant
                         </button>
 
                         <button
-                          onClick={() =>
-                            deleteVariant(v.id)
-                          }
-                          className="bg-red-500 text-white px-3 py-1 rounded"
+                          onClick={() => deleteVariant(v.id)}
+                          className="rounded bg-red-500 px-3 py-1 text-white"
                         >
                           Nonaktifkan
                         </button>
-
                       </div>
-
                     </div>
-
                   ))}
-
               </div>
-
             )}
-
           </div>
-
         ))}
-
       </Card>
 
       {/* ========================= */}
       {/* EDIT PRODUCT */}
       {/* ========================= */}
       {editProduct && (
-
         <Card extra="p-5">
-
-          <h2 className="font-bold text-lg mb-4">
-            Edit Product
-          </h2>
+          <h2 className="mb-4 text-lg font-bold">Edit Product</h2>
 
           <div className="grid grid-cols-2 gap-3">
-
             <input
               value={editProduct.nama}
               onChange={(e) =>
                 setEditProduct({
                   ...editProduct,
-                  nama:
-                    e.target.value
+                  nama: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             />
 
             <select
-              value={
-                editProduct.categoryId
-              }
+              value={editProduct.categoryId}
               onChange={(e) =>
                 setEditProduct({
                   ...editProduct,
-                  categoryId:
-                    e.target.value
+                  categoryId: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             >
-              {categories.map(c => (
-                <option
-                  key={c.id}
-                  value={c.id}
-                >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
 
             <select
-              value={
-                editProduct.satuan
-              }
+              value={editProduct.satuan}
               onChange={(e) =>
                 setEditProduct({
                   ...editProduct,
-                  satuan:
-                    e.target.value
+                  satuan: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             >
-              {satuanOptions.map(
-                (s, i) => (
-                  <option
-                    key={i}
-                    value={s}
-                  >
-                    {s}
-                  </option>
-                )
-              )}
+              {satuanOptions.map((s, i) => (
+                <option key={i} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
 
             <textarea
-              value={
-                editProduct.keterangan
-              }
+              value={editProduct.keterangan}
               onChange={(e) =>
                 setEditProduct({
                   ...editProduct,
-                  keterangan:
-                    e.target.value
+                  keterangan: e.target.value,
                 })
               }
-              className="border p-2 rounded col-span-2"
+              className="col-span-2 rounded border p-2"
             />
-
           </div>
 
-          <div className="flex gap-2 mt-4">
-
+          <div className="mt-4 flex gap-2">
             <button
               onClick={updateProduct}
-              className="bg-green-500 text-white px-4 py-2 rounded"
+              className="rounded bg-green-500 px-4 py-2 text-white"
             >
               Save
             </button>
 
             <button
-              onClick={() =>
-                setEditProduct(null)
-              }
-              className="bg-gray-400 text-white px-4 py-2 rounded"
+              onClick={() => setEditProduct(null)}
+              className="rounded bg-gray-400 px-4 py-2 text-white"
             >
               Cancel
             </button>
-
           </div>
-
         </Card>
-
       )}
 
       {/* ========================= */}
       {/* EDIT VARIANT */}
       {/* ========================= */}
       {editVariant && (
-
         <Card extra="p-5">
-
-          <h2 className="font-bold text-lg mb-4">
-            Edit Variant
-          </h2>
+          <h2 className="mb-4 text-lg font-bold">Edit Variant</h2>
 
           <div className="grid grid-cols-2 gap-3">
-
             <input
-              value={
-                editVariant.nama_variant
-              }
+              value={editVariant.nama_variant}
               onChange={(e) =>
                 setEditVariant({
                   ...editVariant,
-                  nama_variant:
-                    e.target.value
+                  nama_variant: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             />
 
             <input
               type="number"
-              value={
-                editVariant.harga
-              }
+              value={editVariant.harga}
               onChange={(e) =>
                 setEditVariant({
                   ...editVariant,
-                  harga:
-                    e.target.value
+                  harga: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             />
 
             <input
               type="number"
-              value={
-                editVariant.stok
-              }
+              value={editVariant.stok}
               onChange={(e) =>
                 setEditVariant({
                   ...editVariant,
-                  stok:
-                    e.target.value
+                  stok: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             />
 
             <input
               type="number"
-              value={
-                editVariant.berat
-              }
+              value={editVariant.berat}
               onChange={(e) =>
                 setEditVariant({
                   ...editVariant,
-                  berat:
-                    e.target.value
+                  berat: e.target.value,
                 })
               }
-              className="border p-2 rounded"
+              className="rounded border p-2"
             />
-
           </div>
 
-          <div className="flex gap-2 mt-4">
-
+          <div className="mt-4 flex gap-2">
             <button
               onClick={updateVariant}
-              className="bg-green-500 text-white px-4 py-2 rounded"
+              className="rounded bg-green-500 px-4 py-2 text-white"
             >
               Save
             </button>
 
             <button
-              onClick={() =>
-                setEditVariant(null)
-              }
-              className="bg-gray-400 text-white px-4 py-2 rounded"
+              onClick={() => setEditVariant(null)}
+              className="rounded bg-gray-400 px-4 py-2 text-white"
             >
               Cancel
             </button>
-
           </div>
-
         </Card>
-
       )}
-
     </div>
   );
 }
