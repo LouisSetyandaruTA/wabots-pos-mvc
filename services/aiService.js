@@ -17,6 +17,10 @@ exports.processCustomerMessage = async ({ business, message, session }) => {
       {
         model: ProductVariant,
         as: "variants",
+        where: {
+          status: "active",
+        },
+        required: false,
       },
       {
         model: Category,
