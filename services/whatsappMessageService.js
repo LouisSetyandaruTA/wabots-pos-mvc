@@ -293,7 +293,9 @@ Anda sekarang terhubung ke ${autoBusiness.name} 😊`,
     }
 
     if (isEmptyMessage(text)) {
-      return await msg.reply("Pesan tidak boleh kosong.");
+      console.log("EMPTY MESSAGE DIABAIKAN");
+
+      return;
     }
 
     if (text.toLowerCase() === "/reset") {
@@ -1088,21 +1090,41 @@ Rp ${v.harga}\n`;
           // =========================
           // CEK STOK
           // =========================
-          if (variant.stok < item.qty) {
-            return await msg.reply(`${product.nama} stok tidak cukup.`);
+
+          const qty = Math.max(1, parseInt(item.qty) || 1);
+
+          if (variant.stok <= 0) {
+            return await msg.reply(
+              `Maaf, ${product.nama}
+(${variant.nama_variant})
+sedang habis.
+
+Silakan pilih menu lain 😊`,
+            );
           }
 
-          const subtotal = variant.harga * item.qty;
+          if (qty > variant.stok) {
+            return await msg.reply(
+              `Stok ${product.nama}
+(${variant.nama_variant})
+tidak mencukupi.
+
+Stok tersedia:
+${variant.stok}`,
+            );
+          }
+
+          const subtotal = variant.harga * qty;
 
           totalPrice += subtotal;
 
-          console.log("MATCHED VARIANT:");
-          console.log(variant);
-
           orderItems.push({
             variantId: variant.id,
-            quantity: item.qty,
+
+            quantity: qty,
+
             unitPrice: variant.harga,
+
             subtotal,
           });
         }
@@ -1110,6 +1132,12 @@ Rp ${v.harga}\n`;
         // =========================
         // BUAT ORDER
         // =========================
+        if (orderItems.length === 0 || totalPrice <= 0) {
+          return await msg.reply(
+            "Pesanan gagal diproses karena produk tidak tersedia.",
+          );
+        }
+
         const order = await Order.create({
           businessId: session.businessId,
 
