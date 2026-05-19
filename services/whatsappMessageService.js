@@ -141,6 +141,7 @@ Silakan mulai percakapan baru 😊`,
         const variants = await ProductVariant.findAll({
           where: {
             productId,
+            status: "active",
           },
         });
 
@@ -1084,6 +1085,10 @@ Pesanan sedang diproses.`,
               {
                 model: ProductVariant,
                 as: "variants",
+                where: {
+                  status: "active",
+                },
+                required: false,
               },
             ],
           });
@@ -1561,14 +1566,19 @@ Mohon tunggu beberapa saat.`;
             {
               model: ProductVariant,
               as: "variants",
+              where: {
+                status: "active",
+              },
+              required: false,
             },
           ],
         });
 
         if (!product) continue;
 
-        const variants = product.variants || [];
-
+        const variants = (product.variants || []).filter(
+          (v) => v.status === "active",
+        );
         // jika lebih dari satu variant
         // dan customer belum pilih
 
