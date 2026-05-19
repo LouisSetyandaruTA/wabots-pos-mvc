@@ -390,15 +390,14 @@ Selamat datang kembali di ${autoBusiness.name}
 
 Yang bisa Anda lakukan:
 
-🛒 Memesan produk
-Contoh:
-• Saya mau pesan Milktea besar 2
-• Pesan Es Teh 1
-
 📋 Melihat menu
 Contoh:
 • lihat menu
 • ada menu apa
+
+🛒 Memesan produk
+Contoh:
+• Saya mau pesan .... (produk yang ada dimenu)
 
 ❓ Bertanya
 Contoh:
@@ -640,13 +639,13 @@ Anda berhasil terhubung ke ${session.businessName}
 
 Panduan cepat:
 
-🛒 Pesan produk
-Contoh:
-• Saya mau Milktea besar 2
-
 📋 Lihat menu
 Contoh:
 • lihat menu
+
+🛒 Pesan produk
+Contoh:
+• Saya mau pesan (produk yang ada di menu)
 
 ❓ Tanya informasi
 Contoh:
@@ -1170,11 +1169,7 @@ Stok tersedia:
 ${variant.stok}
 
 Silakan kirim pesanan baru 😊
-
-Contoh:
-• Milktea sedang 1
-• Es Teh 2
-• Saya mau lihat menu`,
+atau mau lihat menu lainnya`,
             );
           }
 
@@ -1251,7 +1246,6 @@ Variant: ${item.variant}
         const successMessage = `Pesanan berhasil dibuat ✅
 
 Detail Pesanan:
-
 ${detailPesanan}
 
 Total:
