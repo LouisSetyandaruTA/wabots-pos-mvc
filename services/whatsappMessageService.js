@@ -384,9 +384,32 @@ Silakan mulai percakapan kembali 😊`,
             session = newSession;
 
             return await msg.reply(
-              `Selamat datang kembali ${existingCustomer.name}
+              `Halo ${existingCustomer.name} 👋
 
-Anda terhubung ke ${autoBusiness.name}`,
+Selamat datang kembali di ${autoBusiness.name}
+
+Yang bisa Anda lakukan:
+
+🛒 Memesan produk
+Contoh:
+• Saya mau pesan Milktea besar 2
+• Pesan Es Teh 1
+
+📋 Melihat menu
+Contoh:
+• lihat menu
+• ada menu apa
+
+❓ Bertanya
+Contoh:
+• Jam buka berapa?
+• Alamat toko dimana?
+
+👨‍💼 Hubungi admin
+Contoh:
+• Saya mau admin
+
+Silakan kirim pesan 😊`,
             );
           }
 
@@ -611,10 +634,30 @@ ${profileName} ?
         session = newSession;
 
         return await msg.reply(
-          `Halo ${customer.name},
-Anda berhasil terhubung ke ${session.businessName}.
+          `Halo ${customer.name} 👋
 
-Silakan kirim pesanan Anda.`,
+Anda berhasil terhubung ke ${session.businessName}
+
+Panduan cepat:
+
+🛒 Pesan produk
+Contoh:
+• Saya mau Milktea besar 2
+
+📋 Lihat menu
+Contoh:
+• lihat menu
+
+❓ Tanya informasi
+Contoh:
+• Jam buka
+• Alamat toko
+
+👨‍💼 Hubungi admin
+Contoh:
+• Saya mau admin
+
+Silakan kirim pesan 😊`,
         );
       }
 
@@ -1094,8 +1137,14 @@ Rp ${v.harga}\n`;
           const qty = Math.max(1, parseInt(item.qty) || 1);
 
           if (variant.stok <= 0) {
+            setSession(phone, {
+              ...session,
+              pendingOrder: null,
+              step: "chatting",
+            });
+
             return await msg.reply(
-              `Maaf, ${product.nama}
+              `Maaf ${product.nama}
 (${variant.nama_variant})
 sedang habis.
 
@@ -1104,13 +1153,28 @@ Silakan pilih menu lain 😊`,
           }
 
           if (qty > variant.stok) {
+            setSession(phone, {
+              ...session,
+
+              pendingOrder: null,
+
+              step: "chatting",
+            });
+
             return await msg.reply(
               `Stok ${product.nama}
 (${variant.nama_variant})
 tidak mencukupi.
 
 Stok tersedia:
-${variant.stok}`,
+${variant.stok}
+
+Silakan kirim pesanan baru 😊
+
+Contoh:
+• Milktea sedang 1
+• Es Teh 2
+• Saya mau lihat menu`,
             );
           }
 
