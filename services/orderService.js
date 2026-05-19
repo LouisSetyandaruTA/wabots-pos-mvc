@@ -455,16 +455,27 @@ exports.rejectOrder = async (orderId) => {
 
 Mohon maaf pesanan Anda tidak dapat diproses ❌
 
-Silakan lakukan pemesanan ulang 🙏`,
-      );
-    }
+Silakan lakukan pemesanan ulang 🙏
 
-    clearSession(order.customer.phoneNumber);
+Anda masih dapat langsung memesan kembali 😊`,
+      );
+
+      // JANGAN HAPUS SESSION
+      const { getSession, setSession } = require("./whatsappSessionService");
+
+      const session = getSession(order.customer.phoneNumber);
+
+      if (session) {
+        setSession(order.customer.phoneNumber, {
+          ...session,
+          pendingOrder: null,
+          pendingVariantProduct: null,
+          step: "chatting",
+        });
+      }
+    }
   } catch (err) {
     console.log("WA ERROR:", err.message);
-
-    // jangan throw lagi
-    // database sudah benar
   }
 
   return order;
