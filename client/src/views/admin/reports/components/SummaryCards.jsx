@@ -39,7 +39,7 @@ export default function SummaryCards({ data }) {
   ];
 
   return (
-    <div className="mb-6 grid grid-cols-4 gap-4">
+    <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, i) => (
         <div key={i} className="rounded-xl bg-white p-4 shadow">
           <p className="text-sm text-gray-500">{card.title}</p>

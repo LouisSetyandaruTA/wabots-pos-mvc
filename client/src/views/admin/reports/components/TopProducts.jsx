@@ -1,27 +1,43 @@
 import { formatRupiah } from "../../../../utils/format";
 
 export default function TopProducts({ data }) {
-    return (
-              <div className="bg-white p-4 rounded-xl shadow mt-6">
-                <h3 className="font-bold mb-4">Top Products</h3>
-            <table className="w-full">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Sold</th>
-                        <th>Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data?.map((item, i) => (
-                        <tr key={i}>
-                            <td>{item.productName}</td>
-                            <td>{item.totalSold}</td>
-                            <td>{formatRupiah(item.revenue)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+  const maxSold = Math.max(...data.map((i) => Number(i.totalSold)), 1);
+
+  return (
+    <div className="mt-6 rounded-xl bg-white p-6 shadow">
+      <h3 className="mb-4 text-lg font-bold">🔥 Produk Terlaris</h3>
+
+      <div className="space-y-4">
+        {data?.map((item, i) => {
+          const percentage = (Number(item.totalSold) / maxSold) * 100;
+
+          return (
+            <div key={i}>
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-medium">{item.productName}</p>
+
+                  <p className="text-sm text-gray-500">
+                    Terjual:
+                    {item.totalSold}
+                  </p>
+                </div>
+
+                <p className="font-bold">{formatRupiah(item.revenue)}</p>
+              </div>
+
+              <div className="mt-2 h-3 w-full rounded-full bg-gray-200">
+                <div
+                  className="h-3 rounded-full bg-blue-500"
+                  style={{
+                    width: `${percentage}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

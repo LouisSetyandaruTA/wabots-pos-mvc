@@ -204,7 +204,7 @@ const getSummaryReport = async ({
               {
                 model: Product,
                 as: "product",
-                attributes: ["nama"],
+                attributes: ["id", "nama"],
                 where: {
                   businessId,
                   status: "active",

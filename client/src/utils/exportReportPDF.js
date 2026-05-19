@@ -28,13 +28,16 @@ export const exportReportPDF = (data, filter) => {
     body: [
       ["Total Revenue", `Rp ${summary.totalRevenue.toLocaleString("id-ID")}`],
       ["Total Orders", summary.totalOrders],
-      ["AOV", `Rp ${Math.round(summary.avgOrderValue).toLocaleString("id-ID")}`],
+      [
+        "AOV",
+        `Rp ${Math.round(summary.avgOrderValue).toLocaleString("id-ID")}`,
+      ],
       ["Pending Orders", summary.pendingOrders],
-["Paid Orders", summary.paidOrders],
-["Ready Pickup", summary.readyPickupOrders],
-["Shipping", summary.shippingOrders],
-["Completed", summary.completedOrders]
-    ]
+      ["Paid Orders", summary.paidOrders],
+      ["Ready Pickup", summary.readyPickupOrders],
+      ["Shipping", summary.shippingOrders],
+      ["Completed", summary.completedOrders],
+    ],
   });
 
   // 🔷 TRENDS
@@ -43,11 +46,11 @@ export const exportReportPDF = (data, filter) => {
   autoTable(pdf, {
     startY: pdf.lastAutoTable.finalY + 13,
     head: [["Tanggal", "Revenue", "Orders"]],
-    body: trends.map(t => [
+    body: trends.map((t) => [
       t.period,
       `Rp ${Number(t.revenue).toLocaleString("id-ID")}`,
-      t.orders
-    ])
+      t.orders,
+    ]),
   });
 
   // 🔷 TOP PRODUCTS
@@ -56,11 +59,11 @@ export const exportReportPDF = (data, filter) => {
   autoTable(pdf, {
     startY: pdf.lastAutoTable.finalY + 13,
     head: [["Produk", "Terjual", "Revenue"]],
-    body: topProducts.map(p => [
+    body: topProducts.map((p) => [
       p.productName,
       p.totalSold,
-      `Rp ${Number(p.revenue).toLocaleString("id-ID")}`
-    ])
+      `Rp ${Number(p.revenue).toLocaleString("id-ID")}`,
+    ]),
   });
 
   // 🔷 TRANSAKSI DETAIL
@@ -68,27 +71,25 @@ export const exportReportPDF = (data, filter) => {
 
   autoTable(pdf, {
     startY: pdf.lastAutoTable.finalY + 13,
-    head: [[
-  "Customer",
-  "Produk",
-  "Metode",
-  "Status",
-  "Total"
-]],
-   body: transactions.map(t => [
+    head: [["Customer", "Produk", "Metode", "Status", "Total"]],
+    body: transactions.map((t) => [
+      t.customer?.name || "-",
 
-  t.customer?.name || "-",
+      t.items
+        ?.map(
+          (i) =>
+            `${i.variant?.product?.nama || "Produk dihapus"}
+          (${i.variant?.nama_variant || "Default"})
+          x${i.quantity}`
+        )
+        .join(", "),
 
-  t.items.map(i =>
-    `${i.variant?.product?.nama} (${i.quantity}x)`
-  ).join(", "),
+      t.deliveryMethod || "-",
 
-  t.deliveryMethod || "-",
+      t.fulfillmentStatus || "-",
 
-  t.fulfillmentStatus || "-",
-
-  `Rp ${Number(t.totalPrice).toLocaleString("id-ID")}`
-])
+      `Rp ${Number(t.totalPrice).toLocaleString("id-ID")}`,
+    ]),
   });
 
   // 🔷 FOOTER
@@ -97,11 +98,7 @@ export const exportReportPDF = (data, filter) => {
   for (let i = 1; i <= pageCount; i++) {
     pdf.setPage(i);
     pdf.setFontSize(8);
-    pdf.text(
-      `Halaman ${i} dari ${pageCount}`,
-      170,
-      290
-    );
+    pdf.text(`Halaman ${i} dari ${pageCount}`, 170, 290);
   }
 
   // 🔷 SAVE FILE

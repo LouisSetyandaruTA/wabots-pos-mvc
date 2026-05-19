@@ -81,10 +81,24 @@ exports.getAllOrders = async (businessId, query) => {
     order: [["createdAt", "DESC"]],
   });
 };
-
 const validateVariant = (variant, qty) => {
-  if (!variant) throw new Error("Variant tidak ditemukan");
-  if (variant.stok < qty) throw new Error("Stok tidak cukup");
+  if (!variant) {
+    throw new Error("Variant tidak ditemukan");
+  }
+
+  qty = parseInt(qty);
+
+  if (isNaN(qty) || qty <= 0) {
+    throw new Error("Quantity tidak valid");
+  }
+
+  if (variant.stok <= 0) {
+    throw new Error(`Stok ${variant.nama_variant} habis`);
+  }
+
+  if (qty > variant.stok) {
+    throw new Error(`Stok tersisa ${variant.stok}`);
+  }
 };
 
 exports.createOrder = async (payload) => {
@@ -162,8 +176,8 @@ exports.approveOrder = async (orderId) => {
 
   if (!order) throw new Error("Order tidak ditemukan");
 
-  if (order.status !== "pending") {
-    throw new Error("Order hanya bisa di-approve dari status pending");
+  if (!["pending", "approved"].includes(order.status)) {
+    throw new Error("Order tidak bisa dibatalkan");
   }
 
   order.status = "approved";
@@ -199,11 +213,15 @@ exports.completePayment = async (orderId) => {
 
       validateVariant(variant, item.quantity);
 
+      const newStock = Math.max(0, variant.stok - item.quantity);
+
       await variant.update(
         {
-          stok: variant.stok - item.quantity,
+          stok: newStock,
         },
-        { transaction: t },
+        {
+          transaction: t,
+        },
       );
     }
 
@@ -314,18 +332,6 @@ Terima kasih telah berbelanja di ${order.business.name} 🙌`;
   return order;
 };
 
-/*
-===================================================
-ADMIN KIRIM PESANAN
-===================================================
-
-delivery
-↓
-shipping
-
-===================================================
-*/
-
 exports.sendOrder = async (orderId) => {
   const order = await Order.findByPk(orderId, {
     include: [
@@ -421,6 +427,7 @@ exports.rejectOrder = async (orderId) => {
 
   await order.update({
     status: "cancelled",
+    fulfillmentStatus: "cancelled",
   });
 
   /*
@@ -432,16 +439,16 @@ exports.rejectOrder = async (orderId) => {
   await whatsappService.sendWhatsAppMessage(
     order.customer.phoneNumber,
 
-    `Pesanan Anda tidak dapat diproses ❌
+    `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
 
-Toko:
-${order.business.name}
+Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
 
-Alasan:
-Pesanan tidak valid atau produk sedang tidak tersedia.
-
-Silakan lakukan pemesanan ulang atau hubungi admin 😊`,
+Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
   );
+
+  const { clearSession } = require("./whatsappSessionService");
+
+  clearSession(order.customer.phoneNumber);
 
   return order;
 };

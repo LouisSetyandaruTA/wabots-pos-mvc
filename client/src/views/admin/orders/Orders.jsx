@@ -133,12 +133,6 @@ export default function Orders() {
           <option value="paid">Paid</option>
         </select>
       </div>
-      <select onChange={(e) => setStatus(e.target.value)}>
-        <option value="">Semua</option>
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="paid">Paid</option>
-      </select>
       <h2 className="mb-4 text-xl font-bold">Order Management</h2>
 
       <div className="rounded-xl bg-white p-4 shadow">
@@ -216,12 +210,21 @@ export default function Orders() {
                     ====================== */}
 
                     {order.status === "approved" && (
-                      <button
-                        onClick={() => pay(order.id)}
-                        className="rounded bg-green-500 px-3 py-1 text-xs text-white"
-                      >
-                        Bayar
-                      </button>
+                      <>
+                        <button
+                          onClick={() => pay(order.id)}
+                          className="rounded bg-green-500 px-3 py-1 text-xs text-white"
+                        >
+                          Bayar
+                        </button>
+
+                        <button
+                          onClick={() => reject(order.id)}
+                          className="rounded bg-red-500 px-3 py-1 text-xs text-white"
+                        >
+                          Batalkan
+                        </button>
+                      </>
                     )}
 
                     {/* ======================
@@ -270,14 +273,12 @@ export default function Orders() {
                       )}
 
                     {order.fulfillmentStatus === "completed" && (
-                      <span
-                        className="text-xsfont-semiboldtext-green-600"
-                      >
+                      <span className="text-xsfont-semiboldtext-green-600">
                         ✔ Selesai
                       </span>
                     )}
                   </td>
-  
+
                   <td>
                     <span className="text-xs font-semibold">
                       {order.fulfillmentStatus === "waiting_choice" &&

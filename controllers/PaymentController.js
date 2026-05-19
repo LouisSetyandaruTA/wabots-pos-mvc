@@ -1,5 +1,12 @@
 const { or } = require("sequelize");
-const { Customer, Order, OrderItem } = require("../models");
+const crypto = require("crypto");
+const {
+  Customer,
+  Order,
+  OrderItem,
+  ProductVariant,
+  sequelize,
+} = require("../models");
 const orderService = require("../services/orderService");
 const paymentService = require("../services/paymentService");
 const whatsappService = require("../services/whatsappService");
@@ -83,6 +90,22 @@ exports.midtransWebhook = async (req, res) => {
   try {
     const data = req.body;
 
+    const hash = crypto
+      .createHash("sha512")
+      .update(
+        data.order_id +
+          data.status_code +
+          data.gross_amount +
+          process.env.MIDTRANS_SERVER_KEY,
+      )
+      .digest("hex");
+
+    if (hash !== data.signature_key) {
+      return res.status(403).json({
+        message: "Signature invalid",
+      });
+    }
+
     console.log("🔥 WEBHOOK:", data.transaction_status);
 
     const order = await Order.findByPk(data.order_id, {
@@ -101,22 +124,72 @@ exports.midtransWebhook = async (req, res) => {
     if (!order)
       return res.status(404).json({ message: "Order tidak ditemukan" });
 
-    if (order.status === "paid") {
-      console.log("⛔ SUDAH PAID, SKIP");
-      return res.json({ success: true });
+    if (["paid", "cancelled"].includes(order.status)) {
+      console.log("SKIP");
+
+      return res.json({
+        success: true,
+      });
     }
 
     // HANDLE SUCCESS
     if (["settlement", "capture"].includes(data.transaction_status)) {
-      await orderService.completePayment(order.id);
-      if (order.customer.phoneNumber) {
-        await order.update({
-          deliveryMethod: null,
-          fulfillmentStatus: "waiting_choice",
-        });
+      //////==========
+      // await orderService.completePayment(order.id);
+      // if (order.customer.phoneNumber) {
+      //   await order.update({
+      //     deliveryMethod: null,
+      //     fulfillmentStatus: "waiting_choice",
+      //   });
+      // }
+
+      // await paymentService.savePayment(order, data);
+
+      const transaction = await sequelize.transaction();
+
+      try {
+        for (const item of order.items) {
+          const variant = await ProductVariant.findByPk(
+            item.variantId,
+
+            {
+              transaction,
+              lock: true,
+            },
+          );
+
+          if (!variant) {
+            throw new Error("Variant tidak ditemukan");
+          }
+
+          if (variant.stok < item.quantity) {
+            throw new Error(
+              `Stok ${variant.nama_variant}
+tidak mencukupi`,
+            );
+          }
+        }
+
+        const paidOrder = await orderService.completePayment(order.id);
+
+        if (order.customer.phoneNumber) {
+          await order.update({
+            deliveryMethod: null,
+
+            fulfillmentStatus: "waiting_choice",
+          });
+        }
+
+        await paymentService.savePayment(order, data);
+
+        await transaction.commit();
+      } catch (err) {
+        await transaction.rollback();
+
+        throw err;
       }
 
-      await paymentService.savePayment(order, data);
+      // =====
       console.log("KIRIM WA PAYMENT SUCCESS KE:", order.customer.phoneNumber);
 
       await whatsappService.sendWhatsAppMessage(
@@ -176,6 +249,10 @@ Silakan lakukan pemesanan ulang.`,
     res.json({ success: true });
   } catch (err) {
     console.error("WEBHOOK ERROR:", err);
-    res.status(200).json({ success: true });
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
