@@ -1547,51 +1547,7 @@ Rp ${v.harga}
           return await msg.reply(variantText);
         }
       }
-      const qty = Math.max(1, parseInt(item.qty) || 1);
 
-      const product = await Product.findOne({
-        where: {
-          nama: item.product_name,
-          businessId: session.businessId,
-        },
-        include: [
-          {
-            model: ProductVariant,
-            as: "variants",
-          },
-        ],
-      });
-
-      if (!product) {
-        return await msg.reply(
-          `${item.product_name}
-tidak tersedia`,
-        );
-      }
-
-      let variant = product.variants.find(
-        (v) =>
-          v.nama_variant.toLowerCase() ===
-          (item.variant || "default").toLowerCase(),
-      );
-
-      if (!variant) {
-        variant = product.variants[0];
-      }
-
-      if (variant.stok <= 0) {
-        return await msg.reply(
-          `${product.nama}
-sedang habis`,
-        );
-      }
-
-      if (qty > variant.stok) {
-        return await msg.reply(
-          `Stok ${product.nama}
-tersisa ${variant.stok}`,
-        );
-      }
       // =========================
       // BUAT RINGKASAN
       // =========================
