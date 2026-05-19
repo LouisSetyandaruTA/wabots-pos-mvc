@@ -155,20 +155,21 @@ ${transaction.redirect_url}`;
   }
 };
 
-exports.savePayment = async (order, midtransData) => {
-  return await Payment.create({
-    orderId: order.id,
-    businessId: order.businessId,
-
-    customerName: order.customer?.name || "-",
-    customerPhone: order.customer?.phoneNumber || "-",
-
-    totalPrice: order.totalPrice,
-    paidAmount: order.totalPrice,
-
-    method: midtransData.payment_type,
-    status: midtransData.transaction_status,
-
-    midtransResponse: midtransData,
-  });
+exports.savePayment = async (order, data, transaction = null) => {
+  await Payment.create(
+    {
+      orderId: order.id,
+      businessId: order.businessId,
+      customerName: order.customer.name,
+      customerPhone: order.customer.phoneNumber,
+      totalPrice: order.totalPrice,
+      paidAmount: data.gross_amount,
+      method: data.payment_type,
+      status: data.transaction_status,
+      midtransResponse: JSON.stringify(data),
+    },
+    {
+      transaction,
+    },
+  );
 };

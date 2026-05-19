@@ -180,7 +180,7 @@ tidak mencukupi`,
           });
         }
 
-        await paymentService.savePayment(order, data);
+        await paymentService.savePayment(order, data, transaction);
 
         await transaction.commit();
       } catch (err) {
@@ -208,14 +208,13 @@ Pilih metode penerimaan pesanan:
 
       const customerSession = getSession(order.customer.phoneNumber);
 
-        setSession(order.customer.phoneNumber, {
-          ...(customerSession || {}),
+      setSession(order.customer.phoneNumber, {
+        ...(customerSession || {}),
 
-          customerId: order.customerId,
-          lastOrderId: order.id,
-          step: "waiting_delivery_method",
-        });
-      
+        customerId: order.customerId,
+        lastOrderId: order.id,
+        step: "waiting_delivery_method",
+      });
     }
 
     //  HANDLE PENDING)
