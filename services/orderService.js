@@ -181,7 +181,22 @@ exports.approveOrder = async (orderId) => {
   }
 
   order.status = "approved";
+
   await order.save();
+
+  try {
+    if (order.customer?.phoneNumber) {
+      await whatsappService.sendWhatsAppMessage(
+        order.customer.phoneNumber,
+
+        `Pesanan Anda telah disetujui ✅
+
+Silakan lanjutkan pembayaran`,
+      );
+    }
+  } catch (err) {
+    console.log("WA ERROR:", err.message);
+  }
 
   return order;
 };
@@ -425,48 +440,100 @@ exports.rejectOrder = async (orderId) => {
     throw new Error("Order sudah dibayar");
   }
 
-  /*
-  =====================
-  UBAH STATUS
-  =====================
-  */
-
+  // update status dulu
   await order.update({
     status: "cancelled",
     fulfillmentStatus: "completed",
   });
 
-  if (order.customer) {
-    await whatsappService.sendMessage(
-      order.customer.phoneNumber,
+  try {
+    if (order.customer?.phoneNumber) {
+      await whatsappService.sendWhatsAppMessage(
+        order.customer.phoneNumber,
 
-      `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
+        `Kami dari ${order.business.name}
 
-Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
+Mohon maaf pesanan Anda tidak dapat diproses ❌
 
-Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
-    );
+Silakan lakukan pemesanan ulang 🙏`,
+      );
+    }
+
+    clearSession(order.customer.phoneNumber);
+  } catch (err) {
+    console.log("WA ERROR:", err.message);
+
+    // jangan throw lagi
+    // database sudah benar
   }
-
-  /*
-  =====================
-  KIRIM WHATSAPP
-  =====================
-  */
-
-  await whatsappService.sendWhatsAppMessage(
-    order.customer.phoneNumber,
-
-    `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
-
-Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
-
-Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
-  );
-
-  const { clearSession } = require("./whatsappSessionService");
-
-  clearSession(order.customer.phoneNumber);
 
   return order;
 };
+
+// exports.rejectOrder = async (orderId) => {
+//   const order = await Order.findByPk(orderId, {
+//     include: [
+//       {
+//         model: Customer,
+//         as: "customer",
+//       },
+//       {
+//         model: Business,
+//         as: "business",
+//       },
+//     ],
+//   });
+
+//   if (!order) {
+//     throw new Error("Order tidak ditemukan");
+//   }
+
+//   if (order.status === "paid") {
+//     throw new Error("Order sudah dibayar");
+//   }
+
+//   /*
+//   =====================
+//   UBAH STATUS
+//   =====================
+//   */
+
+//   await order.update({
+//     status: "cancelled",
+//     fulfillmentStatus: "completed",
+//   });
+
+//   if (order.customer) {
+//     await whatsappService.sendMessage(
+//       order.customer.phoneNumber,
+
+//       `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
+
+// Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
+
+// Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
+//     );
+//   }
+
+//   /*
+//   =====================
+//   KIRIM WHATSAPP
+//   =====================
+//   */
+
+//   await whatsappService.sendWhatsAppMessage(
+//     order.customer.phoneNumber,
+
+//     `Kami dari ${order.business.name} Minta Maaf pesanan Anda tidak dapat diproses ❌
+
+// Alasan: Pesanan tidak valid atau produk sedang tidak tersedia.
+
+// Silakan lakukan pemesanan ulang Terima Kasih 🙏`,
+//   );
+
+//   const { clearSession } = require("./whatsappSessionService");
+
+//   clearSession(order.customer.phoneNumber);
+
+//   return order;
+// };

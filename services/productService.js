@@ -1,58 +1,50 @@
 const { Product, ProductVariant, Category, Business } = require("../models");
-
+const { Op } = require("sequelize");
 
 exports.getAll = async (businessId) => {
   const products = await Product.findAll({
     where: {
-  businessId,
-  status: "active"
-},
+      businessId,
+      status: "active",
+    },
     include: [
       {
-  model: ProductVariant,
-  as: "variants",
-  where: {
-    status: "active"
-  },
-  required: false
-},
+        model: ProductVariant,
+        as: "variants",
+        where: {
+          status: {
+            [Op.ne]: "inactive",
+          },
+        },
+        required: false,
+      },
       {
         model: Category,
         as: "Category",
-        attributes: ["id", "name"]
-      }
-    ]
+        attributes: ["id", "name"],
+      },
+    ],
   });
 
-  return products.map(p => {
+  return products.map((p) => {
     const variants = p.variants || [];
 
-    const totalStock = variants.reduce(
-      (sum, v) => sum + (v.stok || 0),
-      0
-    );
+    const totalStock = variants.reduce((sum, v) => sum + (v.stok || 0), 0);
 
     const minPrice =
-      variants.length > 0
-        ? Math.min(...variants.map(v => v.harga))
-        : 0;
+      variants.length > 0 ? Math.min(...variants.map((v) => v.harga)) : 0;
 
     return {
       ...p.toJSON(),
       stok: totalStock,
-      harga: minPrice 
+      harga: minPrice,
     };
   });
 };
 
 // VALIDATION FUNCTION
 const validateProduct = (data) => {
-  if (
-    !data.nama ||
-    !data.categoryId ||
-    !data.satuan ||
-    !data.berat
-  ) {
+  if (!data.nama || !data.categoryId || !data.satuan || !data.berat) {
     throw new Error("Field product tidak lengkap");
   }
 
@@ -67,7 +59,7 @@ exports.create = async (data, businessId) => {
 
   return await Product.create({
     ...data,
-    businessId
+    businessId,
   });
 };
 
@@ -80,48 +72,48 @@ exports.createProduct = async (data) => {
     nama_variant: "Default",
     harga: data.harga || 0,
     stok: data.stok || 0,
-    berat: data.berat || 0
+    berat: data.berat || 0,
   });
 
   return product;
 };
 
 exports.update = async (id, data, businessId) => {
- await Product.update(
-  {
-    nama: data.nama,
-    categoryId: data.categoryId,
-    satuan: data.satuan,
-    berat: data.berat,
-    keterangan: data.keterangan
-  },
+  await Product.update(
     {
-      where: { id, businessId }
-    }
+      nama: data.nama,
+      categoryId: data.categoryId,
+      satuan: data.satuan,
+      berat: data.berat,
+      keterangan: data.keterangan,
+    },
+    {
+      where: { id, businessId },
+    },
   );
 };
 
 exports.delete = async (id, businessId) => {
- await ProductVariant.update(
-  {
-    status: "inactive"
-  },
-  {
-    where: {
-      productId: id
-    }
-  }
-);
+  await ProductVariant.update(
+    {
+      status: "inactive",
+    },
+    {
+      where: {
+        productId: id,
+      },
+    },
+  );
 
-await Product.update(
-  {
-    status: "inactive"
-  },
-  {
-    where: {
-      id,
-      businessId
-    }
-  }
-);
+  await Product.update(
+    {
+      status: "inactive",
+    },
+    {
+      where: {
+        id,
+        businessId,
+      },
+    },
+  );
 };

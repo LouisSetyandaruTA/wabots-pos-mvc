@@ -1,15 +1,21 @@
 const { ProductVariant, Product } = require("../models");
+const { Op } = require("sequelize");
 
 exports.getByProduct = async (productId, businessId) => {
   return await ProductVariant.findAll({
-    where: { productId },
+    where: {
+      productId,
+      status: {
+        [Op.ne]: "inactive",
+      },
+    },
     include: [
       {
         model: Product,
         as: "Product",
-        where: { businessId }
-      }
-    ]
+        where: { businessId },
+      },
+    ],
   });
 };
 
@@ -17,27 +23,27 @@ exports.create = async (data, businessId) => {
   const product = await Product.findOne({
     where: {
       id: data.productId,
-      businessId
-    }
+      businessId,
+    },
   });
 
   if (!product) throw new Error("Produk tidak valid");
 
   return await ProductVariant.create({
     ...data,
-    businessId
+    businessId,
   });
 };
 
 exports.delete = async (id) => {
   await ProductVariant.update(
-  {
-    status: "inactive"
-  },
-  {
-    where: { id }
-  }
-);
+    {
+      status: "inactive",
+    },
+    {
+      where: { id },
+    },
+  );
 };
 
 exports.update = async (id, data) => {
