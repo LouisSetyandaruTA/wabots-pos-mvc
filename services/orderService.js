@@ -186,8 +186,10 @@ exports.approveOrder = async (orderId) => {
   return order;
 };
 
-exports.completePayment = async (orderId) => {
-  const t = await sequelize.transaction();
+exports.completePayment = async (orderId, externalTransaction = null) => {
+  const t = externalTransaction || (await sequelize.transaction());
+
+  const isExternal = !!externalTransaction;
 
   try {
     const order = await Order.findByPk(orderId, {
@@ -228,10 +230,14 @@ exports.completePayment = async (orderId) => {
     order.status = "paid";
     await order.save({ transaction: t });
 
-    await t.commit();
+    if (!isExternal) {
+      await t.commit();
+    }
     return order;
   } catch (err) {
-    await t.rollback();
+    if (!isExternal) {
+      await t.rollback();
+    }
     throw err;
   }
 };
